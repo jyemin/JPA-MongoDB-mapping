@@ -3,10 +3,11 @@
  */
 package org.hibernate.omm;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Test;
+
 class LibraryTest {
-    @Test void someLibraryMethodReturnsTrue() {
-    }
+  @Test
+  void someLibraryMethodReturnsTrue() {}
 }
