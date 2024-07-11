@@ -1,24 +1,26 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoCursor;
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.*;
-import java.sql.Date;
-import java.util.*;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulateSQLException;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 public class MongodbResultSet extends ResultSetAdapter {
 
   private final MongoCursor<? extends Document> mongoCursor;
   private Document currentDocument;
   private List<String> currentDocumentKeys = Collections.emptyList();
+  private boolean wasNull;
 
   public MongodbResultSet(MongoCursor<? extends Document> mongoCursor) {
     this.mongoCursor = mongoCursor;
@@ -38,6 +40,11 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public void close() {
     mongoCursor.close();
+  }
+
+  @Override
+  public boolean wasNull() throws SQLException {
+    return wasNull;
   }
 
   @Override
@@ -101,92 +108,8 @@ public class MongodbResultSet extends ResultSetAdapter {
   }
 
   @Override
-  public InputStream getAsciiStream(int columnIndex) throws SQLException {
-    return null;
-  }
-
-  @Override
-  public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-    return null;
-  }
-
-  @Override
-  public InputStream getBinaryStream(int columnIndex) throws SQLException {
-    return null;
-  }
-
-  @Override
-  public Object getObject(int columnIndex) throws SQLException {
-    return getReferenceTypeValue(columnIndex, Object.class);
-  }
-
-  @Override
-  public Reader getCharacterStream(int columnIndex) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
   public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
     return getReferenceTypeValue(columnIndex, BigDecimal.class);
-  }
-
-  @Override
-  public Blob getBlob(int columnIndex) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public Clob getClob(int columnIndex) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public Array getArray(int columnIndex) throws SQLException {
-    return getReferenceTypeValue(columnIndex, Array.class);
-  }
-
-  @Override
-  public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public URL getURL(int columnIndex) throws SQLException {
-    try {
-      return new URL(getString(columnIndex));
-    } catch (MalformedURLException e) {
-      throw new SimulateSQLException("invalid URL", e);
-    }
-  }
-
-  @Override
-  public NClob getNClob(int columnIndex) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-    return getReferenceTypeValue(columnIndex, type);
-  }
-
-  @Override
-  public <T> T unwrap(Class<T> iface) throws SQLException {
-    throw new NotSupportedSQLException();
-  }
-
-  @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
-    throw new NotSupportedSQLException();
   }
 
   private <T> T getPrimitiveTypeValue(int columnIndex, Class<T> type) throws SQLException {
@@ -194,8 +117,9 @@ public class MongodbResultSet extends ResultSetAdapter {
       throw new SimulateSQLException("current document is null");
     }
     T value = currentDocument.get(currentDocumentKeys.get(columnIndex), type);
+    wasNull = value == null;
     if (value == null) {
-      throw new SimulateSQLException("null value at column index: " + columnIndex);
+      return type.cast(0);
     }
     return value;
   }
@@ -205,7 +129,9 @@ public class MongodbResultSet extends ResultSetAdapter {
       throw new SimulateSQLException("current document is null");
     }
     try {
-      return currentDocument.get(currentDocumentKeys.get(columnIndex), type);
+      T value = currentDocument.get(currentDocumentKeys.get(columnIndex), type);
+      wasNull = value == null;
+      return value;
     } catch (ClassCastException cce) {
       throw new SimulateSQLException("class cast failure", cce);
     }
