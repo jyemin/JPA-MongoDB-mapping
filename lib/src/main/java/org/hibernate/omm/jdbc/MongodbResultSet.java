@@ -1,10 +1,6 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoCursor;
-import org.bson.*;
-import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
-import org.hibernate.omm.jdbc.exception.BsonNullValueException;
-
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -14,6 +10,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
+import org.bson.*;
+import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
+import org.hibernate.omm.jdbc.exception.BsonNullValueException;
 
 public class MongodbResultSet extends ResultSetAdapter {
 
@@ -158,5 +157,4 @@ public class MongodbResultSet extends ResultSetAdapter {
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
   }
-
 }
