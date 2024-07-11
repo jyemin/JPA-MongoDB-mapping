@@ -10,19 +10,25 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
+
+import com.mongodb.client.MongoIterable;
 import org.bson.*;
 import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
 import org.hibernate.omm.jdbc.exception.BsonNullValueException;
 
 public class MongodbResultSet extends ResultSetAdapter {
 
-  private final MongoCursor<BsonDocument> mongoCursor;
+  private final MongoCursor<? extends BsonDocument> mongoCursor;
   private BsonDocument currentDocument;
   private List<String> currentDocumentKeys = Collections.emptyList();
   private BsonValue lastRead;
 
-  public MongodbResultSet(MongoCursor<BsonDocument> mongoCursor) {
+  public MongodbResultSet(MongoCursor<? extends BsonDocument> mongoCursor) {
     this.mongoCursor = mongoCursor;
+  }
+
+  public MongodbResultSet(MongoIterable<? extends BsonDocument> mongoIterable) {
+    this(mongoIterable.cursor());
   }
 
   @Override
