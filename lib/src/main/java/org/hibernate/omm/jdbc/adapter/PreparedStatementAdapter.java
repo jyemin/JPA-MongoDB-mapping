@@ -288,4 +288,44 @@ public class PreparedStatementAdapter extends StatementAdapter implements Prepar
   public void setNClob(int parameterIndex, Reader reader) throws SQLException {
     throw new NotSupportedSQLException();
   }
+
+  @Override
+  public int getMaxFieldSize() throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public void setMaxFieldSize(int max) throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public int getMaxRows() throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public void setMaxRows(int max) throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public void setEscapeProcessing(boolean enable) throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public int getQueryTimeout() throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public void setQueryTimeout(int seconds) throws SQLException {
+    throw new NotSupportedSQLException();
+  }
+
+  @Override
+  public void setCursorName(String name) throws SQLException {
+    throw new NotSupportedSQLException();
+  }
 }
