@@ -20,7 +20,7 @@ dependencies {
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation libs.hibernate.core, libs.mongodb.java.driver
+    implementation libs.hibernate.core, libs.mongodb.java.driver, libs.parboiled.java
 }
 
 java {

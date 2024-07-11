@@ -1,126 +1,109 @@
-package org.hibernate.omm.jdbc;
+package org.hibernate.omm.jdbc.adapter;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
-import org.bson.Document;
+import java.util.Calendar;
+import java.util.Map;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulateSQLException;
 
 public class ResultSetAdapter implements ResultSet {
 
-  private final Document document;
-  private final List<String> keys;
-
-  private boolean closed;
-
-  public ResultSetAdapter() {
-    document = null;
-    keys = Collections.emptyList();
-  }
-
-  public ResultSetAdapter(Document document) {
-    this.document = document;
-    this.keys = new ArrayList<>(document.keySet());
-  }
-
   @Override
   public boolean next() throws SQLException {
-    return document != null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public void close() throws SQLException {
-    closed = true;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public boolean wasNull() throws SQLException {
-    return document == null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public String getString(int columnIndex) throws SQLException {
-    return document.getString(keys.get(columnIndex));
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public boolean getBoolean(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Boolean.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public byte getByte(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Byte.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public short getShort(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Short.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public int getInt(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Integer.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public long getLong(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Long.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public float getFloat(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Float.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public double getDouble(int columnIndex) throws SQLException {
-    return getPrimitiveTypeValue(columnIndex, Double.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-    return (BigDecimal) document.getOrDefault(keys.get(columnIndex), (BigDecimal) null);
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public byte[] getBytes(int columnIndex) throws SQLException {
-    return new byte[0];
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public Date getDate(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public Time getTime(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public Timestamp getTimestamp(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public InputStream getAsciiStream(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
   public InputStream getBinaryStream(int columnIndex) throws SQLException {
-    return null;
+    throw new NotSupportedSQLException();
   }
 
   @Override
@@ -225,7 +208,7 @@ public class ResultSetAdapter implements ResultSet {
 
   @Override
   public Object getObject(int columnIndex) throws SQLException {
-    return getReferenceTypeValue(columnIndex, Object.class);
+    throw new NotSupportedSQLException();
   }
 
   @Override
@@ -751,8 +734,8 @@ public class ResultSetAdapter implements ResultSet {
   }
 
   @Override
-  public boolean isClosed() {
-    return closed;
+  public boolean isClosed() throws SQLException {
+    throw new NotSupportedSQLException();
   }
 
   @Override
@@ -973,7 +956,7 @@ public class ResultSetAdapter implements ResultSet {
 
   @Override
   public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-    return getReferenceTypeValue(columnIndex, type);
+    throw new NotSupportedSQLException();
   }
 
   @Override
@@ -989,21 +972,5 @@ public class ResultSetAdapter implements ResultSet {
   @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     throw new NotSupportedSQLException();
-  }
-
-  private <T> T getPrimitiveTypeValue(int columnIndex, Class<T> type) throws SQLException {
-    T value = document.get(keys.get(columnIndex), type);
-    if (value == null) {
-      throw new SimulateSQLException("null value at column index: " + columnIndex);
-    }
-    return value;
-  }
-
-  private <T> T getReferenceTypeValue(int columnIndex, Class<T> type) throws SQLException {
-    try {
-      return document.get(keys.get(columnIndex), type);
-    } catch (ClassCastException cce) {
-      throw new SimulateSQLException("class cast failure", cce);
-    }
   }
 }
