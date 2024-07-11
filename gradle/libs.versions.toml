@@ -4,13 +4,13 @@
 [versions]
 junit-jupiter = "5.10.2"
 hibernate-orm-core = "6.5.2.Final"
-mongodb-java-driver = "3.12.14"
+mongodb-java-driver = "5.1.2"
 embedded-mongodb = "4.15.0"
 parboiled-java = "1.4.1"
 
 [libraries]
 hibernate-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate-orm-core" }
-mongodb-java-driver = { module = "org.mongodb:mongo-java-driver", version.ref = "mongodb-java-driver" }
+mongodb-java-driver = { module = "org.mongodb:mongodb-driver-sync", version.ref = "mongodb-java-driver" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 embedded-mongodb = { module = "de.flapdoodle.embed:de.flapdoodle.embed.mongo", version.ref = "embedded-mongodb" }
 parboiled-java = { module = "org.parboiled:parboiled-java", version.ref = "parboiled-java" }
