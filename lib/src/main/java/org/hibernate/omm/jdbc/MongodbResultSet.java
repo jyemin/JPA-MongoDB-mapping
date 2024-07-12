@@ -30,6 +30,11 @@ public class MongodbResultSet extends ResultSetAdapter {
   private volatile boolean closed;
 
   public MongodbResultSet(
+      MongoDatabase mongoDatabase, String collection, Document findCommandResult) {
+    this(mongoDatabase, collection, findCommandResult, null);
+  }
+
+  public MongodbResultSet(
       MongoDatabase mongoDatabase,
       String collection,
       Document findCommandResult,

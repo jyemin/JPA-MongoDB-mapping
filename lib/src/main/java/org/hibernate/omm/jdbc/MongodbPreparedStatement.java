@@ -2,37 +2,40 @@ package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoDatabase;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 public class MongodbPreparedStatement extends PreparedStatementAdapter {
 
-  private final MongoDatabase database;
+  private final MongoDatabase mongoDatabase;
+  private final String collection;
   private final Bson command;
 
-  public MongodbPreparedStatement(MongoDatabase database, Bson command) {
-    this.database = database;
+  public MongodbPreparedStatement(MongoDatabase mongoDatabase, String collection, Bson command) {
+    this.mongoDatabase = mongoDatabase;
+    this.collection = collection;
     this.command = command;
   }
 
   @Override
-  public ResultSet executeQuery() throws SQLException {
-    Document result = runCommand();
+  public ResultSet executeQuery() throws SimulatedSQLException {
+    Document commandResult = runCommand();
+    return new MongodbResultSet(mongoDatabase, collection, commandResult);
   }
 
   @Override
-  public int executeUpdate() throws SQLException {
+  public int executeUpdate() throws SimulatedSQLException {
     Document result = runCommand();
     return result.getInteger("n");
   }
 
   @Override
-  public boolean execute() throws SQLException {
+  public boolean execute() throws SimulatedSQLException {
     Document result = runCommand();
     return result.containsKey("cursor");
   }
@@ -47,9 +50,10 @@ public class MongodbPreparedStatement extends PreparedStatementAdapter {
   }
 
   private Document runCommand() throws CommandRunFailSQLException {
-    Document result = database.runCommand(command);
-    if (result.getInteger("ok") != 1) {
+    Document commandResult = mongoDatabase.runCommand(command);
+    if (commandResult.getInteger("ok") != 1) {
       throw new CommandRunFailSQLException();
     }
+    return commandResult;
   }
 }
