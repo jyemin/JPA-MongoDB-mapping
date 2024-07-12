@@ -1,6 +1,7 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoIterable;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -9,9 +10,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
-
-import com.mongodb.client.MongoIterable;
 import org.bson.*;
 import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
 import org.hibernate.omm.jdbc.exception.BsonNullValueException;
@@ -33,11 +31,11 @@ public class MongodbResultSet extends ResultSetAdapter {
 
   @Override
   public boolean next() {
-    try {
+    if (mongoCursor.hasNext()) {
       currentDocument = mongoCursor.next();
       currentDocumentKeys = new ArrayList<>(currentDocument.keySet());
       return true;
-    } catch (NoSuchElementException ignored) {
+    } else {
       return false;
     }
   }
