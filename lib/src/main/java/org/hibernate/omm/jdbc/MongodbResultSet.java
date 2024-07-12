@@ -73,7 +73,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public String getString(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonString bsonValue = currentDocument.getString(currentDocumentKeys.get(columnIndex));
+    BsonString bsonValue = currentDocument.getString(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : bsonValue.getValue();
   }
@@ -81,7 +81,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public boolean getBoolean(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonBoolean bsonValue = currentDocument.getBoolean(currentDocumentKeys.get(columnIndex));
+    BsonBoolean bsonValue = currentDocument.getBoolean(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -92,7 +92,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public byte getByte(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -103,7 +103,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public short getShort(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -114,7 +114,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public int getInt(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -125,7 +125,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public long getLong(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -136,7 +136,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public float getFloat(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -147,7 +147,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public double getDouble(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonNumber bsonValue = currentDocument.getNumber(currentDocumentKeys.get(columnIndex));
+    BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
     lastRead = bsonValue;
     if (bsonValue.isNull()) {
       throw new BsonNullValueSQLException();
@@ -158,7 +158,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public byte[] getBytes(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonBinary bsonValue = currentDocument.getBinary(currentDocumentKeys.get(columnIndex));
+    BsonBinary bsonValue = currentDocument.getBinary(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : bsonValue.getData();
   }
@@ -166,7 +166,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public Date getDate(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonDateTime bsonValue = currentDocument.getDateTime(currentDocumentKeys.get(columnIndex));
+    BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : new Date(bsonValue.getValue());
   }
@@ -174,7 +174,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public Time getTime(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonDateTime bsonValue = currentDocument.getDateTime(currentDocumentKeys.get(columnIndex));
+    BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : new Time(bsonValue.getValue());
   }
@@ -182,7 +182,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public Timestamp getTimestamp(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonDateTime bsonValue = currentDocument.getDateTime(currentDocumentKeys.get(columnIndex));
+    BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : new Timestamp(bsonValue.getValue());
   }
@@ -190,7 +190,7 @@ public class MongodbResultSet extends ResultSetAdapter {
   @Override
   public BigDecimal getBigDecimal(int columnIndex) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    BsonDecimal128 bsonValue = currentDocument.getDecimal128(currentDocumentKeys.get(columnIndex));
+    BsonDecimal128 bsonValue = currentDocument.getDecimal128(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
   }
@@ -212,6 +212,10 @@ public class MongodbResultSet extends ResultSetAdapter {
     } else {
       return false;
     }
+  }
+
+  private String getKey(int columnIndex) {
+    return currentDocumentKeys.get(columnIndex);
   }
 
   private void throwExceptionIfClosed() throws ResultSetClosedSQLException {
