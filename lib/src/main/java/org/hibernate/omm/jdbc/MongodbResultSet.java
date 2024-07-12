@@ -34,10 +34,7 @@ public class MongodbResultSet extends ResultSetAdapter {
     this.mongoDatabase = mongoDatabase;
     this.collection = collection;
     Document cursor = findCommandResult.get("cursor", Document.class);
-    this.currentBatchIterator =
-        cursor.toBsonDocument().getArray("firstBatch").stream()
-            .map(BsonValue::asDocument)
-            .iterator();
+    this.currentBatchIterator = cursor.getList("firstBatch", BsonDocument.class).iterator();
     this.currentCursorId = cursor.getLong("id");
     this.batchSize = batchSize;
   }
@@ -182,13 +179,12 @@ public class MongodbResultSet extends ResultSetAdapter {
     Document result = mongoDatabase.runCommand(command);
     List<BsonDocument> nextBatch =
         result.get("cursor", Document.class).getList("nextBatch", BsonDocument.class);
-    if (nextBatch.isEmpty()) {
-      currentBatchIterator = null;
-      currentCursorId = null;
+    currentBatchIterator = nextBatch.iterator();
+    if (currentBatchIterator.hasNext()) {
+      currentCursorId = result.get("cursor", Document.class).getLong("id");
+      return true;
+    } else {
       return false;
     }
-    currentBatchIterator = nextBatch.iterator();
-    currentCursorId = result.get("cursor", Document.class).getLong("id");
-    return true;
   }
 }
