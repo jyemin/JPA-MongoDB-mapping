@@ -9,7 +9,6 @@ import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 
 public class MongodbPreparedStatement extends PreparedStatementAdapter {
 
@@ -23,12 +22,13 @@ public class MongodbPreparedStatement extends PreparedStatementAdapter {
 
   @Override
   public ResultSet executeQuery() throws SQLException {
-    throw new NotSupportedSQLException();
+    Document result = runCommand();
   }
 
   @Override
   public int executeUpdate() throws SQLException {
-    throw new NotSupportedSQLException();
+    Document result = runCommand();
+    return result.getInteger("n");
   }
 
   @Override
@@ -48,7 +48,7 @@ public class MongodbPreparedStatement extends PreparedStatementAdapter {
 
   private Document runCommand() throws CommandRunFailSQLException {
     Document result = database.runCommand(command);
-    if (result.get("ok", Integer.class) != 1) {
+    if (result.getInteger("ok") != 1) {
       throw new CommandRunFailSQLException();
     }
   }
