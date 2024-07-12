@@ -1,5 +1,14 @@
 package org.hibernate.omm.jdbc.exception;
 
-import java.sql.SQLException;
+public class CommandRunFailSQLException extends SimulatedSQLException {
 
-public class CommandRunFailSQLException extends SQLException {}
+  public CommandRunFailSQLException() {}
+
+  public CommandRunFailSQLException(String reason) {
+    super(reason);
+  }
+
+  public CommandRunFailSQLException(String reason, Throwable cause) {
+    super(reason, cause);
+  }
+}

@@ -5,284 +5,289 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.NotSupportedSqlClientInfoException;
+import org.hibernate.omm.jdbc.exception.NotSupportedSqlClientInfoSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 public class ConnectionAdapter implements Connection {
   @Override
-  public Statement createStatement() throws SQLException {
+  public Statement createStatement() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql) throws SQLException {
+  public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public CallableStatement prepareCall(String sql) throws SQLException {
+  public CallableStatement prepareCall(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public String nativeSQL(String sql) throws SQLException {
+  public String nativeSQL(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setAutoCommit(boolean autoCommit) throws SQLException {
+  public void setAutoCommit(boolean autoCommit) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean getAutoCommit() throws SQLException {
+  public boolean getAutoCommit() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void commit() throws SQLException {
+  public void commit() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void rollback() throws SQLException {
+  public void rollback() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void close() throws SQLException {
+  public void close() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isClosed() throws SQLException {
+  public boolean isClosed() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public DatabaseMetaData getMetaData() throws SQLException {
+  public DatabaseMetaData getMetaData() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setReadOnly(boolean readOnly) throws SQLException {
+  public void setReadOnly(boolean readOnly) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isReadOnly() throws SQLException {
+  public boolean isReadOnly() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCatalog(String catalog) throws SQLException {
+  public void setCatalog(String catalog) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public String getCatalog() throws SQLException {
+  public String getCatalog() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTransactionIsolation(int level) throws SQLException {
+  public void setTransactionIsolation(int level) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getTransactionIsolation() throws SQLException {
+  public int getTransactionIsolation() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public SQLWarning getWarnings() throws SQLException {
+  public SQLWarning getWarnings() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency)
-      throws SQLException {
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
-      throws SQLException {
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
-      throws SQLException {
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Map<String, Class<?>> getTypeMap() throws SQLException {
+  public Map<String, Class<?>> getTypeMap() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+  public void setTypeMap(Map<String, Class<?>> map) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setHoldability(int holdability) throws SQLException {
+  public void setHoldability(int holdability) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getHoldability() throws SQLException {
+  public int getHoldability() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Savepoint setSavepoint() throws SQLException {
+  public Savepoint setSavepoint() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Savepoint setSavepoint(String name) throws SQLException {
+  public Savepoint setSavepoint(String name) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void rollback(Savepoint savepoint) throws SQLException {
+  public void rollback(Savepoint savepoint) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void releaseSavepoint(Savepoint savepoint) throws SQLException {
+  public void releaseSavepoint(Savepoint savepoint) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public Statement createStatement(
-      int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
+      int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public PreparedStatement prepareStatement(
       String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
-      throws SQLException {
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public CallableStatement prepareCall(
       String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
-      throws SQLException {
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
+  public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, int[] columnIndexes) throws SQLException {
+  public PreparedStatement prepareStatement(String sql, int[] columnIndexes)
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public PreparedStatement prepareStatement(String sql, String[] columnNames) throws SQLException {
+  public PreparedStatement prepareStatement(String sql, String[] columnNames)
+      throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Clob createClob() throws SQLException {
+  public Clob createClob() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Blob createBlob() throws SQLException {
+  public Blob createBlob() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public NClob createNClob() throws SQLException {
+  public NClob createNClob() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public SQLXML createSQLXML() throws SQLException {
+  public SQLXML createSQLXML() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isValid(int timeout) throws SQLException {
+  public boolean isValid(int timeout) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
   public void setClientInfo(String name, String value) throws SQLClientInfoException {
-    throw new NotSupportedSqlClientInfoException();
+    throw new NotSupportedSqlClientInfoSQLException();
   }
 
   @Override
   public void setClientInfo(Properties properties) throws SQLClientInfoException {
-    throw new NotSupportedSqlClientInfoException();
+    throw new NotSupportedSqlClientInfoSQLException();
   }
 
   @Override
-  public String getClientInfo(String name) throws SQLException {
+  public String getClientInfo(String name) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Properties getClientInfo() throws SQLException {
+  public Properties getClientInfo() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
+  public Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
+  public Struct createStruct(String typeName, Object[] attributes) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setSchema(String schema) throws SQLException {
+  public void setSchema(String schema) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public String getSchema() throws SQLException {
+  public String getSchema() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void abort(Executor executor) throws SQLException {
+  public void abort(Executor executor) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+  public void setNetworkTimeout(Executor executor, int milliseconds) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getNetworkTimeout() throws SQLException {
+  public int getNetworkTimeout() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public <T> T unwrap(Class<T> iface) throws SQLException {
+  public <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 }
