@@ -1,11 +1,10 @@
 package org.hibernate.omm.jdbc;
 
-import org.bson.BsonValue;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Calendar;
+import org.bson.BsonValue;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 public interface JdbcTypeCodec {
 
@@ -79,46 +78,59 @@ public interface JdbcTypeCodec {
 
   // --------------------------JDBC 2.0-----------------------------------
   java.io.Reader getCharacterStream(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setCharacterStream(BsonValue bsonValue, java.io.Reader x) throws SimulatedSQLException;
 
   BigDecimal getBigDecimal(BsonValue bsonValue) throws SimulatedSQLException;
 
   Blob getBlob(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setBlob(BsonValue bsonValue, Blob x) throws SimulatedSQLException;
 
   Clob getClob(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setClob(BsonValue bsonValue, Clob x) throws SimulatedSQLException;
 
   Array getArray(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setArray(BsonValue bsonValue, Array x) throws SimulatedSQLException;
 
   java.sql.Date getDate(BsonValue bsonValue, Calendar cal) throws SimulatedSQLException;
+
   java.sql.Time getTime(BsonValue bsonValue, Calendar cal) throws SimulatedSQLException;
+
   java.sql.Timestamp getTimestamp(BsonValue bsonValue, Calendar cal) throws SimulatedSQLException;
 
-  //-------------------------- JDBC 3.0 ----------------------------------------
+  // -------------------------- JDBC 3.0 ----------------------------------------
   java.net.URL getURL(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setURL(BsonValue bsonValue, java.net.URL x) throws SimulatedSQLException;
 
   RowId getRowId(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setRowId(BsonValue bsonValue, RowId x) throws SimulatedSQLException;
 
   NClob getNClob(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setNClob(BsonValue bsonValue, NClob x) throws SimulatedSQLException;
 
   SQLXML getSQLXML(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setSQLXML(BsonValue bsonValue, SQLXML x) throws SimulatedSQLException;
 
   String getNString(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setNString(BsonValue bsonValue, String x) throws SimulatedSQLException;
 
   java.io.Reader getNCharacterStream(BsonValue bsonValue) throws SimulatedSQLException;
+
   void setNCharacterStream(BsonValue bsonValue, java.io.Reader x) throws SimulatedSQLException;
 
-  //------------------------- JDBC 4.1 -----------------------------------
+  // ------------------------- JDBC 4.1 -----------------------------------
   <T> T getBoject(BsonValue bsonValue, Class<T> type) throws SimulatedSQLException;
+
   void setObject(BsonValue bsonValue, Object x, int targetSqlType) throws SimulatedSQLException;
 
-  //------------------------- JDBC 4.2 -----------------------------------
+  // ------------------------- JDBC 4.2 -----------------------------------
 
 }
