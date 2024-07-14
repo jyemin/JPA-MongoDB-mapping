@@ -1,40 +1,64 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLWarning;
+import java.util.List;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
+import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
 
-public class MongodbStatement extends StatementAdapter {
+public class MongodbStatement extends StatementAdapter implements MongodbJdbcContextAware {
 
-  private final MongoDatabase mongoDatabase;
-  private final String collection;
+  private static class CurrentQueryResult {
+    private final ResultSet resultSet;
+    private final long cursorId;
+
+    public CurrentQueryResult(ResultSet resultSet, long cursorId) {
+      this.resultSet = resultSet;
+      this.cursorId = cursorId;
+    }
+  }
+
+  private final MongodbJdbcContext mongodbJdbcContext;
+  private CurrentQueryResult currentQueryResult;
+  private int currentUpdateCount;
+  private int fetchSize;
 
   private volatile boolean closed;
 
-  public MongodbStatement(MongoDatabase mongoDatabase, String collection) {
-    this.mongoDatabase = mongoDatabase;
-    this.collection = collection;
+  public MongodbStatement(MongodbJdbcContext mongodbJdbcContext) {
+    this.mongodbJdbcContext = mongodbJdbcContext;
+  }
+
+  @Override
+  public MongodbJdbcContext getMongodbJdbcContext() {
+    return mongodbJdbcContext;
   }
 
   @Override
   public ResultSet executeQuery(String sql) throws SimulatedSQLException {
     throwExceptionIfClosed();
     Document command = Document.parse(sql);
-    Document commandResult = mongoDatabase.runCommand(command);
-    return new MongodbResultSet(mongoDatabase, collection, commandResult);
+    Document commandResult = mongodbJdbcContext.getMongoDatabase().runCommand(command);
+    if (commandResult.getInteger("ok") != 1) {
+      throw new CommandRunFailSQLException();
+    }
+    return new MongodbResultSet(mongodbJdbcContext, commandResult);
   }
 
   @Override
   public int executeUpdate(String sql) throws SimulatedSQLException {
     throwExceptionIfClosed();
     Document command = Document.parse(sql);
-    Document commandResult = mongoDatabase.runCommand(command);
+    Document commandResult = mongodbJdbcContext.getMongoDatabase().runCommand(command);
+    if (commandResult.getInteger("ok") != 1) {
+      throw new CommandRunFailSQLException();
+    }
     return commandResult.getInteger("n");
   }
 
@@ -42,8 +66,24 @@ public class MongodbStatement extends StatementAdapter {
   public boolean execute(String sql) throws SimulatedSQLException {
     throwExceptionIfClosed();
     Document command = Document.parse(sql);
-    Document result = mongoDatabase.runCommand(command);
-    return result.containsKey("cursor");
+    Document commandResult = mongodbJdbcContext.getMongoDatabase().runCommand(command);
+    if (commandResult.getInteger("ok") != 1) {
+      throw new CommandRunFailSQLException();
+    }
+    Document cursor = commandResult.get("cursor", Document.class);
+    if (cursor != null) {
+      long cursorId = cursor.getLong("id");
+      ResultSet resultSet =
+          new MongodbResultSet(
+              mongodbJdbcContext, cursor.getList("firstBatch", BsonDocument.class));
+      currentQueryResult = new CurrentQueryResult(resultSet, cursorId);
+      currentUpdateCount = -1;
+      return true;
+    } else {
+      currentQueryResult = null;
+      currentUpdateCount = commandResult.getInteger("n");
+      return false;
+    }
   }
 
   @Override
@@ -70,33 +110,50 @@ public class MongodbStatement extends StatementAdapter {
   }
 
   @Override
-  public ResultSet getResultSet() throws SimulatedSQLException {
-    throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+  public ResultSet getResultSet() {
+    return currentQueryResult == null ? null : currentQueryResult.resultSet;
   }
 
   @Override
-  public int getUpdateCount() throws SimulatedSQLException {
-    throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+  public int getUpdateCount() {
+    return currentUpdateCount;
   }
 
   @Override
   public boolean getMoreResults() throws SimulatedSQLException {
-    throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+    if (currentQueryResult != null) {
+      Document moreResultsCommand =
+          new Document()
+              .append("getMore", currentQueryResult.cursorId)
+              .append("collection", mongodbJdbcContext.getCollection());
+      if (fetchSize != 0) {
+        moreResultsCommand.append("batchSize", fetchSize);
+      }
+      Document moreResults = mongodbJdbcContext.getMongoDatabase().runCommand(moreResultsCommand);
+      if (moreResults.getInteger("ok") != 1) {
+        throw new CommandRunFailSQLException();
+      }
+      Document cursor = moreResults.get("cursor", Document.class);
+      List<BsonDocument> nextBatch = cursor.getList("nextBatch", BsonDocument.class);
+      long cursorId = cursor.getLong("id");
+      currentQueryResult =
+          new CurrentQueryResult(new MongodbResultSet(mongodbJdbcContext, nextBatch), cursorId);
+      return !nextBatch.isEmpty();
+    } else {
+      return false;
+    }
   }
 
   @Override
   public void setFetchSize(int rows) throws SimulatedSQLException {
     throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+    this.fetchSize = rows;
   }
 
   @Override
   public int getFetchSize() throws SimulatedSQLException {
     throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+    return this.fetchSize;
   }
 
   @Override
@@ -118,9 +175,8 @@ public class MongodbStatement extends StatementAdapter {
   }
 
   @Override
-  public Connection getConnection() throws SimulatedSQLException {
-    throwExceptionIfClosed();
-    throw new NotSupportedSQLException();
+  public Connection getConnection() {
+    return mongodbJdbcContext.getConnection();
   }
 
   @Override

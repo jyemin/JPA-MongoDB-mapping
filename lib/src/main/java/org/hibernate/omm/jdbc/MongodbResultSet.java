@@ -1,7 +1,5 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.lang.Nullable;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -16,42 +14,41 @@ import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
 import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-public class MongodbResultSet extends ResultSetAdapter {
+public class MongodbResultSet extends ResultSetAdapter implements MongodbJdbcContextAware {
 
-  private final MongoDatabase mongoDatabase;
-  private Iterator<BsonDocument> currentBatchIterator;
-  private Long currentCursorId;
-  private final String collection;
-  private final Integer batchSize;
+  private final MongodbJdbcContext mongodbJdbcContext;
+  private final Iterator<BsonDocument> documentsIterator;
   private BsonDocument currentDocument;
   private List<String> currentDocumentKeys = Collections.emptyList();
   private BsonValue lastRead;
 
   private volatile boolean closed;
 
-  public MongodbResultSet(
-      MongoDatabase mongoDatabase, String collection, Document findCommandResult) {
-    this(mongoDatabase, collection, findCommandResult, null);
+  public MongodbResultSet(MongodbJdbcContext mongodbJdbcContext, Document findCommandResult) {
+    this.mongodbJdbcContext = mongodbJdbcContext;
+    this.documentsIterator =
+        findCommandResult
+            .get("cursor", Document.class)
+            .getList("firstBatch", BsonDocument.class)
+            .iterator();
   }
 
   public MongodbResultSet(
-      MongoDatabase mongoDatabase,
-      String collection,
-      Document findCommandResult,
-      @Nullable Integer batchSize) {
-    this.mongoDatabase = mongoDatabase;
-    this.collection = collection;
-    Document cursor = findCommandResult.get("cursor", Document.class);
-    this.currentBatchIterator = cursor.getList("firstBatch", BsonDocument.class).iterator();
-    this.currentCursorId = cursor.getLong("id");
-    this.batchSize = batchSize;
+      MongodbJdbcContext mongodbJdbcContext, Iterable<BsonDocument> documentIterable) {
+    this.mongodbJdbcContext = mongodbJdbcContext;
+    this.documentsIterator = documentIterable.iterator();
+  }
+
+  @Override
+  public MongodbJdbcContext getMongodbJdbcContext() {
+    return mongodbJdbcContext;
   }
 
   @Override
   public boolean next() throws SimulatedSQLException {
     throwExceptionIfClosed();
-    if (currentBatchIterator.hasNext() || getMore()) {
-      currentDocument = currentBatchIterator.next();
+    if (documentsIterator.hasNext()) {
+      currentDocument = documentsIterator.next();
       currentDocumentKeys = new ArrayList<>(currentDocument.keySet());
       return true;
     } else {
@@ -193,25 +190,6 @@ public class MongodbResultSet extends ResultSetAdapter {
     BsonDecimal128 bsonValue = currentDocument.getDecimal128(getKey(columnIndex));
     lastRead = bsonValue;
     return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
-  }
-
-  private boolean getMore() throws SimulatedSQLException {
-    throwExceptionIfClosed();
-    Document command =
-        new Document().append("getMore", currentCursorId).append("collection", collection);
-    if (batchSize != null) {
-      command.append("batchSize", batchSize);
-    }
-    Document result = mongoDatabase.runCommand(command);
-    List<BsonDocument> nextBatch =
-        result.get("cursor", Document.class).getList("nextBatch", BsonDocument.class);
-    currentBatchIterator = nextBatch.iterator();
-    if (currentBatchIterator.hasNext()) {
-      currentCursorId = result.get("cursor", Document.class).getLong("id");
-      return true;
-    } else {
-      return false;
-    }
   }
 
   private String getKey(int columnIndex) {

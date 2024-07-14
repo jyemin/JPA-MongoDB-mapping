@@ -1,6 +1,5 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -10,27 +9,22 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
-import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-public class MongodbPreparedStatement extends PreparedStatementAdapter {
-
-  private final MongoDatabase mongoDatabase;
-  private final String collection;
+public class MongodbPreparedStatement extends MongodbStatement implements PreparedStatement {
   private final Bson command;
 
-  public MongodbPreparedStatement(MongoDatabase mongoDatabase, String collection, Bson command) {
-    this.mongoDatabase = mongoDatabase;
-    this.collection = collection;
+  public MongodbPreparedStatement(MongodbJdbcContext mongodbJdbcContext, Bson command) {
+    super(mongodbJdbcContext);
     this.command = command;
   }
 
   @Override
   public ResultSet executeQuery() throws SimulatedSQLException {
     Document commandResult = runCommand();
-    return new MongodbResultSet(mongoDatabase, collection, commandResult);
+    return new MongodbResultSet(getMongodbJdbcContext(), commandResult);
   }
 
   @Override
@@ -234,7 +228,7 @@ public class MongodbPreparedStatement extends PreparedStatementAdapter {
   }
 
   private Document runCommand() throws CommandRunFailSQLException {
-    Document commandResult = mongoDatabase.runCommand(command);
+    Document commandResult = getMongodbJdbcContext().getMongoDatabase().runCommand(command);
     if (commandResult.getInteger("ok") != 1) {
       throw new CommandRunFailSQLException();
     }
