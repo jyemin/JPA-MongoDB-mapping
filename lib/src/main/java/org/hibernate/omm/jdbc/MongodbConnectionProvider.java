@@ -1,41 +1,73 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.service.spi.Configurable;
+import org.hibernate.service.spi.Stoppable;
+
 import java.sql.Connection;
 import java.sql.SQLException;
-import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import java.util.Map;
 
-public class MongodbConnectionProvider implements ConnectionProvider, MongodbJdbcContextAware {
-	private final MongodbJdbcContext mongodbJdbcContext;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
-	public MongodbConnectionProvider(MongodbJdbcContext mongodbJdbcContext) {
-		this.mongodbJdbcContext = mongodbJdbcContext;
-	}
+public class MongodbConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
+    private MongoDatabase mongoDatabase;
+    private MongoClient mongoClient;
 
-	@Override
-  public Connection getConnection() throws SQLException {
-    return new MongodbConnection(mongodbJdbcContext);
-  }
+    @Override
+    public void configure(Map<String, Object> configurationValues) {
+        String mongodbConnectionURL = (String) configurationValues.get("mongodb.connection.url");
+        String mongodbDatabaseName = (String) configurationValues.get("mongodb.database.name");
+        ConnectionString connectionString = new ConnectionString(mongodbConnectionURL);
+        CodecRegistry codecRegistry = fromRegistries(
+                MongoClientSettings.getDefaultCodecRegistry()
+        );
+        MongoClientSettings clientSettings = MongoClientSettings.builder()
+                .applyConnectionString(connectionString)
+                .codecRegistry(codecRegistry)
+                .build();
+        mongoClient = MongoClients.create(clientSettings);
+        this.mongoDatabase = mongoClient.getDatabase(mongodbDatabaseName);
+    }
 
-  @Override
-  public void closeConnection(Connection conn) throws SQLException {}
+    @Override
+    public Connection getConnection() throws SQLException {
+        return mongoDatabase == null ? null : new MongodbConnection(mongoDatabase);
+    }
 
-  @Override
-  public boolean supportsAggressiveRelease() {
-    return false;
-  }
+    @Override
+    public void closeConnection(Connection conn) throws SQLException {
+    }
 
-  @Override
-  public boolean isUnwrappableAs(Class<?> unwrapType) {
-    return false;
-  }
+    @Override
+    public boolean supportsAggressiveRelease() {
+        return false;
+    }
 
-  @Override
-  public <T> T unwrap(Class<T> unwrapType) {
-    return null;
-  }
+    @Override
+    public boolean isUnwrappableAs(Class<?> unwrapType) {
+        return false;
+    }
 
-	@Override
-	public MongodbJdbcContext getMongodbJdbcContext() {
-		return mongodbJdbcContext;
-	}
+    @Override
+    public <T> T unwrap(Class<T> unwrapType) {
+        return null;
+    }
+
+
+    @Override
+    public void stop() {
+        if (mongoDatabase != null) {
+            mongoDatabase.drop();
+        }
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
+    }
 }
