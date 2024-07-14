@@ -4,222 +4,223 @@ import java.sql.*;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-public class StatementAdapter implements Statement {
-  @Override
-  public ResultSet executeQuery(String sql) throws SimulatedSQLException {
+public interface StatementAdapter extends Statement {
+
+	@Override
+  public default ResultSet executeQuery(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int executeUpdate(String sql) throws SimulatedSQLException {
+  public default int executeUpdate(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void close() throws SimulatedSQLException {
+  public default void close() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getMaxFieldSize() throws SimulatedSQLException {
+  public default int getMaxFieldSize() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setMaxFieldSize(int max) throws SimulatedSQLException {
+  public default void setMaxFieldSize(int max) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getMaxRows() throws SimulatedSQLException {
+  public default int getMaxRows() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setMaxRows(int max) throws SimulatedSQLException {
+  public default void setMaxRows(int max) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setEscapeProcessing(boolean enable) throws SimulatedSQLException {
+  public default void setEscapeProcessing(boolean enable) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getQueryTimeout() throws SimulatedSQLException {
+  public default int getQueryTimeout() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setQueryTimeout(int seconds) throws SimulatedSQLException {
+  public default void setQueryTimeout(int seconds) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void cancel() throws SimulatedSQLException {
+  public default void cancel() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public SQLWarning getWarnings() throws SimulatedSQLException {
+  public default SQLWarning getWarnings() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void clearWarnings() throws SimulatedSQLException {
+  public default void clearWarnings() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCursorName(String name) throws SimulatedSQLException {}
+  public default void setCursorName(String name) throws SimulatedSQLException {}
 
   @Override
-  public boolean execute(String sql) throws SimulatedSQLException {
+  public default boolean execute(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public ResultSet getResultSet() throws SimulatedSQLException {
+  public default ResultSet getResultSet() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getUpdateCount() throws SimulatedSQLException {
+  public default int getUpdateCount() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean getMoreResults() throws SimulatedSQLException {
+  public default boolean getMoreResults() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setFetchDirection(int direction) throws SimulatedSQLException {
+  public default void setFetchDirection(int direction) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getFetchDirection() throws SimulatedSQLException {
+  public default int getFetchDirection() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setFetchSize(int rows) throws SimulatedSQLException {
+  public default void setFetchSize(int rows) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getFetchSize() throws SimulatedSQLException {
+  public default int getFetchSize() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getResultSetConcurrency() throws SimulatedSQLException {
+  public default int getResultSetConcurrency() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getResultSetType() throws SimulatedSQLException {
+  public default int getResultSetType() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void addBatch(String sql) throws SimulatedSQLException {
+  public default void addBatch(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void clearBatch() throws SimulatedSQLException {
+  public default void clearBatch() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int[] executeBatch() throws SimulatedSQLException {
+  public default int[] executeBatch() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public Connection getConnection() throws SimulatedSQLException {
+  public default Connection getConnection() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean getMoreResults(int current) throws SimulatedSQLException {
+  public default boolean getMoreResults(int current) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public ResultSet getGeneratedKeys() throws SimulatedSQLException {
+  public default ResultSet getGeneratedKeys() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int executeUpdate(String sql, int autoGeneratedKeys) throws SimulatedSQLException {
+  public default int executeUpdate(String sql, int autoGeneratedKeys) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int executeUpdate(String sql, int[] columnIndexes) throws SimulatedSQLException {
+  public default int executeUpdate(String sql, int[] columnIndexes) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int executeUpdate(String sql, String[] columnNames) throws SimulatedSQLException {
+  public default int executeUpdate(String sql, String[] columnNames) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean execute(String sql, int autoGeneratedKeys) throws SimulatedSQLException {
+  public default boolean execute(String sql, int autoGeneratedKeys) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean execute(String sql, int[] columnIndexes) throws SimulatedSQLException {
+  public default boolean execute(String sql, int[] columnIndexes) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean execute(String sql, String[] columnNames) throws SimulatedSQLException {
+  public default boolean execute(String sql, String[] columnNames) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getResultSetHoldability() throws SimulatedSQLException {
+  public default int getResultSetHoldability() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isClosed() throws SimulatedSQLException {
+  public default boolean isClosed() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setPoolable(boolean poolable) throws SimulatedSQLException {
+  public default void setPoolable(boolean poolable) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isPoolable() throws SimulatedSQLException {
+  public default boolean isPoolable() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void closeOnCompletion() throws SimulatedSQLException {
+  public default void closeOnCompletion() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isCloseOnCompletion() throws SimulatedSQLException {
+  public default boolean isCloseOnCompletion() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
+  public default <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
+  public default boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 }

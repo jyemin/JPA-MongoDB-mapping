@@ -4,11 +4,16 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 
-public class MongodbConnectionProvider implements ConnectionProvider {
+public class MongodbConnectionProvider implements ConnectionProvider, MongodbJdbcContextAware {
+	private final MongodbJdbcContext mongodbJdbcContext;
 
-  @Override
+	public MongodbConnectionProvider(MongodbJdbcContext mongodbJdbcContext) {
+		this.mongodbJdbcContext = mongodbJdbcContext;
+	}
+
+	@Override
   public Connection getConnection() throws SQLException {
-    return null;
+    return new MongodbConnection(mongodbJdbcContext);
   }
 
   @Override
@@ -28,4 +33,9 @@ public class MongodbConnectionProvider implements ConnectionProvider {
   public <T> T unwrap(Class<T> unwrapType) {
     return null;
   }
+
+	@Override
+	public MongodbJdbcContext getMongodbJdbcContext() {
+		return mongodbJdbcContext;
+	}
 }

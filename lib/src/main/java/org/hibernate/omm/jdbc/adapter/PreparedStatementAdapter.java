@@ -9,333 +9,334 @@ import java.util.Calendar;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-public class PreparedStatementAdapter extends StatementAdapter implements PreparedStatement {
-  @Override
-  public ResultSet executeQuery() throws SimulatedSQLException {
+public interface PreparedStatementAdapter extends StatementAdapter, PreparedStatement {
+
+	@Override
+  default ResultSet executeQuery() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int executeUpdate() throws SimulatedSQLException {
+  default int executeUpdate() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNull(int parameterIndex, int sqlType) throws SimulatedSQLException {
+  default void setNull(int parameterIndex, int sqlType) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBoolean(int parameterIndex, boolean x) throws SimulatedSQLException {
+  default void setBoolean(int parameterIndex, boolean x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setByte(int parameterIndex, byte x) throws SimulatedSQLException {
+  default void setByte(int parameterIndex, byte x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setShort(int parameterIndex, short x) throws SimulatedSQLException {
+  default void setShort(int parameterIndex, short x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setInt(int parameterIndex, int x) throws SimulatedSQLException {
+  default void setInt(int parameterIndex, int x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setLong(int parameterIndex, long x) throws SimulatedSQLException {
+  default void setLong(int parameterIndex, long x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setFloat(int parameterIndex, float x) throws SimulatedSQLException {
+  default void setFloat(int parameterIndex, float x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setDouble(int parameterIndex, double x) throws SimulatedSQLException {
+  default void setDouble(int parameterIndex, double x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBigDecimal(int parameterIndex, BigDecimal x) throws SimulatedSQLException {
+  default void setBigDecimal(int parameterIndex, BigDecimal x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setString(int parameterIndex, String x) throws SimulatedSQLException {
+  default void setString(int parameterIndex, String x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
+  default void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
+  default void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTime(int parameterIndex, Time x) throws SimulatedSQLException {
+  default void setTime(int parameterIndex, Time x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTimestamp(int parameterIndex, Timestamp x) throws SimulatedSQLException {
+  default void setTimestamp(int parameterIndex, Timestamp x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setAsciiStream(int parameterIndex, InputStream x, int length)
+  default void setAsciiStream(int parameterIndex, InputStream x, int length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setUnicodeStream(int parameterIndex, InputStream x, int length)
+  default void setUnicodeStream(int parameterIndex, InputStream x, int length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBinaryStream(int parameterIndex, InputStream x, int length)
+  default void setBinaryStream(int parameterIndex, InputStream x, int length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void clearParameters() throws SimulatedSQLException {
+  default void clearParameters() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setObject(int parameterIndex, Object x, int targetSqlType)
+  default void setObject(int parameterIndex, Object x, int targetSqlType)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setObject(int parameterIndex, Object x) throws SimulatedSQLException {
+  default void setObject(int parameterIndex, Object x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public boolean execute() throws SimulatedSQLException {
+  default boolean execute() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void addBatch() throws SimulatedSQLException {
+  default void addBatch() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCharacterStream(int parameterIndex, Reader reader, int length)
+  default void setCharacterStream(int parameterIndex, Reader reader, int length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setRef(int parameterIndex, Ref x) throws SimulatedSQLException {
+  default void setRef(int parameterIndex, Ref x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBlob(int parameterIndex, Blob x) throws SimulatedSQLException {
+  default void setBlob(int parameterIndex, Blob x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setClob(int parameterIndex, Clob x) throws SimulatedSQLException {
+  default void setClob(int parameterIndex, Clob x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setArray(int parameterIndex, Array x) throws SimulatedSQLException {
+  default void setArray(int parameterIndex, Array x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public ResultSetMetaData getMetaData() throws SimulatedSQLException {
+  default ResultSetMetaData getMetaData() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setDate(int parameterIndex, Date x, Calendar cal) throws SimulatedSQLException {
+  default void setDate(int parameterIndex, Date x, Calendar cal) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTime(int parameterIndex, Time x, Calendar cal) throws SimulatedSQLException {
+  default void setTime(int parameterIndex, Time x, Calendar cal) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
+  default void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNull(int parameterIndex, int sqlType, String typeName)
+  default void setNull(int parameterIndex, int sqlType, String typeName)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setURL(int parameterIndex, URL x) throws SimulatedSQLException {
+  default void setURL(int parameterIndex, URL x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public ParameterMetaData getParameterMetaData() throws SimulatedSQLException {
+  default ParameterMetaData getParameterMetaData() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setRowId(int parameterIndex, RowId x) throws SimulatedSQLException {
+  default void setRowId(int parameterIndex, RowId x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNString(int parameterIndex, String value) throws SimulatedSQLException {
+  default void setNString(int parameterIndex, String value) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNCharacterStream(int parameterIndex, Reader value, long length)
+  default void setNCharacterStream(int parameterIndex, Reader value, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNClob(int parameterIndex, NClob value) throws SimulatedSQLException {
+  default void setNClob(int parameterIndex, NClob value) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setClob(int parameterIndex, Reader reader, long length) throws SimulatedSQLException {
+  default void setClob(int parameterIndex, Reader reader, long length) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBlob(int parameterIndex, InputStream inputStream, long length)
+  default void setBlob(int parameterIndex, InputStream inputStream, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNClob(int parameterIndex, Reader reader, long length)
+  default void setNClob(int parameterIndex, Reader reader, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SimulatedSQLException {
+  default void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+  default void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setAsciiStream(int parameterIndex, InputStream x, long length)
+  default void setAsciiStream(int parameterIndex, InputStream x, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBinaryStream(int parameterIndex, InputStream x, long length)
+  default void setBinaryStream(int parameterIndex, InputStream x, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCharacterStream(int parameterIndex, Reader reader, long length)
+  default void setCharacterStream(int parameterIndex, Reader reader, long length)
       throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setAsciiStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
+  default void setAsciiStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBinaryStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
+  default void setBinaryStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCharacterStream(int parameterIndex, Reader reader) throws SimulatedSQLException {
+  default void setCharacterStream(int parameterIndex, Reader reader) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNCharacterStream(int parameterIndex, Reader value) throws SimulatedSQLException {
+  default void setNCharacterStream(int parameterIndex, Reader value) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
+  default void setClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setBlob(int parameterIndex, InputStream inputStream) throws SimulatedSQLException {
+  default void setBlob(int parameterIndex, InputStream inputStream) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setNClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
+  default void setNClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getMaxFieldSize() throws SimulatedSQLException {
+  default int getMaxFieldSize() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setMaxFieldSize(int max) throws SimulatedSQLException {
+  default void setMaxFieldSize(int max) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getMaxRows() throws SimulatedSQLException {
+  default int getMaxRows() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setMaxRows(int max) throws SimulatedSQLException {
+  default void setMaxRows(int max) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setEscapeProcessing(boolean enable) throws SimulatedSQLException {
+  default void setEscapeProcessing(boolean enable) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public int getQueryTimeout() throws SimulatedSQLException {
+  default int getQueryTimeout() throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setQueryTimeout(int seconds) throws SimulatedSQLException {
+  default void setQueryTimeout(int seconds) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 
   @Override
-  public void setCursorName(String name) throws SimulatedSQLException {
+  default void setCursorName(String name) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
 }

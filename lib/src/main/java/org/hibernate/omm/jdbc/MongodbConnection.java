@@ -1,29 +1,29 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-public class MongodbConnection extends ConnectionAdapter {
+public class MongodbConnection extends ConnectionAdapter implements MongodbJdbcContextAware {
 
-  private final MongoDatabase mongoDatabase;
+  private final MongodbJdbcContext mongodbJdbcContext;
 
-  public MongodbConnection(MongoDatabase mongoDatabase) {
-    this.mongoDatabase = mongoDatabase;
+  public MongodbConnection(MongodbJdbcContext mongodbJdbcContext) {
+    this.mongodbJdbcContext = mongodbJdbcContext;
   }
 
   @Override
   public Statement createStatement() throws SimulatedSQLException {
-    return new MongodbStatement(mongoDatabase);
+    return new MongodbStatement(mongodbJdbcContext);
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
-    throw new MongodbPreparedStatement(mongoDatabase);
+    return new MongodbPreparedStatement(mongodbJdbcContext, null);
   }
 
   @Override
@@ -35,4 +35,9 @@ public class MongodbConnection extends ConnectionAdapter {
   public String nativeSQL(String sql) throws SimulatedSQLException {
     throw new NotSupportedSQLException();
   }
+
+	@Override
+	public MongodbJdbcContext getMongodbJdbcContext() {
+		return mongodbJdbcContext;
+	}
 }

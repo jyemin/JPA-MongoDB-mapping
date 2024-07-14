@@ -12,7 +12,7 @@ import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
 
-public class MongodbStatement extends StatementAdapter implements MongodbJdbcContextAware {
+public class MongodbStatement implements StatementAdapter, MongodbJdbcContextAware {
 
   private static class CurrentQueryResult {
     private final ResultSet resultSet;

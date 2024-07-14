@@ -5,20 +5,28 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.List;
+
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
+import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.sql.exec.spi.JdbcOperation;
+import org.hibernate.sql.exec.spi.JdbcParameterBinder;
 
-public class MongodbPreparedStatement extends MongodbStatement implements PreparedStatement {
-  private final Bson command;
+public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbStatement implements PreparedStatementAdapter {
 
-  public MongodbPreparedStatement(MongodbJdbcContext mongodbJdbcContext, Bson command) {
+	private String commandString;
+	private final List<JdbcParameterBinder> commandParameterBinders;
+
+  public MongodbPreparedStatement(MongodbJdbcContext mongodbJdbcContext, T jdbcOperation) {
     super(mongodbJdbcContext);
-    this.command = command;
+    this.commandString = jdbcOperation.getSqlString();
+	this.commandParameterBinders = jdbcOperation.getParameterBinders();
   }
 
   @Override
@@ -228,7 +236,8 @@ public class MongodbPreparedStatement extends MongodbStatement implements Prepar
   }
 
   private Document runCommand() throws CommandRunFailSQLException {
-    Document commandResult = getMongodbJdbcContext().getMongoDatabase().runCommand(command);
+    Document command = Document.parse(commandString);
+	  Document commandResult = getMongodbJdbcContext().getMongoDatabase().runCommand(command);
     if (commandResult.getInteger("ok") != 1) {
       throw new CommandRunFailSQLException();
     }
