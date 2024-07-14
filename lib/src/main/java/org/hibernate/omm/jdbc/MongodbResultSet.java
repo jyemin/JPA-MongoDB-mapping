@@ -17,7 +17,7 @@ import java.util.List;
 
 public class MongodbResultSet implements ResultSetAdapter {
 
-    private final Iterator<BsonDocument> documentsIterator;
+    private final Iterator<Document> documentsIterator;
     private BsonDocument currentDocument;
     private List<String> currentDocumentKeys = Collections.emptyList();
     private BsonValue lastRead;
@@ -28,11 +28,11 @@ public class MongodbResultSet implements ResultSetAdapter {
         this.documentsIterator =
                 findCommandResult
                         .get("cursor", Document.class)
-                        .getList("firstBatch", BsonDocument.class)
+                        .getList("firstBatch", Document.class)
                         .iterator();
     }
 
-    public MongodbResultSet(Iterable<BsonDocument> documentIterable) {
+    public MongodbResultSet(Iterable<Document> documentIterable) {
         this.documentsIterator = documentIterable.iterator();
     }
 
@@ -40,7 +40,7 @@ public class MongodbResultSet implements ResultSetAdapter {
     public boolean next() throws SimulatedSQLException {
         throwExceptionIfClosed();
         if (documentsIterator.hasNext()) {
-            currentDocument = documentsIterator.next();
+            currentDocument = documentsIterator.next().toBsonDocument();
             currentDocumentKeys = new ArrayList<>(currentDocument.keySet());
             return true;
         } else {

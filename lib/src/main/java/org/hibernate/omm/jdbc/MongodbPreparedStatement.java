@@ -1,28 +1,27 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoDatabase;
-import org.bson.BsonValue;
-import org.bson.Document;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
-import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.sql.exec.spi.JdbcOperation;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbStatement
+public class MongodbPreparedStatement extends MongodbStatement
         implements PreparedStatementAdapter {
 
     private String commandString;
-    private Map<Integer, BsonValue> parameters;
+    private Map<Integer, Object> parameters;
 
     public MongodbPreparedStatement(MongoDatabase mongoDatabase, Connection connection, String sql) {
         super(mongoDatabase, connection);
@@ -32,20 +31,17 @@ public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbSt
 
     @Override
     public ResultSet executeQuery() throws SimulatedSQLException {
-        Document commandResult = runCommand();
-        return new MongodbResultSet(commandResult);
+        return executeQuery(getFinalCommandString());
     }
 
     @Override
     public int executeUpdate() throws SimulatedSQLException {
-        Document result = runCommand();
-        return result.getInteger("n");
+        return executeUpdate(getFinalCommandString());
     }
 
     @Override
     public boolean execute() throws SimulatedSQLException {
-        Document result = runCommand();
-        return result.containsKey("cursor");
+        return execute(getFinalCommandString());
     }
 
     /**
@@ -59,42 +55,42 @@ public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbSt
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, null);
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
@@ -104,17 +100,17 @@ public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbSt
 
     @Override
     public void setString(int parameterIndex, String x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
     public void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, x);
     }
 
     @Override
@@ -236,16 +232,22 @@ public class MongodbPreparedStatement<T extends JdbcOperation> extends MongodbSt
         throw new NotSupportedSQLException();
     }
 
-    private Document runCommand() throws CommandRunFailSQLException {
-        Document command = Document.parse(getFinalCommandString());
-        Document commandResult = mongoDatabase.runCommand(command);
-        if (commandResult.getInteger("ok") != 1) {
-            throw new CommandRunFailSQLException();
-        }
-        return commandResult;
-    }
+    private static final Pattern PARAMETER_PLACEHOLDER_PATTERN = Pattern.compile("\\s(\\?)\\s");
 
     private String getFinalCommandString() {
-        return null;
+        Matcher matcher = PARAMETER_PLACEHOLDER_PATTERN.matcher(commandString);
+        int parameterIndex = 1;
+        int lastGroupEndIndex = -1;
+        StringBuilder sb = new StringBuilder();
+        while (matcher.matches()) {
+            int startIndex = matcher.start();
+            sb.append(commandString, lastGroupEndIndex + 1, startIndex);
+            Object parameterValue = parameters.get(parameterIndex++);
+
+            matcher.appendReplacement(sb, parameterValue.toString());
+            lastGroupEndIndex = startIndex;
+        }
+        sb.append(commandString.substring(lastGroupEndIndex + 1));
+        return sb.toString();
     }
 }
