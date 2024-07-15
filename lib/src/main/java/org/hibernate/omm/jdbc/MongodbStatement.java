@@ -1,12 +1,6 @@
 package org.hibernate.omm.jdbc;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLWarning;
-import java.util.List;
-
 import com.mongodb.client.MongoDatabase;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
@@ -14,18 +8,14 @@ import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLWarning;
+import java.util.List;
+
 public class MongodbStatement implements StatementAdapter {
 
-    private static class CurrentQueryResult {
-        private final String collection;
-        private final ResultSet resultSet;
-        private final long cursorId;
-
-        public CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
-            this.collection = collection;
-            this.resultSet = resultSet;
-            this.cursorId = cursorId;
-        }
+    private record CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
     }
 
     protected final MongoDatabase mongoDatabase;
@@ -135,7 +125,7 @@ public class MongodbStatement implements StatementAdapter {
                 throw new CommandRunFailSQLException();
             }
             Document cursor = moreResults.get("cursor", Document.class);
-            List<BsonDocument> nextBatch = cursor.getList("nextBatch", BsonDocument.class);
+            List<Document> nextBatch = cursor.getList("nextBatch", Document.class);
             long cursorId = cursor.getLong("id");
             currentQueryResult =
                     new CurrentQueryResult(currentQueryResult.collection, new MongodbResultSet(nextBatch), cursorId);
