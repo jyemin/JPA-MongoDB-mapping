@@ -76,7 +76,7 @@ public class MongodbStatement implements StatementAdapter {
         if (cursor != null) {
             long cursorId = cursor.getLong("id");
             ResultSet resultSet =
-                    new MongodbResultSet(cursor.getList("firstBatch", BsonDocument.class));
+                    new MongodbResultSet(cursor.getList("firstBatch", Document.class));
             currentQueryResult = new CurrentQueryResult(collection, resultSet, cursorId);
             currentUpdateCount = -1;
             return true;

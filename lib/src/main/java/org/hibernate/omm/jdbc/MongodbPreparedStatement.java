@@ -6,22 +6,22 @@ import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.util.StringUtil;
 
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Base64;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MongodbPreparedStatement extends MongodbStatement
         implements PreparedStatementAdapter {
 
     private String commandString;
-    private Map<Integer, Object> parameters;
+    private Map<Integer, String> parameters;
 
     public MongodbPreparedStatement(MongoDatabase mongoDatabase, Connection connection, String sql) {
         super(mongoDatabase, connection);
@@ -55,72 +55,73 @@ public class MongodbPreparedStatement extends MongodbStatement
 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SimulatedSQLException {
-        parameters.put(parameterIndex, null);
+        parameters.put(parameterIndex, "null");
     }
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, Boolean.toString(x));
     }
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, Byte.toString(x));
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, Short.toString(x));
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, "{ \"$numberInt\": \"" + x + "\" }");
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, "{ \"$numberLong\": \"" + x + "\" }");
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, Float.toString(x));
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, "{ \"$numberDouble\": \"" + x + "\" }");
     }
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, StringUtil.writeStringHelper(x));
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        String base64Text = Base64.getEncoder().encodeToString(x);
+        parameters.put(parameterIndex, "\"$binary\": {\"base64\": \"" + base64Text + "\", \"subType\": \"0\"}");
     }
 
     @Override
     public void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
-        parameters.put(parameterIndex, x);
+        parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        parameters.put(parameterIndex, "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}");
     }
 
     @Override
@@ -232,22 +233,20 @@ public class MongodbPreparedStatement extends MongodbStatement
         throw new NotSupportedSQLException();
     }
 
-    private static final Pattern PARAMETER_PLACEHOLDER_PATTERN = Pattern.compile("\\s(\\?)\\s");
-
     private String getFinalCommandString() {
-        Matcher matcher = PARAMETER_PLACEHOLDER_PATTERN.matcher(commandString);
-        int parameterIndex = 1;
-        int lastGroupEndIndex = -1;
-        StringBuilder sb = new StringBuilder();
-        while (matcher.matches()) {
-            int startIndex = matcher.start();
-            sb.append(commandString, lastGroupEndIndex + 1, startIndex);
-            Object parameterValue = parameters.get(parameterIndex++);
 
-            matcher.appendReplacement(sb, parameterValue.toString());
-            lastGroupEndIndex = startIndex;
+        int parameterIndex = 1;
+        int lastIndex = -1;
+        int index;
+        StringBuilder sb = new StringBuilder();
+
+        while ((index = commandString.indexOf('?', lastIndex + 1)) != -1) {
+            sb.append(commandString, lastIndex + 1, index);
+            String parameterValue = parameters.get(parameterIndex++);
+            sb.append(parameterValue);
+            lastIndex = index;
         }
-        sb.append(commandString.substring(lastGroupEndIndex + 1));
+        sb.append(commandString.substring(lastIndex + 1));
         return sb.toString();
     }
 }
