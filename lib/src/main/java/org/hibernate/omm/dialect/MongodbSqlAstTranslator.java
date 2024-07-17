@@ -27,6 +27,8 @@ import org.hibernate.internal.util.collections.CollectionHelper;
 import org.hibernate.internal.util.collections.Stack;
 import org.hibernate.internal.util.collections.StandardStack;
 import org.hibernate.metamodel.mapping.*;
+import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -870,22 +872,17 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
     @Override
     public void visitSelectStatement(SelectStatement statement) {
-        final SqlAstNodeRenderingMode oldParameterRenderingMode = getParameterRenderingMode();
         try {
             statementStack.push( statement );
             parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
-            final boolean needsParenthesis = !statement.getQueryPart().isRoot();
-            if ( needsParenthesis ) {
-                appendSql( OPEN_PARENTHESIS );
+            if (!statement.getQueryPart().isRoot()) {
+                throw new NotSupportedRuntimeException("subQuery not supported");
             }
-            visitCteContainer( statement );
+            appendSql("{ ");
             statement.getQueryPart().accept( this );
-            if ( needsParenthesis ) {
-                appendSql( CLOSE_PARENTHESIS );
-            }
+            appendSql(" }");
         }
         finally {
-            parameterRenderingMode = oldParameterRenderingMode;
             statementStack.pop();
         }
     }
@@ -3623,23 +3620,18 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             }
             queryPartStack.push( querySpec );
             if ( queryGroupAlias != null ) {
-                appendSql( OPEN_PARENTHESIS );
+                throw new NotSupportedRuntimeException("query group not supported");
             }
-            visitSelectClause( querySpec.getSelectClause() );
             visitFromClause( querySpec.getFromClause() );
             visitWhereClause( querySpec.getWhereClauseRestrictions() );
-            visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
-            visitHavingClause( querySpec );
             visitOrderBy( querySpec.getSortSpecifications() );
+            visitSelectClause( querySpec.getSelectClause() );
+            //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
+            //visitHavingClause( querySpec );
             visitOffsetFetchClause( querySpec );
             // We render the FOR UPDATE clause in the parent query
             if ( queryPartForRowNumbering == null ) {
                 visitForUpdateClause( querySpec );
-            }
-
-            if ( queryGroupAlias != null ) {
-                appendSql( CLOSE_PARENTHESIS );
-                appendSql( queryGroupAlias );
             }
         }
         finally {
@@ -3676,7 +3668,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     protected final void visitWhereClause(Predicate whereClauseRestrictions) {
         final Predicate additionalWherePredicate = this.additionalWherePredicate;
         if ( whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty() || additionalWherePredicate != null ) {
-            appendSql( " { " );
+            appendSql( ", filter: { " );
 
             clauseStack.push( Clause.WHERE );
             try {
@@ -3889,7 +3881,8 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             if ( addWhitespace ) {
                 appendSql( WHITESPACE );
             }
-            appendSql( "order by " );
+            appendSql(", ");
+            appendSql( "sort: {" );
 
             clauseStack.push( Clause.ORDER );
             try {
@@ -3901,6 +3894,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                 }
             }
             finally {
+                appendSql(" }");
                 clauseStack.pop();
             }
         }
@@ -4334,11 +4328,12 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             appendSql( CLOSE_PARENTHESIS );
         }
 
+        appendSql(": ");
         if ( sortOrder == SortDirection.DESCENDING ) {
-            appendSql( " desc" );
+            appendSql( " -1" );
         }
         else if ( sortOrder == SortDirection.ASCENDING && renderNullPrecedence && supportsNullPrecedence ) {
-            appendSql( " asc" );
+            appendSql( " 1" );
         }
 
         if ( renderNullPrecedence && supportsNullPrecedence ) {
@@ -4411,7 +4406,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     protected void renderOffset(Expression offsetExpression, boolean renderOffsetRowsKeyword) {
-        appendSql( " offset " );
+        appendSql(", skip: ");
         clauseStack.push( Clause.OFFSET );
         try {
             renderOffsetExpression( offsetExpression );
@@ -4428,7 +4423,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             Expression fetchExpression,
             Expression offsetExpressionToAdd,
             FetchClauseType fetchClauseType) {
-        appendSql( " fetch first " );
+        appendSql(", limit: ");
         clauseStack.push( Clause.FETCH );
         try {
             if ( offsetExpressionToAdd == null ) {
@@ -5186,12 +5181,13 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         clauseStack.push( Clause.SELECT );
 
         try {
-            appendSql( "select " );
+            appendSql( ", projection: {" );
             if ( selectClause.isDistinct() ) {
                 appendSql( "distinct " );
             }
             visitSqlSelections( selectClause );
             renderVirtualSelections( selectClause );
+            appendSql(" }");
         }
         finally {
             clauseStack.pop();
@@ -5289,7 +5285,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                 else {
                     parameterRenderingMode = defaultRenderingMode;
                 }
+                appendSql("{");
                 visitSqlSelection( sqlSelection );
+                appendSql(": 1}");
                 parameterRenderingMode = original;
                 separator = COMMA_SEPARATOR;
             }
@@ -5763,8 +5761,10 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             appendSql( getFromDualForSelectOnly() );
         }
         else {
-            appendSql( " from " );
+            //appendSql( " from " );
+            appendSql( "find: \"");
             renderFromClauseSpaces( fromClause );
+            appendSql("\"");
         }
     }
 
