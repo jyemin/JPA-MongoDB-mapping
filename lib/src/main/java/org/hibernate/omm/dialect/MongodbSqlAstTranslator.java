@@ -8950,6 +8950,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             case GREATER_THAN -> "$gt";
             case GREATER_THAN_OR_EQUAL -> "gte";
             default -> throw new NotSupportedRuntimeException("unsupported operator: " + operator.name());
-        }
+        };
     }
 }

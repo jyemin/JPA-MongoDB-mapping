@@ -3,6 +3,12 @@ package org.hibernate.omm.util;
 public final class StringUtil {
     private StringUtil() {}
 
+    /**
+     * Return JSON field value of string type with delimiter escaped
+     * @param str string to be escaped (if necessary)
+     * @return escaped json string field value with double quotes as delimiters
+     * @apiNote copied intact from {@code StrictCharacterStreamJsonWriter}'s private method
+     */
     public static String writeStringHelper(final String str) {
         StringBuilder sb = new StringBuilder(str.length() + 2);
         sb.append('"');
