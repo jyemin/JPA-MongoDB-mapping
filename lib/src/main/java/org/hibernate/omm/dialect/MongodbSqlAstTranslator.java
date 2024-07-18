@@ -4157,9 +4157,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
         appendSql("{ ");
         lhs.accept( this );
-        appendSql(": \"");
+        appendSql(": ");
         appendSql( getMongodbOperatorText(operator) );
-        appendSql("\": ");
+        appendSql(": ");
         rhs.accept( this );
         appendSql("}");
     }
@@ -7886,11 +7886,16 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
     @Override
     public void visitExistsPredicate(ExistsPredicate existsPredicate) {
+        appendSql("{ ");
         if ( existsPredicate.isNegated() ) {
-            appendSql( "not " );
+            appendSql(" $not: {");
         }
-        appendSql( "exists" );
+        appendSql( "$exists: " );
         existsPredicate.getExpression().accept( this );
+        if ( existsPredicate.isNegated() ) {
+            appendSql("} ");
+        }
+        appendSql(" }");
     }
 
     @Override
@@ -7899,16 +7904,21 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             return;
         }
 
+        appendSql("{ ");
         final Junction.Nature nature = junction.getNature();
-        final String separator = nature == Junction.Nature.CONJUNCTION
-                ? " and "
-                : " or ";
+        if (nature == Junction.Nature.CONJUNCTION) {
+            appendSql( "$and: ");
+        } else {
+            appendSql( "$or: ");
+        }
+        appendSql("[");
         final List<Predicate> predicates = junction.getPredicates();
         visitJunctionPredicate( nature, predicates.get( 0 ) );
         for ( int i = 1; i < predicates.size(); i++ ) {
-            appendSql( separator );
+            appendSql(", ");
             visitJunctionPredicate( nature, predicates.get( i ) );
         }
+        appendSql("] }");
     }
 
     private void visitJunctionPredicate(Junction.Nature nature, Predicate p) {
@@ -8054,10 +8064,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         if ( negatedPredicate.isEmpty() ) {
             return;
         }
-
-        appendSql( "not(" );
+        appendSql("{ $not: ");
         negatedPredicate.getPredicate().accept( this );
-        appendSql( CLOSE_PARENTHESIS );
+        appendSql( " }");
     }
 
     @Override
