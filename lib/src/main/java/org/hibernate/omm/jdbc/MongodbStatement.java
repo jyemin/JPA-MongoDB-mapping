@@ -47,7 +47,7 @@ public class MongodbStatement implements StatementAdapter {
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         Document commandResult = mongoDatabase.runCommand(command);
-        if (commandResult.getInteger("ok") != 1) {
+        if (commandResult.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException();
         }
         return commandResult.getInteger("n");

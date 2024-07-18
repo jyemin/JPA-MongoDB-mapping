@@ -8657,53 +8657,34 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     private void renderInsertInto(TableInsertStandard tableInsert) {
-        applySqlComment( tableInsert.getMutationComment() );
+        //applySqlComment( tableInsert.getMutationComment() );
 
         if ( tableInsert.getNumberOfValueBindings() == 0 ) {
             renderInsertIntoNoColumns( tableInsert );
             return;
         }
-
+        appendSql("{ insert: \"");
         renderIntoIntoAndTable( tableInsert );
+        appendSql("\", documents: [ {");
 
         tableInsert.forEachValueBinding( (columnPosition, columnValueBinding) -> {
-            if ( columnPosition == 0 ) {
-                sqlBuffer.append( '(' );
+            if ( columnPosition != 0 ) {
+                appendSql( ',' );
             }
-            else {
-                sqlBuffer.append( ',' );
-            }
-            sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
+            appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
+            appendSql(": ");
+            columnValueBinding.getValueExpression().accept( this );
         } );
 
-        getCurrentClauseStack().push( Clause.VALUES );
-        try {
-            sqlBuffer.append( ") values (" );
-
-            tableInsert.forEachValueBinding( (columnPosition, columnValueBinding) -> {
-                if ( columnPosition > 0 ) {
-                    sqlBuffer.append( ',' );
-                }
-                columnValueBinding.getValueExpression().accept( this );
-            } );
-        }
-        finally {
-            getCurrentClauseStack().pop();
-        }
-
-        sqlBuffer.append( ")" );
+        appendSql("} ] }");
     }
 
     /**
      * Renders the {@code insert into <table name>} portion of an insert
      */
     protected void renderIntoIntoAndTable(TableInsertStandard tableInsert) {
-        sqlBuffer.append( "insert into " );
-
         appendSql( tableInsert.getMutatingTable().getTableName() );
         registerAffectedTable( tableInsert.getMutatingTable().getTableName() );
-
-        sqlBuffer.append( ' ' );
     }
 
     /**
