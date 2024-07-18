@@ -185,7 +185,7 @@ public class MongodbResultSet implements ResultSetAdapter {
     }
 
     private String getKey(int columnIndex) {
-        return currentDocumentKeys.get(columnIndex);
+        return currentDocumentKeys.get(columnIndex - 1);
     }
 
     private void throwExceptionIfClosed() throws ResultSetClosedSQLException {

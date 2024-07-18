@@ -4155,9 +4155,13 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
+        appendSql("{ ");
         lhs.accept( this );
-        appendSql( operator.sqlText() );
+        appendSql(": \"");
+        appendSql( getMongodbOperatorText(operator) );
+        appendSql("\": ");
         rhs.accept( this );
+        appendSql("}");
     }
 
     protected void renderComparisonDistinctOperator(Expression lhs, ComparisonOperator operator, Expression rhs) {
@@ -7579,14 +7583,20 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         final boolean parenthesis = !inListPredicate.isNegated()
                 && inExprLimit > 0 && listExpressions.size() > inExprLimit;
         if ( parenthesis ) {
-            appendSql( OPEN_PARENTHESIS );
+            //appendSql( OPEN_PARENTHESIS );
         }
 
+        appendSql("{ ");
+
         inListPredicate.getTestExpression().accept( this );
+        appendSql(": {");
         if ( inListPredicate.isNegated() ) {
-            appendSql( " not" );
+            appendSql("\"$nin\": ");
+            //appendSql( " not" );
         }
-        appendSql( " in (" );
+        //appendSql( " in (" );
+        appendSql("\"$in\": ");
+        appendSql("[");
         String separator = NO_SEPARATOR;
 
         final Iterator<Expression> iterator = listExpressions.iterator();
@@ -7618,9 +7628,10 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             }
         }
 
-        appendSql( CLOSE_PARENTHESIS );
+        appendSql("] }");
+        //appendSql( CLOSE_PARENTHESIS );
         if ( parenthesis ) {
-            appendSql( CLOSE_PARENTHESIS );
+            //appendSql( CLOSE_PARENTHESIS );
         }
     }
 
@@ -8918,6 +8929,18 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         for ( ColumnValueParameter parameter : columnWriteFragment.getParameters() ) {
             parameterBinders.add( parameter.getParameterBinder() );
             jdbcParameters.addParameter( parameter );
+        }
+    }
+
+    private String getMongodbOperatorText(ComparisonOperator operator) {
+        return switch (operator) {
+            case EQUAL -> "$eq";
+            case NOT_EQUAL -> "$ne";
+            case LESS_THAN -> "$lt";
+            case LESS_THAN_OR_EQUAL -> "$lte";
+            case GREATER_THAN -> "$gt";
+            case GREATER_THAN_OR_EQUAL -> "gte";
+            default -> throw new NotSupportedRuntimeException("unsupported operator: " + operator.name());
         }
     }
 }
