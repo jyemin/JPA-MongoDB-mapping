@@ -1,39 +1,39 @@
 package org.hibernate.omm.crud;
 
+import java.util.List;
 
-import org.hibernate.testing.orm.junit.DomainModel;
-import org.hibernate.testing.orm.junit.SessionFactory;
-import org.hibernate.testing.orm.junit.SessionFactoryScope;
+import org.hibernate.omm.AbstractMongodbContainerTests;
+
 import org.junit.jupiter.api.Test;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
-@DomainModel(annotatedClasses = SimpleInsertTests.Book.class)
-@SessionFactory
-class SimpleInsertTests {
+class SimpleInsertTests extends AbstractMongodbContainerTests {
+
 	@Test
-	void test(SessionFactoryScope scope) {
-		scope.inTransaction(
-				session -> {
-					var book = new Book();
-					book.id = 1L;
-					book.name = "War and Peace";
-					book.author = "Leo Tolstoy";
-					book.publishYear = 1867;
-					session.persist( book );
-				}
-		);
+	void test() {
+		getSessionFactory().inTransaction( session -> {
+			var book = new Book();
+			book.id = 244L;
+			book.title = "War and Peace";
+			book.author = "Leo Tolstoy";
+			book.publishYear = 1869;
+			session.persist( book );
+		} );
+	}
+
+	@Override
+	public List<Class<?>> getAnnotatedClasses() {
+		return List.of( Book.class );
 	}
 
 	@Entity(name = "book")
-	@Table(name = "just_for_testing")
 	static class Book {
 		@Id
 		Long id;
 
-		String name;
+		String title;
 
 		String author;
 

@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import org.bson.codecs.configuration.CodecRegistry;
 
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.omm.cfg.MongodbAvailableSettings;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.Stoppable;
 
@@ -23,8 +24,8 @@ public class MongodbConnectionProvider implements ConnectionProvider, Configurab
 
 	@Override
 	public void configure(Map<String, Object> configurationValues) {
-		String mongodbConnectionURL = (String) configurationValues.get( "mongodb.connection.url" );
-		String mongodbDatabaseName = (String) configurationValues.get( "mongodb.database.name" );
+		String mongodbConnectionURL = (String) configurationValues.get( MongodbAvailableSettings.MONGODB_CONNECTION_URL );
+		String mongodbDatabaseName = (String) configurationValues.get( MongodbAvailableSettings.MONGODB_DATABASE );
 		ConnectionString connectionString = new ConnectionString( mongodbConnectionURL );
 		CodecRegistry codecRegistry = fromRegistries(
 				MongoClientSettings.getDefaultCodecRegistry()
