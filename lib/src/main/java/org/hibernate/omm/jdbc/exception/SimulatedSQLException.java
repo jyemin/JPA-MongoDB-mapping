@@ -4,14 +4,14 @@ import java.sql.SQLException;
 
 public abstract class SimulatedSQLException extends SQLException {
 
-    public SimulatedSQLException() {
-    }
+	public SimulatedSQLException() {
+	}
 
-    public SimulatedSQLException(String reason) {
-        super(reason);
-    }
+	public SimulatedSQLException(String reason) {
+		super( reason );
+	}
 
-    public SimulatedSQLException(String reason, Throwable cause) {
-        super(reason, cause);
-    }
+	public SimulatedSQLException(String reason, Throwable cause) {
+		super( reason, cause );
+	}
 }

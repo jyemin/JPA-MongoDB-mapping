@@ -12,20 +12,20 @@ import org.hibernate.sql.exec.spi.JdbcOperation;
 
 public class MongodbDialect extends Dialect {
 
-    @Override
-    public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
+	@Override
+	public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
 
-        return new StandardSqlAstTranslatorFactory() {
-            @Override
-            protected <T extends JdbcOperation> SqlAstTranslator<T> buildTranslator(
-                    SessionFactoryImplementor sessionFactory, Statement statement) {
-                return new MongodbSqlAstTranslator<>(sessionFactory, statement);
-            }
-        };
-    }
+		return new StandardSqlAstTranslatorFactory() {
+			@Override
+			protected <T extends JdbcOperation> SqlAstTranslator<T> buildTranslator(
+					SessionFactoryImplementor sessionFactory, Statement statement) {
+				return new MongodbSqlAstTranslator<>( sessionFactory, statement );
+			}
+		};
+	}
 
-    @Override
-    public void appendLiteral(SqlAppender appender, String literal) {
-        appender.appendSql( StringUtil.writeStringHelper( literal ) );
-    }
+	@Override
+	public void appendLiteral(SqlAppender appender, String literal) {
+		appender.appendSql( StringUtil.writeStringHelper( literal ) );
+	}
 }

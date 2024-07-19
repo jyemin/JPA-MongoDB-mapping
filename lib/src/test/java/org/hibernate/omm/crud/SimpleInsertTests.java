@@ -1,8 +1,6 @@
 package org.hibernate.omm.crud;
 
 
-import java.util.Objects;
-
 import org.hibernate.testing.orm.junit.DomainModel;
 import org.hibernate.testing.orm.junit.SessionFactory;
 import org.hibernate.testing.orm.junit.SessionFactoryScope;
