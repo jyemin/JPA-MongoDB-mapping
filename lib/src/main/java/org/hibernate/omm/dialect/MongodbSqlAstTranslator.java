@@ -1024,7 +1024,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	public void visitDeleteStatement(DeleteStatement statement) {
 		try {
 			statementStack.push( statement );
-			//visitCteContainer( statement );
 			visitDeleteStatementOnly( statement );
 		}
 		finally {
@@ -1036,7 +1035,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	public void visitUpdateStatement(UpdateStatement statement) {
 		try {
 			statementStack.push( statement );
-			visitCteContainer( statement );
 			visitUpdateStatementOnly( statement );
 		}
 		finally {
@@ -1053,7 +1051,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	public void visitInsertStatement(InsertSelectStatement statement) {
 		try {
 			statementStack.push( statement );
-			//visitCteContainer( statement );
 			visitInsertStatementOnly( statement );
 		}
 		finally {
@@ -1290,7 +1287,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		clauseStack.push( Clause.INSERT );
 
 		String tableExpression = statement.getTargetTable().getTableExpression();
-		appendSql( "{insert: '" );
+		appendSql( "{ insert: '" );
 		appendSql( tableExpression );
 		appendSql( '\'' );
 		appendSql( ", documents: " );
@@ -2192,150 +2189,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			appendSql( returningColumns.get( i ).getColumnExpression() );
 			separator = COMMA_SEPARATOR;
 		}
-	}
-
-	public void visitCteContainer(CteContainer cteContainer) {
-		final Collection<CteStatement> originalCteStatements = cteContainer.getCteStatements().values();
-		final Collection<CteStatement> cteStatements;
-		// If CTE inlining is needed, collect all recursive CTEs, since these can't be inlined
-		if ( needsCteInlining() && !originalCteStatements.isEmpty() ) {
-			cteStatements = new ArrayList<>( originalCteStatements.size() );
-			for ( CteStatement cteStatement : originalCteStatements ) {
-				if ( cteStatement.isRecursive() ) {
-					cteStatements.add( cteStatement );
-				}
-			}
-		}
-		else {
-			cteStatements = originalCteStatements;
-		}
-		final Collection<CteObject> cteObjects = cteContainer.getCteObjects().values();
-		if ( cteStatements.isEmpty() && cteObjects.isEmpty() ) {
-			return;
-		}
-		if ( !supportsWithClause() ) {
-			if ( isRecursive( cteStatements ) && cteObjects.isEmpty() ) {
-				throw new UnsupportedOperationException( "Can't emulate recursive CTEs!" );
-			}
-			// This should be unreachable, because #needsCteInlining() must return true if #supportsWithClause() returns false,
-			// and hence the cteStatements should either contain a recursive CTE or be empty
-			throw new IllegalStateException( "Non-recursive CTEs found that need inlining, but were collected: " + cteStatements );
-		}
-		final boolean renderRecursiveKeyword = needsRecursiveKeywordInWithClause() && isRecursive( cteStatements );
-		if ( renderRecursiveKeyword && !dialect.supportsRecursiveCTE() ) {
-			throw new UnsupportedOperationException( "Can't emulate recursive CTEs!" );
-		}
-		// Here we compute if the CTEs should be pushed to the top level WITH clause
-		final boolean isTopLevel = clauseStack.isEmpty();
-		final boolean pushToTopLevel;
-		if ( isTopLevel ) {
-			pushToTopLevel = false;
-		}
-		else {
-			pushToTopLevel = !supportsNestedWithClause()
-					|| !supportsWithClauseInSubquery() && isInSubquery();
-		}
-		final boolean inNestedWithClause = clauseStack.findCurrentFirst( MongodbSqlAstTranslator::matchWithClause ) != null;
-		clauseStack.push( Clause.WITH );
-		if ( !pushToTopLevel ) {
-			appendSql( "with " );
-
-			withClauseRecursiveIndex = sqlBuffer.length();
-			if ( renderRecursiveKeyword ) {
-				appendSql( "recursive " );
-			}
-		}
-		// The following lines are a bit complicated because they alter the sqlBuffer contents instead of just appending.
-		// Like SQL, we support nested CTEs i.e. `with a as (with b as (...) select ..) select ...` and CTEs in subqueries.
-		// Some DBs don't support this though, but to detect the usage of nested CTEs or in subqueries,
-		// we'd have to *always* traverse the AST an additional time to collect them for the top-level statement.
-		// It's also tricky to pre-collect the CTEs because the processing context stacks would be different.
-		// To avoid these two issues, the following code will insert CTEs into the sqlBuffer at the appropriate location.
-		// To do that, we remember the end-index of the last recently rendered CTE in the sqlBuffer, the `topLevelWithClauseIndex`
-		// Nested CTEs need to be rendered before the current CTE. CTEs in subqueries get append to the top level.
-		String mainSeparator = "";
-		if ( isTopLevel ) {
-			topLevelWithClauseIndex = sqlBuffer.length();
-			for ( CteObject cte : cteObjects ) {
-				visitCteObject( cte );
-				topLevelWithClauseIndex = sqlBuffer.length();
-			}
-			for ( CteStatement cte : cteStatements ) {
-				appendSql( mainSeparator );
-				visitCteStatement( cte );
-				mainSeparator = COMMA_SEPARATOR;
-				topLevelWithClauseIndex = sqlBuffer.length();
-			}
-			appendSql( WHITESPACE );
-		}
-		else if ( pushToTopLevel ) {
-			// We need to push the CTEs of this level to the top level WITH clause
-			// and to do that we must first ensure that the top level WITH clause is even setup correctly
-			if ( topLevelWithClauseIndex == 0 ) {
-				// When we get here, there is no top level WITH clause yet, so we must insert that
-				// The recursive keyword must be at index 5, which is the length of "with "
-				withClauseRecursiveIndex = 5;
-				if ( renderRecursiveKeyword ) {
-					sqlBuffer.insert( 0, "with recursive " );
-					// The next CTE must be inserted at index 15, which is the length of "with recursive "
-					topLevelWithClauseIndex = 15;
-				}
-				else {
-					sqlBuffer.insert( 0, "with " );
-					// The next CTE must be inserted at index 5, which is the length of "with "
-					topLevelWithClauseIndex = 5;
-				}
-			}
-			else if ( renderRecursiveKeyword ) {
-				// When we get here, we know that there is a top level WITH clause,
-				// and that at least one of the CTEs that need to be pushed to the top level needs the recursive keyword,
-				final String recursiveKeyword = "recursive ";
-				if ( !sqlBuffer.substring( withClauseRecursiveIndex, recursiveKeyword.length() ).equals(
-						recursiveKeyword ) ) {
-					// If the buffer doesn't contain the keyword at the expected index, we have to add it
-					sqlBuffer.insert( withClauseRecursiveIndex, recursiveKeyword );
-					// and also adjust the index at which CTEs have to be inserted
-					topLevelWithClauseIndex += recursiveKeyword.length();
-				}
-			}
-			// At this point, we have to insert CTEs at topLevelWithClauseIndex,
-			// but constantly inserting would lead to many buffer copies,
-			// so instead we cut out the suffix, render via append as usual and re-add the suffix in the end
-			final String temporaryRest = sqlBuffer.substring( topLevelWithClauseIndex );
-			sqlBuffer.setLength( topLevelWithClauseIndex );
-			if ( sqlBuffer.charAt( topLevelWithClauseIndex - 1 ) == ')' ) {
-				// This is the case when there is an existing CTE, so we need a comma for the CTE that are about to render
-				mainSeparator = COMMA_SEPARATOR;
-			}
-			for ( CteObject cte : cteObjects ) {
-				visitCteObject( cte );
-				topLevelWithClauseIndex = sqlBuffer.length();
-			}
-			for ( CteStatement cte : cteStatements ) {
-				appendSql( mainSeparator );
-				visitCteStatement( cte );
-				mainSeparator = COMMA_SEPARATOR;
-				// Make that the topLevelWithClauseIndex is up-to-date
-				topLevelWithClauseIndex = sqlBuffer.length();
-			}
-			if ( inNestedWithClause ) {
-				// If this is a nested CTE, we need a comma at the end because the parent CTE will append further
-				appendSql( mainSeparator );
-			}
-			sqlBuffer.append( temporaryRest );
-		}
-		else {
-			for ( CteObject cte : cteObjects ) {
-				visitCteObject( cte );
-			}
-			for ( CteStatement cte : cteStatements ) {
-				appendSql( mainSeparator );
-				visitCteStatement( cte );
-				mainSeparator = COMMA_SEPARATOR;
-			}
-			appendSql( WHITESPACE );
-		}
-		clauseStack.pop();
 	}
 
 	private void visitCteStatement(CteStatement cte) {
@@ -8862,7 +8715,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		getCurrentClauseStack().push( Clause.INSERT );
 		try {
 			renderInsertInto( tableInsert );
-
 			if ( tableInsert.getNumberOfReturningColumns() > 0 ) {
 				visitReturningColumns( tableInsert::getReturningColumns );
 			}
@@ -8891,7 +8743,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		} );
 
 		appendSql( " } ]" );
-		applySqlComment( tableInsert.getMutationComment() );
+		//applySqlComment( tableInsert.getMutationComment() );
 		appendSql( " }" );
 	}
 
@@ -9010,12 +8862,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	private void applySqlComment(String comment) {
-		if ( sessionFactory.getSessionFactoryOptions().isCommentsEnabled() ) {
-			if ( comment != null ) {
-				appendSql( ",comment:\"" );
-				appendSql( StringUtil.writeStringHelper( Dialect.escapeComment( comment ) ) );
-				appendSql( "\"" );
-			}
+		if ( comment != null ) {
+			appendSql( ", comment: " );
+			dialect.appendLiteral( this, comment );
 		}
 	}
 
@@ -9031,54 +8880,54 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	public void visitStandardTableDelete(TableDeleteStandard tableDelete) {
 		getCurrentClauseStack().push( Clause.DELETE );
 		try {
-			applySqlComment( tableDelete.getMutationComment() );
-
-			sqlBuffer.append( "delete from " );
-			appendSql( tableDelete.getMutatingTable().getTableName() );
+			appendSql( "{ delete: " );
+			dialect.appendLiteral( this, tableDelete.getMutatingTable().getTableName() );
 			registerAffectedTable( tableDelete.getMutatingTable().getTableName() );
 
 			getCurrentClauseStack().push( Clause.WHERE );
 			try {
-				sqlBuffer.append( " where " );
+				appendSql( ", deletes: [" );
 
 				tableDelete.forEachKeyBinding( (columnPosition, columnValueBinding) -> {
-					sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
-					sqlBuffer.append( "=" );
+					appendSql( " { q: { " );
+					appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
+					appendSql( ": { $eq: " );
 					columnValueBinding.getValueExpression().accept( this );
-
+					appendSql( " } }, limit: 0 }" );
 					if ( columnPosition < tableDelete.getNumberOfKeyBindings() - 1 ) {
-						sqlBuffer.append( " and " );
+						appendSql( ", " );
 					}
 				} );
 
 				if ( tableDelete.getNumberOfOptimisticLockBindings() > 0 ) {
-					sqlBuffer.append( " and " );
+					appendSql( ", " );
 
 					tableDelete.forEachOptimisticLockBinding( (columnPosition, columnValueBinding) -> {
-						sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
-						if ( columnValueBinding.getValueExpression() == null ) {
-							sqlBuffer.append( " is null" );
-						}
-						else {
-							sqlBuffer.append( "=" );
-							columnValueBinding.getValueExpression().accept( this );
-						}
-
+						appendSql( " { q: { " );
+						appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
+						appendSql( ": { $eq: " );
+						columnValueBinding.getValueExpression().accept( this );
+						appendSql( " } }, limit: 0 }" );
 						if ( columnPosition < tableDelete.getNumberOfOptimisticLockBindings() - 1 ) {
-							sqlBuffer.append( " and " );
+							appendSql( ", " );
 						}
 					} );
 				}
 
 				if ( tableDelete.getWhereFragment() != null ) {
-					sqlBuffer.append( " and (" ).append( tableDelete.getWhereFragment() ).append( ")" );
+					appendSql( ", { q: " );
+					appendSql( tableDelete.getWhereFragment() );
+					appendSql( " }" );
 				}
 			}
 			finally {
+				appendSql( " ]" );
+				//applySqlComment( tableDelete.getMutationComment() );
 				getCurrentClauseStack().pop();
 			}
 		}
 		finally {
+			appendSql( " }" );
 			getCurrentClauseStack().pop();
 		}
 	}

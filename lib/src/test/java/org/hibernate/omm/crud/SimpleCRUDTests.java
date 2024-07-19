@@ -9,10 +9,10 @@ import org.junit.jupiter.api.Test;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
-class SimpleInsertTests extends AbstractMongodbContainerTests {
+class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
-	void test() {
+	void testInsert() {
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
 			book.id = 244L;
@@ -20,6 +20,24 @@ class SimpleInsertTests extends AbstractMongodbContainerTests {
 			book.author = "Leo Tolstoy";
 			book.publishYear = 1869;
 			session.persist( book );
+		} );
+	}
+
+	@Test
+	void testDelete() {
+		getSessionFactory().inTransaction( session -> {
+			var book = new Book();
+			book.id = 12L;
+			book.title = "War and Peace";
+			book.author = "Leo Tolstoy";
+			book.publishYear = 1869;
+			session.persist( book );
+			session.flush();
+		} );
+		getSessionFactory().inTransaction( session -> {
+			var book = session.getReference( Book.class,  12L );
+			session.remove( book );
+			session.flush();
 		} );
 	}
 

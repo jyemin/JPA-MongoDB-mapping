@@ -238,7 +238,6 @@ public class MongodbPreparedStatement extends MongodbStatement
 	}
 
 	private String getFinalCommandString() {
-
 		int parameterIndex = 1;
 		int lastIndex = -1;
 		int index;
