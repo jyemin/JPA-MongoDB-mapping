@@ -28,4 +28,9 @@ public class MongodbDialect extends Dialect {
 	public void appendLiteral(SqlAppender appender, String literal) {
 		appender.appendSql( StringUtil.writeStringHelper( literal ) );
 	}
+
+	@Override
+	public boolean supportsNullPrecedence() {
+		return false;
+	}
 }

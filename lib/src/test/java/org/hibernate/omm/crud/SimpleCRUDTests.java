@@ -6,16 +6,19 @@ import org.hibernate.omm.AbstractMongodbContainerTests;
 
 import org.junit.jupiter.api.Test;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
 class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
+	private final Long id = 245L;
+
 	@Test
 	void testInsert() {
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
-			book.id = 244L;
+			book.id = id;
 			book.title = "War and Peace";
 			book.author = "Leo Tolstoy";
 			book.publishYear = 1869;
@@ -25,19 +28,32 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testDelete() {
+		testInsert();
 		getSessionFactory().inTransaction( session -> {
-			var book = new Book();
-			book.id = 12L;
-			book.title = "War and Peace";
-			book.author = "Leo Tolstoy";
-			book.publishYear = 1869;
-			session.persist( book );
-			session.flush();
-		} );
-		getSessionFactory().inTransaction( session -> {
-			var book = session.getReference( Book.class,  12L );
+			var book = session.getReference( Book.class,  id );
 			session.remove( book );
-			session.flush();
+		} );
+	}
+
+	@Test
+	void testLoad() {
+		testInsert();
+		getSessionFactory().inTransaction( session -> {
+			Book book = new Book();
+			session.load( book, id );
+		} );
+	}
+
+	@Test
+	void testUpdate() {
+		testInsert();
+		getSessionFactory().inTransaction( session -> {
+			Book book = new Book();
+			session.load( book, id );
+			book.author = "Fyodor Dostoevsky";
+			book.title = "Crime and Punishment";
+			book.publishYear = 1866;
+			session.merge( book );
 		} );
 	}
 
@@ -49,6 +65,7 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 	@Entity(name = "book")
 	static class Book {
 		@Id
+		@Column(name = "_id")
 		Long id;
 
 		String title;

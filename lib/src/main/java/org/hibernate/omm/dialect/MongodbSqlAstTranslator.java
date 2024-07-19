@@ -1011,9 +1011,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			if ( !statement.getQueryPart().isRoot() ) {
 				throw new NotSupportedRuntimeException( "subQuery not supported" );
 			}
-			appendSql( "{ " );
 			statement.getQueryPart().accept( this );
-			appendSql( " }" );
 		}
 		finally {
 			statementStack.pop();
@@ -1089,20 +1087,16 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	protected void visitUpdateStatementOnly(UpdateStatement statement) {
+		appendSql( "{ " );
 		renderUpdateClause( statement );
+		appendSql( ", updates: [ " );
+		visitWhereClause( statement.getRestriction() );
 		renderSetClause( statement.getAssignments() );
-		renderFromClauseAfterUpdateSet( statement );
-		if ( dialect.supportsFromClauseInUpdate() || !hasNonTrivialFromClause( statement.getFromClause() ) ) {
-			visitWhereClause( statement.getRestriction() );
-		}
-		else {
-			visitWhereClause( determineWhereClauseRestrictionWithJoinEmulation( statement ) );
-		}
-		visitReturningColumns( statement.getReturningColumns() );
+		appendSql( " ] }" );
 	}
 
 	protected void renderUpdateClause(UpdateStatement updateStatement) {
-		appendSql( "update " );
+		appendSql( "update: " );
 		final Stack<Clause> clauseStack = getClauseStack();
 		try {
 			clauseStack.push( Clause.UPDATE );
@@ -1114,7 +1108,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	protected void renderDmlTargetTableExpression(NamedTableReference tableReference) {
-		appendSql( tableReference.getTableExpression() );
+		dialect.appendLiteral( this, tableReference.getTableExpression() );
 		registerAffectedTable( tableReference );
 	}
 
@@ -1182,17 +1176,18 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	protected void renderSetClause(List<Assignment> assignments) {
-		appendSql( " set" );
-		char separator = ' ';
+		appendSql( " , u: { " );
+		String separator = " ";
 		try {
 			clauseStack.push( Clause.SET );
 			for ( Assignment assignment : assignments ) {
 				appendSql( separator );
-				separator = COMMA_SEPARATOR_CHAR;
+				separator = ", ";
 				visitSetAssignment( assignment );
 			}
 		}
 		finally {
+			appendSql( " }" );
 			clauseStack.pop();
 		}
 	}
@@ -1201,7 +1196,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
 		if ( columnReferences.size() == 1 ) {
 			columnReferences.get( 0 ).appendColumnForWrite( this, null );
-			appendSql( '=' );
+			appendSql( ": " );
 			final Expression assignedValue = assignment.getAssignedValue();
 			final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple( assignedValue );
 			if ( sqlTuple != null ) {
@@ -1213,14 +1208,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			}
 		}
 		else {
-			char separator = OPEN_PARENTHESIS;
-			for ( ColumnReference columnReference : columnReferences ) {
-				appendSql( separator );
-				columnReference.appendColumnForWrite( this, null );
-				separator = COMMA_SEPARATOR_CHAR;
-			}
-			appendSql( ")=" );
-			assignment.getAssignedValue().accept( this );
+			throw new NotSupportedRuntimeException( "multiple column assignment not supported" );
 		}
 	}
 
@@ -3641,17 +3629,22 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			if ( queryGroupAlias != null ) {
 				throw new NotSupportedRuntimeException( "query group not supported" );
 			}
+			appendSql( "{ find: " );
 			visitFromClause( querySpec.getFromClause() );
+			appendSql( ", filter: " );
 			visitWhereClause( querySpec.getWhereClauseRestrictions() );
+			appendSql( ", sort: " );
 			visitOrderBy( querySpec.getSortSpecifications() );
+			append( " }, projection: " );
 			visitSelectClause( querySpec.getSelectClause() );
 			//visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
 			//visitHavingClause( querySpec );
 			visitOffsetFetchClause( querySpec );
 			// We render the FOR UPDATE clause in the parent query
-			if ( queryPartForRowNumbering == null ) {
-				visitForUpdateClause( querySpec );
-			}
+			//if ( queryPartForRowNumbering == null ) {
+				//visitForUpdateClause( querySpec );
+			//}
+			appendSql( " }" );
 		}
 		finally {
 			this.queryPartStack.pop();
@@ -3687,7 +3680,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	protected final void visitWhereClause(Predicate whereClauseRestrictions) {
 		final Predicate additionalWherePredicate = this.additionalWherePredicate;
 		if ( whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty() || additionalWherePredicate != null ) {
-			appendSql( ", filter: { " );
+			appendSql( "{ $and: [ " );
 
 			clauseStack.push( Clause.WHERE );
 			try {
@@ -3703,7 +3696,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 					this.additionalWherePredicate = null;
 					additionalWherePredicate.accept( this );
 				}
-				appendSql( " } " );
+				appendSql( " ] }" );
 			}
 			finally {
 				clauseStack.pop();
@@ -3890,9 +3883,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	protected void visitOrderBy(List<SortSpecification> sortSpecifications) {
 		// If we have a query part for row numbering, there is no need to render the order by clause
 		// as that is part of the row numbering window function already, by which we then order by in the outer query
+		appendSql( '{');
 		if ( queryPartForRowNumbering == null ) {
 			renderOrderBy( true, sortSpecifications );
 		}
+		appendSql(" }");
 	}
 
 	protected void renderOrderBy(boolean addWhitespace, List<SortSpecification> sortSpecifications) {
@@ -3900,9 +3895,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			if ( addWhitespace ) {
 				appendSql( WHITESPACE );
 			}
-			appendSql( ", " );
-			appendSql( "sort: {" );
-
 			clauseStack.push( Clause.ORDER );
 			try {
 				String separator = NO_SEPARATOR;
@@ -3913,7 +3905,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 				}
 			}
 			finally {
-				appendSql( " }" );
 				clauseStack.pop();
 			}
 		}
@@ -4182,11 +4173,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
 		appendSql( "{ " );
 		lhs.accept( this );
-		appendSql( ": " );
+		appendSql( ": { " );
 		appendSql( getMongodbOperatorText( operator ) );
 		appendSql( ": " );
 		rhs.accept( this );
-		appendSql( "}" );
+		appendSql( " } }" );
 	}
 
 	protected void renderComparisonDistinctOperator(Expression lhs, ComparisonOperator operator, Expression rhs) {
@@ -4364,11 +4355,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		else if ( sortOrder == SortDirection.ASCENDING && renderNullPrecedence && supportsNullPrecedence ) {
 			appendSql( " 1" );
 		}
-
-		if ( renderNullPrecedence && supportsNullPrecedence ) {
-			appendSql( " nulls " );
-			appendSql( nullPrecedence == NullPrecedence.LAST ? "last" : "first" );
-		}
 	}
 
 	protected boolean supportsNullPrecedence() {
@@ -4443,9 +4429,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		finally {
 			clauseStack.pop();
 		}
-		if ( renderOffsetRowsKeyword ) {
-			appendSql( " rows" );
-		}
 	}
 
 	protected void renderFetch(
@@ -4464,20 +4447,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		}
 		finally {
 			clauseStack.pop();
-		}
-		switch ( fetchClauseType ) {
-			case ROWS_ONLY:
-				appendSql( " rows only" );
-				break;
-			case ROWS_WITH_TIES:
-				appendSql( " rows with ties" );
-				break;
-			case PERCENT_ONLY:
-				appendSql( " percent rows only" );
-				break;
-			case PERCENT_WITH_TIES:
-				appendSql( " percent rows with ties" );
-				break;
 		}
 	}
 
@@ -5208,12 +5177,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	@Override
 	public void visitSelectClause(SelectClause selectClause) {
 		clauseStack.push( Clause.SELECT );
-
+		appendSql( '{' );
 		try {
-			appendSql( ", projection: {" );
-			if ( selectClause.isDistinct() ) {
+			/*if ( selectClause.isDistinct() ) {
 				appendSql( "distinct " );
-			}
+			}*/
 			visitSqlSelections( selectClause );
 			renderVirtualSelections( selectClause );
 			appendSql( " }" );
@@ -5314,9 +5282,8 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 				else {
 					parameterRenderingMode = defaultRenderingMode;
 				}
-				appendSql( "{" );
 				visitSqlSelection( sqlSelection );
-				appendSql( ": 1}" );
+				appendSql( ": true" );
 				parameterRenderingMode = original;
 				separator = COMMA_SEPARATOR;
 			}
@@ -5789,15 +5756,30 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
 	@Override
 	public void visitFromClause(FromClause fromClause) {
-		if ( fromClause == null || fromClause.getRoots().isEmpty() ) {
-			appendSql( getFromDualForSelectOnly() );
+		ModelPartContainer modelPart = getModelPartContainer( fromClause );
+		if ( modelPart instanceof AbstractEntityPersister abstractEntityPersister) {
+			String[] querySpaces = (String[]) abstractEntityPersister.getQuerySpaces();
+			if (querySpaces.length > 1) {
+				throw new NotSupportedRuntimeException( "Multiple tables not supported" );
+			}
+			dialect.appendLiteral( this, querySpaces[0] );
+		} else {
+			throw new NotSupportedRuntimeException( "table group's model part is not AbstractEntityPersister!" );
 		}
-		else {
-			//appendSql( " from " );
-			appendSql( "find: \"" );
-			renderFromClauseSpaces( fromClause );
-			appendSql( "\"" );
+	}
+
+	private ModelPartContainer getModelPartContainer(FromClause fromClause) {
+		if ( fromClause == null || fromClause.getRoots().size() != 1) {
+			throw new NotSupportedRuntimeException( "empty or multiple roots in from clause not supported" );
 		}
+		TableGroup tableGroup = fromClause.getRoots().get( 0 );
+		if ( tableGroup.isVirtual() ) {
+			throw new NotSupportedRuntimeException( "virtual table group not supported" );
+		}
+		if ( !tableGroup.getTableGroupJoins().isEmpty() || !tableGroup.getTableReferenceJoins().isEmpty() ) {
+			throw new NotSupportedRuntimeException( "Table Joining not supported" );
+		}
+		return tableGroup.getModelPart();
 	}
 
 	protected void renderFromClauseSpaces(FromClause fromClause) {
@@ -5811,10 +5793,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		finally {
 			clauseStack.pop();
 		}
-	}
-
-	protected void renderFromClauseAfterUpdateSet(UpdateStatement statement) {
-		// No-op. Subclasses have to override this
 	}
 
 	protected void renderFromClauseExcludingDmlTargetReference(UpdateStatement statement) {
@@ -6820,25 +6798,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
 	@Override
 	public void visitColumnReference(ColumnReference columnReference) {
-		final String qualifier = determineColumnReferenceQualifier( columnReference );
-		if ( columnReference.isColumnExpressionFormula() ) {
-			// For formulas, we have to replace the qualifier as the alias was already rendered into the formula
-			// This is fine for now as this is only temporary anyway until we render aliases for table references
-			final String replacement;
-			if ( qualifier != null ) {
-				replacement = "$1" + qualifier + ".$3";
-			}
-			else {
-				replacement = "$1$3";
-			}
-			appendSql(
-					columnReference.getColumnExpression()
-							.replaceAll( "(\\b)(" + columnReference.getQualifier() + "\\.)(\\b)", replacement )
-			);
-		}
-		else {
-			columnReference.appendReadExpression( this, qualifier );
-		}
+		columnReference.appendReadExpression( this, null );
 	}
 
 	@Override
@@ -8775,16 +8735,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	public void visitStandardTableUpdate(TableUpdateStandard tableUpdate) {
 		getCurrentClauseStack().push( Clause.UPDATE );
 		try {
+			appendSql( "{ " );
 			visitTableUpdate( tableUpdate );
-			if ( tableUpdate.getWhereFragment() != null ) {
-				sqlBuffer.append( " and (" ).append( tableUpdate.getWhereFragment() ).append( ")" );
-			}
-
-			if ( tableUpdate.getNumberOfReturningColumns() > 0 ) {
-				visitReturningColumns( tableUpdate::getReturningColumns );
-			}
 		}
 		finally {
+			appendSql( " }" );
 			getCurrentClauseStack().pop();
 		}
 	}
@@ -8801,64 +8756,74 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	private void visitTableUpdate(RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
-		applySqlComment( tableUpdate.getMutationComment() );
-
-		sqlBuffer.append( "update " );
-		appendSql( tableUpdate.getMutatingTable().getTableName() );
+		appendSql( "update: " );
+		dialect.appendLiteral( this, tableUpdate.getMutatingTable().getTableName() );
 		registerAffectedTable( tableUpdate.getMutatingTable().getTableName() );
 
-		getCurrentClauseStack().push( Clause.SET );
-		try {
-			sqlBuffer.append( " set" );
-			tableUpdate.forEachValueBinding( (columnPosition, columnValueBinding) -> {
-				if ( columnPosition == 0 ) {
-					sqlBuffer.append( ' ' );
-				}
-				else {
-					sqlBuffer.append( ',' );
-				}
-				sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
-				sqlBuffer.append( '=' );
-				columnValueBinding.getValueExpression().accept( this );
-			} );
-		}
-		finally {
-			getCurrentClauseStack().pop();
-		}
+		appendSql( ", updates: [ {" );
 
 		getCurrentClauseStack().push( Clause.WHERE );
 		try {
-			sqlBuffer.append( " where" );
+			appendSql( " q: { $and: [" );
 			tableUpdate.forEachKeyBinding( (position, columnValueBinding) -> {
 				if ( position == 0 ) {
-					sqlBuffer.append( ' ' );
+					appendSql( ' ' );
 				}
 				else {
-					sqlBuffer.append( " and " );
+					appendSql( ", " );
 				}
-				sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
-				sqlBuffer.append( '=' );
+				appendSql( "{ " );
+				appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
+				appendSql( ": { $eq: " );
 				columnValueBinding.getValueExpression().accept( this );
+				appendSql( " } }" );
 			} );
 
 			if ( tableUpdate.getNumberOfOptimisticLockBindings() > 0 ) {
 				tableUpdate.forEachOptimisticLockBinding( (position, columnValueBinding) -> {
-					sqlBuffer.append( " and " );
-					sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
+					appendSql( ", { " );
+					appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
+					appendSql( ": { $eq: " );
 					if ( columnValueBinding.getValueExpression() == null ) {
-						sqlBuffer.append( " is null" );
+						appendSql( "null" );
 					}
 					else {
-						sqlBuffer.append( "=" );
 						columnValueBinding.getValueExpression().accept( this );
 					}
+					appendSql( " } }" );
 				} );
 			}
 
+			if (tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null) {
+				appendSql( ", " );
+				appendSql( tableUpdateStandard.getWhereFragment() );
+			}
 		}
 		finally {
 			getCurrentClauseStack().pop();
 		}
+
+		appendSql( " ] }, u: { $set: {" );
+		getCurrentClauseStack().push( Clause.SET );
+		try {
+
+			tableUpdate.forEachValueBinding( (columnPosition, columnValueBinding) -> {
+				if ( columnPosition == 0 ) {
+					appendSql( ' ' );
+				}
+				else {
+					appendSql( ", " );
+				}
+				sqlBuffer.append( columnValueBinding.getColumnReference().getColumnExpression() );
+				sqlBuffer.append( ": " );
+				columnValueBinding.getValueExpression().accept( this );
+			} );
+		}
+		finally {
+			getCurrentClauseStack().pop();
+		}
+
+		appendSql( " } } } ]" );
 	}
 
 	private void applySqlComment(String comment) {
