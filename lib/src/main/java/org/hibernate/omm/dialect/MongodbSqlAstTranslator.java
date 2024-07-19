@@ -29,6 +29,7 @@ import org.hibernate.internal.util.collections.StandardStack;
 import org.hibernate.metamodel.mapping.*;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.util.StringUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -8657,33 +8658,33 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     private void renderInsertInto(TableInsertStandard tableInsert) {
-        //applySqlComment( tableInsert.getMutationComment() );
-
         if ( tableInsert.getNumberOfValueBindings() == 0 ) {
             renderInsertIntoNoColumns( tableInsert );
             return;
         }
-        appendSql("{ insert: \"");
+        appendSql( "{ insert: " );
         renderIntoIntoAndTable( tableInsert );
-        appendSql("\", documents: [ {");
+        appendSql( ", documents: [ { " );
 
         tableInsert.forEachValueBinding( (columnPosition, columnValueBinding) -> {
             if ( columnPosition != 0 ) {
-                appendSql( ',' );
+                appendSql( ", " );
             }
             appendSql( columnValueBinding.getColumnReference().getColumnExpression() );
-            appendSql(": ");
+            appendSql( ": " );
             columnValueBinding.getValueExpression().accept( this );
         } );
 
-        appendSql("} ] }");
+        appendSql( " } ]" );
+        applySqlComment( tableInsert.getMutationComment() );
+        appendSql( " }" );
     }
 
     /**
      * Renders the {@code insert into <table name>} portion of an insert
      */
     protected void renderIntoIntoAndTable(TableInsertStandard tableInsert) {
-        appendSql( tableInsert.getMutatingTable().getTableName() );
+        dialect.appendLiteral( this, tableInsert.getMutatingTable().getTableName() );
         registerAffectedTable( tableInsert.getMutatingTable().getTableName() );
     }
 
@@ -8796,9 +8797,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     private void applySqlComment(String comment) {
         if ( sessionFactory.getSessionFactoryOptions().isCommentsEnabled() ) {
             if ( comment != null ) {
-                appendSql( "/* " );
-                appendSql( Dialect.escapeComment( comment ) );
-                appendSql( " */" );
+                appendSql( ",comment:\"" );
+                appendSql( StringUtil.writeStringHelper( Dialect.escapeComment( comment ) ) );
+                appendSql( "\"" );
             }
         }
     }

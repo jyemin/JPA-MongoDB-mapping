@@ -2,8 +2,10 @@ package org.hibernate.omm.dialect;
 
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.omm.util.StringUtil;
 import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
+import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.sql.ast.spi.StandardSqlAstTranslatorFactory;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
@@ -20,5 +22,10 @@ public class MongodbDialect extends Dialect {
                 return new MongodbSqlAstTranslator<>(sessionFactory, statement);
             }
         };
+    }
+
+    @Override
+    public void appendLiteral(SqlAppender appender, String literal) {
+        appender.appendSql( StringUtil.writeStringHelper( literal ) );
     }
 }

@@ -15,11 +15,11 @@ repositories {
 
 dependencies {
 
-    testImplementation libs.junit.jupiter, libs.embedded.mongodb
+    testImplementation libs.junit.jupiter, libs.hibernate.orm.testing, libs.embedded.mongodb
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation libs.hibernate.core, libs.mongodb.java.driver
+    implementation libs.hibernate.orm.core, libs.mongodb.java.driver
 }
 
 java {
