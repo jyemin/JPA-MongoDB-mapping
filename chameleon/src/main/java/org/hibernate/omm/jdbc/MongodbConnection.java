@@ -22,7 +22,7 @@ import org.bson.Document;
 
 public class MongodbConnection extends ConnectionAdapter {
 
-	private final ClientSession session;
+	private final ClientSession clientSession;
 	private final MongoDatabase mongoDatabase;
 
 	private boolean autoCommit;
@@ -30,19 +30,19 @@ public class MongodbConnection extends ConnectionAdapter {
 
 	private SQLWarning sqlWarning;
 
-	public MongodbConnection(ClientSession session, MongoDatabase mongoDatabase) {
-		this.session = session;
+	public MongodbConnection(ClientSession clientSession, MongoDatabase mongoDatabase) {
+		this.clientSession = clientSession;
 		this.mongoDatabase = mongoDatabase;
 	}
 
 	@Override
 	public Statement createStatement() {
-		return new MongodbStatement( mongoDatabase, this );
+		return new MongodbStatement( mongoDatabase, clientSession, this );
 	}
 
 	@Override
 	public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
-		return new MongodbPreparedStatement( mongoDatabase, this, sql );
+		return new MongodbPreparedStatement( mongoDatabase, clientSession, this, sql );
 	}
 
 	@Override
@@ -94,17 +94,17 @@ public class MongodbConnection extends ConnectionAdapter {
 
 	@Override
 	public void commit() {
-		session.commitTransaction();
+		clientSession.commitTransaction();
 	}
 
 	@Override
 	public void rollback() {
-		session.abortTransaction();
+		clientSession.abortTransaction();
 	}
 
 	@Override
 	public void close() {
-		this.session.close();
+		this.clientSession.close();
 		this.closed = true;
 	}
 

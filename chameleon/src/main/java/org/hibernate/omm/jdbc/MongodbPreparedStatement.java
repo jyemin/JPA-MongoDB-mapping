@@ -1,7 +1,26 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
-import org.bson.json.JsonWriter;
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.ResultSet;
+import java.sql.RowId;
+import java.sql.SQLException;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
@@ -10,42 +29,34 @@ import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.util.StringUtil;
 
-import java.io.InputStream;
-import java.io.Reader;
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
 
 public class MongodbPreparedStatement extends MongodbStatement
 		implements PreparedStatementAdapter {
 
-	private String commandString;
+	private String parameterizedCommandJson;
 	private Map<Integer, String> parameters;
 
-	public MongodbPreparedStatement(MongoDatabase mongoDatabase, Connection connection, String sql) {
-		super( mongoDatabase, connection );
-		this.commandString = sql;
+	public MongodbPreparedStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection, String parameterizedCommandJson) {
+		super( mongoDatabase, clientSession, connection );
+		this.parameterizedCommandJson = parameterizedCommandJson;
 		this.parameters = new HashMap<>();
 	}
 
 	@Override
 	public ResultSet executeQuery() throws SimulatedSQLException {
-		return executeQuery( getFinalCommandString() );
+		return executeQuery( getFinalCommandJson() );
 	}
 
 	@Override
 	public int executeUpdate() throws SimulatedSQLException {
-		return executeUpdate( getFinalCommandString() );
+		return executeUpdate( getFinalCommandJson() );
 	}
 
 	@Override
 	public boolean execute() throws SimulatedSQLException {
-		return execute( getFinalCommandString() );
+		return execute( getFinalCommandJson() );
 	}
 
 	/**
@@ -255,19 +266,19 @@ public class MongodbPreparedStatement extends MongodbStatement
 		throw new NotSupportedSQLException();
 	}
 
-	private String getFinalCommandString() {
+	private String getFinalCommandJson() {
 		int parameterIndex = 1;
 		int lastIndex = -1;
 		int index;
 		StringBuilder sb = new StringBuilder();
 
-		while ( ( index = commandString.indexOf( '?', lastIndex + 1 ) ) != -1 ) {
-			sb.append( commandString, lastIndex + 1, index );
+		while ( ( index = parameterizedCommandJson.indexOf( '?', lastIndex + 1 ) ) != -1 ) {
+			sb.append( parameterizedCommandJson, lastIndex + 1, index );
 			String parameterValue = parameters.get( parameterIndex++ );
 			sb.append( parameterValue );
 			lastIndex = index;
 		}
-		sb.append( commandString.substring( lastIndex + 1 ) );
+		sb.append( parameterizedCommandJson.substring( lastIndex + 1 ) );
 		return sb.toString();
 	}
 }

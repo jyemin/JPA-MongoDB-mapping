@@ -1,5 +1,6 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
@@ -20,6 +21,8 @@ public class MongodbStatement implements StatementAdapter {
 	}
 
 	protected final MongoDatabase mongoDatabase;
+	protected final ClientSession clientSession;
+
 	protected final Connection connection;
 	private CurrentQueryResult currentQueryResult;
 	private int currentUpdateCount;
@@ -27,16 +30,21 @@ public class MongodbStatement implements StatementAdapter {
 
 	private volatile boolean closed;
 
-	public MongodbStatement(MongoDatabase mongoDatabase, Connection connection) {
+	public MongodbStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
 		this.mongoDatabase = mongoDatabase;
+		this.clientSession = clientSession;
 		this.connection = connection;
+	}
+
+	private Document runCommand(Document command) {
+		return mongoDatabase.runCommand( clientSession, command );
 	}
 
 	@Override
 	public ResultSet executeQuery(String sql) throws SimulatedSQLException {
 		throwExceptionIfClosed();
 		Document command = Document.parse( sql );
-		Document commandResult = mongoDatabase.runCommand( command );
+		Document commandResult = runCommand( command );
 		if ( commandResult.getDouble( "ok" ) != 1.0 ) {
 			throw new CommandRunFailSQLException();
 		}
@@ -47,7 +55,7 @@ public class MongodbStatement implements StatementAdapter {
 	public int executeUpdate(String sql) throws SimulatedSQLException {
 		throwExceptionIfClosed();
 		Document command = Document.parse( sql );
-		Document commandResult = mongoDatabase.runCommand( command );
+		Document commandResult = runCommand( command );
 		if ( commandResult.getDouble( "ok" ) != 1.0 ) {
 			throw new CommandRunFailSQLException();
 		}
@@ -59,7 +67,7 @@ public class MongodbStatement implements StatementAdapter {
 		throwExceptionIfClosed();
 		Document command = Document.parse( sql );
 		String collection = (String) command.entrySet().iterator().next().getValue();
-		Document commandResult = mongoDatabase.runCommand( command );
+		Document commandResult = runCommand( command );
 		if ( commandResult.getDouble( "ok" ) != 1.0 ) {
 			throw new CommandRunFailSQLException();
 		}
@@ -122,7 +130,7 @@ public class MongodbStatement implements StatementAdapter {
 			if ( fetchSize != 0 ) {
 				moreResultsCommand.append( "batchSize", fetchSize );
 			}
-			Document moreResults = mongoDatabase.runCommand( moreResultsCommand );
+			Document moreResults = runCommand( moreResultsCommand );
 			if ( moreResults.getDouble( "ok" ) != 1.0 ) {
 				throw new CommandRunFailSQLException();
 			}
