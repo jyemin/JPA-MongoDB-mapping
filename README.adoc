@@ -1,5 +1,45 @@
 
 Chameleon is an JPA and MongoDB mapping library based on Hibernate and MongoDB Java Driver.
 
-image:chameleon-logo.jpg[]
+image:chameleon-logo.jpg[logo, 200, 100]
+
+== JPA and MongoDB
+JPA (Jarkata Persistence API) is SQL persistence contract aiming to bridge the gap between Java OOP programming and relational database pattern mismatch.
+Hibernate library as the reference implementation of JPA is the de facto ORM framework in which
+Java developer could interact with POJO class objects whereas ORM library will take care of boilerplate JDBC steps automatically.
+
+
+MongoDB is a document NoSQL database, so seemingly JPA could not be applied directly, though the similar ORM spirit is still
+highly attractive to Java developers. Furthermore, MongoDB provides many features aligning with SQL DBs (e.g. transaction and table joining simulation by view),
+so it seems a natural candidate to enjoy some counterpart of ORM framework. Let us call it OMM (Object MongoDB Mapping) then.
+
+=== Existing Open Source Libraries (active or not)
+It is not surprising Hibernate once started an ambitious project to generalize Hibernate ORM features to all NoSQL dbs.
+They call it https://github.com/hibernate/hibernate-ogm[OGM] (Object Grid Mapping) as a big umbrella supporting Infinitispan, Mongodb, Neo4j, etc.
+However, it lacks some basic JPA features (e.g. Criteria and Filter) and it is not actively maintained any more and is based on outdated Hibernate v5 core library. Given the leap of faith of Hibernate
+v6 release, it is extremely challenging to revive it by integrating with v6's new query model, if possible.
+
+There used to be less-known libraries aiming Mongodb mapping alone every now and again, but usually they are not actively maintained as well.
+
+== Chameleon: a new OMM library
+The author of this library is an experienced Hibernate contributor and participated actively in both v5 and v6 development.
+He humbly proposed a new OMM idea and this github project is the end result. The idea is simple and boils down to the following principles:
+
+* loose coupling with Hibernate core library so future Hibernate evolution won't break OMM
+* focus on providing a "Virtual JDBC Layer" on top of Mongodb's Java driver; the "Virtual JDBC Layer" will pass JSON instead of SQL though
+
+=== Implementation Details
+Since Hibernate v6, a unified SQM (Semantic Query Model) was created for both JP-QL and Criteria. It is not only an elegant
+tech design but also streamlines vendor specific SQL or NoSQL statement generation. In Chameleon, we could easily create parameterized Mongodb Bson command string
+ready to be run by Mongodb java driver. The virtual JDBC layer will pass the JSON string instead of SQL between Hibernate and Mongodb server.
+No need to overwrite or bypass Hibernate's core workflow for vendor specific SQL rendering is a standardized core feature of Hibernate, and ultimately Hibernate sits on top
+of JDBC layer invariably. Our "Virtual JDBC Layer" will act as an adapter between JDBC contract and MongoDB, so the customization if outside of Hibernate's scope.
+
+=== Some Caveats
+Obviously we can't anticipate all JPA features (entity class and JPA annotations, JP-QL or HQL statements) has one-to-one
+counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation to great extents, e.g.:
+
+* SQL table joining: MongoDB has view based feature to simulate (https://www.mongodb.com/docs/manual/core/views/join-collections-with-view/)
+* transaction: since Mongodb v4, transaction is provided
+
 
