@@ -1,21 +1,21 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.json.JsonWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
 
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.omm.cfg.MongodbAvailableSettings;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.Stoppable;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Map;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
+import org.bson.codecs.configuration.CodecRegistry;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
@@ -36,16 +36,18 @@ public class MongodbConnectionProvider implements ConnectionProvider, Configurab
 				.codecRegistry( codecRegistry )
 				.build();
 		mongoClient = MongoClients.create( clientSettings );
-		this.mongoDatabase = mongoClient.getDatabase( mongodbDatabaseName );
+		mongoDatabase = mongoClient.getDatabase( mongodbDatabaseName );
 	}
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		return mongoDatabase == null ? null : new MongodbConnection( mongoDatabase );
+		ClientSession session = mongoClient.startSession();
+		return mongoDatabase == null ? null : new MongodbConnection( session, mongoDatabase );
 	}
 
 	@Override
 	public void closeConnection(Connection conn) throws SQLException {
+		conn.close();
 	}
 
 	@Override
@@ -66,9 +68,6 @@ public class MongodbConnectionProvider implements ConnectionProvider, Configurab
 
 	@Override
 	public void stop() {
-		if ( mongoDatabase != null ) {
-			mongoDatabase.drop();
-		}
 		if ( mongoClient != null ) {
 			mongoClient.close();
 		}

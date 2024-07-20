@@ -1,6 +1,7 @@
 package org.hibernate.omm.dialect;
 
 import org.hibernate.dialect.Dialect;
+import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.util.StringUtil;
 import org.hibernate.sql.ast.SqlAstTranslator;
@@ -11,6 +12,10 @@ import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 public class MongodbDialect extends Dialect {
+
+	public MongodbDialect(DialectResolutionInfo dialectResolutionInfo) {
+		super(dialectResolutionInfo);
+	}
 
 	@Override
 	public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
