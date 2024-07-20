@@ -2,6 +2,7 @@ package org.hibernate.omm.jdbc;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -69,6 +70,11 @@ public class MongodbConnection extends ConnectionAdapter {
 				return versionArray.get( 1 );
 			}
 
+			@Override
+			public Connection getConnection() {
+				return MongodbConnection.this;
+			}
+
 		};
 	}
 
@@ -121,6 +127,16 @@ public class MongodbConnection extends ConnectionAdapter {
 	@Override
 	public SQLWarning getWarnings() {
 		return sqlWarning;
+	}
+
+	@Override
+	public String getCatalog() {
+		return "undefined";
+	}
+
+	@Override
+	public String getSchema() {
+		return "undefined";
 	}
 
 	@Override

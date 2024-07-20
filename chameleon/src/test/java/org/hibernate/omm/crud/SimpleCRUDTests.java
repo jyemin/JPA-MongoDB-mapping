@@ -1,10 +1,10 @@
 package org.hibernate.omm.crud;
 
 import java.util.List;
-import java.util.Random;
 
 import org.hibernate.omm.AbstractMongodbContainerTests;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,44 +17,75 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
-	private Book insertedBook;
+	private Long id = 1234L;
 
-	@Test
-	void testInsert() {
-		getSessionFactory().inTransaction( session -> {
+	@BeforeEach
+	void setUp() {
+		deleteBook();
+	}
+
+	@AfterEach
+	void tearDown() {
+		deleteBook();
+	}
+
+	Book insertBook() {
+		return getSessionFactory().fromSession( session -> {
 			var book = new Book();
-			book.id = new Random().nextLong();
+			book.id = id;
 			book.title = "War and Peace";
 			book.author = "Leo Tolstoy";
 			book.publishYear = 1869;
-			book.tags = List.of( "russian", "classic" );
 			session.persist( book );
+			return book;
 		} );
 	}
-
-	@Test
-	void testDelete() {
+	void deleteBook() {
 		getSessionFactory().inTransaction( session -> {
-			var book = session.getReference( Book.class,  insertedBook.id );
+			var book = session.getReference( Book.class,  id );
 			session.remove( book );
 		} );
 	}
 
 	@Test
+	void testInsert() {
+		var insertedBook = insertBook();
+		getSessionFactory().inTransaction( session -> {
+			var query = session.createQuery( "from Book where id = :id", Book.class );
+			query.setParameter( "id", id );
+			var book = query.getSingleResult();
+			assertThat( book ).usingRecursiveComparison().isEqualTo( insertedBook );
+		} );
+	}
+
+	@Test
+	void testDelete() {
+		var insertedBook = insertBook();
+		getSessionFactory().inTransaction( session -> {
+			var book = session.getReference( Book.class,  id );
+			session.remove( book );
+		} );
+		getSessionFactory().inSession( session -> {
+			assertThat( session.load( Book.class, id ) ).isNull();
+		} );
+	}
+
+	@Test
 	void testLoad() {
+		var insertedBook = insertBook();
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
-			session.load( book, -2587981967077003745L );
-			System.out.println( book );
-			//assertThat( book ).usingRecursiveComparison().isEqualTo( insertedBook );
+			session.load( book, id );
+			assertThat( book ).usingRecursiveComparison().isEqualTo( insertedBook );
 		} );
 	}
 
 	@Test
 	void testQuery() {
+		var insertedBook = insertBook();
 		getSessionFactory().inTransaction( session -> {
 			var query = session.createQuery( "from Book where id = :id", Book.class );
-			query.setParameter( "id", 245L );
+			query.setParameter( "id", id );
 			var book = query.getSingleResult();
 			assertThat( book ).usingRecursiveComparison().isEqualTo( insertedBook );
 		} );
@@ -62,26 +93,25 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testUpdate() {
+		insertBook();
+		String newAuthor = "Fyodor Dostoevsky";
+		String newTitle = "Crime and Punishment";
+		int newPublishYear = 1866;
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
-			session.load( book, insertedBook.id );
-			book.author = "Fyodor Dostoevsky";
-			book.title = "Crime and Punishment";
-			book.publishYear = 1866;
+			session.load( book, id );
+			book.author = newAuthor;
+			book.title = newTitle;
+			book.publishYear = newPublishYear;
 			session.persist( book );
 		} );
-	}
-
-	Book insertBook() {
-		return getSessionFactory().fromSession( session -> {
-			var book = new Book();
-			book.id = new Random().nextLong();
-			book.title = "War and Peace";
-			book.author = "Leo Tolstoy";
-			book.publishYear = 1869;
-			//book.tags = new String[] { "russian", "classic" };
-			session.persist( book );
-			return book;
+		getSessionFactory().inSession( session -> {
+			var query = session.createQuery( "from Book where id = :id", Book.class );
+			query.setParameter( "id", id );
+			var book = query.getSingleResult();
+			assertThat( book.author ).isEqualTo( newAuthor );
+			assertThat( book.title ).isEqualTo( newTitle );
+			assertThat( book.publishYear ).isEqualTo( newPublishYear );
 		} );
 	}
 
@@ -102,8 +132,6 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 		String author;
 
 		int publishYear;
-
-		List<String> tags;
 
 	}
 }

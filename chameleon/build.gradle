@@ -15,7 +15,7 @@ repositories {
 
 dependencies {
 
-    testImplementation libs.junit.jupiter, libs.testcontainers.mongodb, libs.logback.classic, libs.assertj
+    testImplementation libs.junit.jupiter, libs.logback.classic, libs.assertj
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 

@@ -7,40 +7,8 @@ import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.omm.cfg.MongodbAvailableSettings;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.PojoCodecProvider;
-import org.testcontainers.containers.MongoDBContainer;
-
-import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
-import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-
 public abstract class AbstractMongodbContainerTests {
-	//private final MongoDBContainer mongodbContainer = new MongoDBContainer("mongo:4.0.10" );
-	private MongoDBContainer mongodbContainer;
-
 	private SessionFactory sessionFactory;
-
-	@BeforeEach
-	void startContainers() {
-		if (mongodbContainer != null) {
-			mongodbContainer.start();
-		}
-	}
-
-	@AfterEach
-	void stopContainers() {
-		if (mongodbContainer != null) {
-			mongodbContainer.stop();
-		}
-	}
 
 	public abstract List<Class<?>> getAnnotatedClasses();
 
@@ -53,7 +21,6 @@ public abstract class AbstractMongodbContainerTests {
 					AvailableSettings.CONNECTION_PROVIDER,
 					"org.hibernate.omm.jdbc.MongodbConnectionProvider"
 			);
-			//cfg.setProperty( MongodbAvailableSettings.MONGODB_CONNECTION_URL, mongodbContainer.getReplicaSetUrl() );
 			cfg.setProperty(
 					MongodbAvailableSettings.MONGODB_CONNECTION_URL,
 					"mongodb+srv://nathanqingyangxu:I0Oj6kwaf3r1ZuRh@cluster0.gfxzieb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
