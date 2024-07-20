@@ -1,7 +1,7 @@
 
 *Chameleon* is an JPA and MongoDB mapping library based on Hibernate and MongoDB Java Driver.
 
-image:chameleon-logo.jpg[logo, 150, 100]
+image:chameleon-logo.jpg[logo, 180, 120]
 
 == JPA and MongoDB
 JPA (**J**arkata **P**ersistence **A**PI) is SQL persistence contract aiming to bridge the gap between Java OOP programming and relational database pattern mismatch.
