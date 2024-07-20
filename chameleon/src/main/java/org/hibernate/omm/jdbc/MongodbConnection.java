@@ -95,6 +95,9 @@ public class MongodbConnection extends ConnectionAdapter {
 
 	@Override
 	public void setAutoCommit(boolean autoCommit) {
+		if ( !autoCommit ) {
+			this.clientSession.startTransaction();
+		}
 		this.autoCommit = autoCommit;
 	}
 
