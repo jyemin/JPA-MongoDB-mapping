@@ -1,0 +1,5 @@
+
+Chameleon is an JPA and MongoDB mapping library based on Hibernate and MongoDB Java Driver.
+
+image:chameleon-logo.jpg[]
+
