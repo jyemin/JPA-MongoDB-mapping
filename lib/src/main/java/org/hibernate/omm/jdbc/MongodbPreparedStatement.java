@@ -1,6 +1,7 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.MongoDatabase;
+import org.bson.json.JsonWriter;
 
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
@@ -13,10 +14,12 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MongodbPreparedStatement extends MongodbStatement
 		implements PreparedStatementAdapter {
@@ -157,7 +160,22 @@ public class MongodbPreparedStatement extends MongodbStatement
 
 	@Override
 	public void setArray(int parameterIndex, Array x) throws SimulatedSQLException {
-		throw new NotSupportedSQLException();
+		try {
+			Object[] array = (Object[]) x.getArray();
+			String json;
+			if ( array.length == 0 ) {
+				json = "[]";
+			}
+			else {
+				json = "[" + Arrays.stream( array ).map( obj -> obj instanceof String aStr ?
+						StringUtil.writeStringHelper( aStr ) :
+						obj.toString() ).collect( Collectors.joining( "," ) ) + "]";
+			}
+			parameters.put( parameterIndex, json );
+		}
+		catch (SQLException cause) {
+			throw new SimulatedSQLException( cause.getMessage(), cause );
+		}
 	}
 
 	@Override

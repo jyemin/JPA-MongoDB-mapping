@@ -5177,7 +5177,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	@Override
 	public void visitSelectClause(SelectClause selectClause) {
 		clauseStack.push( Clause.SELECT );
-		appendSql( '{' );
+		appendSql( "{ " );
 		try {
 			/*if ( selectClause.isDistinct() ) {
 				appendSql( "distinct " );
@@ -5283,9 +5283,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 					parameterRenderingMode = defaultRenderingMode;
 				}
 				visitSqlSelection( sqlSelection );
-				appendSql( ": true" );
+				appendSql( ": 1" );
 				parameterRenderingMode = original;
-				separator = COMMA_SEPARATOR;
+				separator = ", ";
 			}
 		}
 	}

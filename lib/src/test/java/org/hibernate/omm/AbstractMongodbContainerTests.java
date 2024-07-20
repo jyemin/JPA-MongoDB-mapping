@@ -10,10 +10,21 @@ import org.hibernate.omm.cfg.MongodbAvailableSettings;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.codecs.pojo.PojoCodecProvider;
 import org.testcontainers.containers.MongoDBContainer;
 
+import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+
 public abstract class AbstractMongodbContainerTests {
-	private final MongoDBContainer mongodbContainer = new MongoDBContainer("mongo:4.0.10" );
+	//private final MongoDBContainer mongodbContainer = new MongoDBContainer("mongo:4.0.10" );
+	private MongoDBContainer mongodbContainer;
 
 	private SessionFactory sessionFactory;
 
@@ -31,7 +42,7 @@ public abstract class AbstractMongodbContainerTests {
 		}
 	}
 
-	protected abstract List<Class<?>> getAnnotatedClasses();
+	public abstract List<Class<?>> getAnnotatedClasses();
 
 	protected SessionFactory getSessionFactory() {
 		if (sessionFactory == null) {
@@ -42,8 +53,12 @@ public abstract class AbstractMongodbContainerTests {
 					AvailableSettings.CONNECTION_PROVIDER,
 					"org.hibernate.omm.jdbc.MongodbConnectionProvider"
 			);
-			cfg.setProperty( MongodbAvailableSettings.MONGODB_CONNECTION_URL, mongodbContainer.getReplicaSetUrl() );
-			cfg.setProperty( MongodbAvailableSettings.MONGODB_DATABASE, "test" );
+			//cfg.setProperty( MongodbAvailableSettings.MONGODB_CONNECTION_URL, mongodbContainer.getReplicaSetUrl() );
+			cfg.setProperty(
+					MongodbAvailableSettings.MONGODB_CONNECTION_URL,
+					"mongodb+srv://nathanqingyangxu:I0Oj6kwaf3r1ZuRh@cluster0.gfxzieb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+			);
+			cfg.setProperty( MongodbAvailableSettings.MONGODB_DATABASE, "sample_training" );
 			sessionFactory = cfg.buildSessionFactory();
 		}
 		return sessionFactory;

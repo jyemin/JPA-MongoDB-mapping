@@ -1,15 +1,18 @@
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.client.MongoDatabase;
+import java.sql.Array;
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 
+import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.SQLWarning;
-import java.sql.Statement;
+import com.mongodb.client.MongoDatabase;
 
 public class MongodbConnection extends ConnectionAdapter {
 
@@ -82,4 +85,18 @@ public class MongodbConnection extends ConnectionAdapter {
 		return sqlWarning;
 	}
 
+	@Override
+	public Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
+		return new ArrayAdapter() {
+			@Override
+			public int getBaseType() throws SQLException {
+				return 0;
+			}
+
+			@Override
+			public Object getArray() throws SQLException {
+				return elements;
+			}
+		};
+	}
 }

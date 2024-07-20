@@ -7,6 +7,7 @@ hibernate-orm-core = "6.5.2.Final"
 mongodb-java-driver = "5.1.2"
 testcontainers-mongodb = "1.20.0"
 logback-classic = "1.5.6"
+assertj = "3.26.3"
 
 [libraries]
 hibernate-orm-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate-orm-core" }
@@ -14,3 +15,4 @@ mongodb-java-driver = { module = "org.mongodb:mongodb-driver-sync", version.ref 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 testcontainers-mongodb = { module = "org.testcontainers:mongodb", version.ref = "testcontainers-mongodb" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback-classic" }
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }

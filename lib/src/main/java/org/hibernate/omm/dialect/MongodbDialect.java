@@ -33,4 +33,9 @@ public class MongodbDialect extends Dialect {
 	public boolean supportsNullPrecedence() {
 		return false;
 	}
+
+	@Override
+	public boolean supportsStandardArrays() {
+		return true;
+	}
 }

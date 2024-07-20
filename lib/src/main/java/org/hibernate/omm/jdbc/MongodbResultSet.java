@@ -1,20 +1,33 @@
 package org.hibernate.omm.jdbc;
 
-import org.bson.*;
-
-import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
-import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
-import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
+import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
+import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
+import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.util.TypeUtil;
+
+import org.bson.BsonBinary;
+import org.bson.BsonBoolean;
+import org.bson.BsonDateTime;
+import org.bson.BsonDecimal128;
+import org.bson.BsonDocument;
+import org.bson.BsonNumber;
+import org.bson.BsonString;
+import org.bson.BsonValue;
+import org.bson.Document;
 
 public class MongodbResultSet implements ResultSetAdapter {
 
@@ -184,6 +197,24 @@ public class MongodbResultSet implements ResultSetAdapter {
 		BsonDecimal128 bsonValue = currentDocument.getDecimal128( getKey( columnIndex ) );
 		lastRead = bsonValue;
 		return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
+	}
+
+	@Override
+	public Array getArray(int columnIndex) throws SimulatedSQLException {
+		List<BsonValue> bsonValues = currentDocument.getArray( getKey( columnIndex ) ).getValues();
+		return new ArrayAdapter() {
+			@Override
+			public int getBaseType() throws SQLException {
+				return bsonValues == null || bsonValues.isEmpty() ?
+						Types.NULL :
+						TypeUtil.getJdbcType( bsonValues.get( 0 ).getBsonType() );
+			}
+
+			@Override
+			public Object getArray() throws SQLException {
+				return bsonValues.stream().map( TypeUtil::unwrap ).toArray();
+			}
+		};
 	}
 
 	private String getKey(int columnIndex) {

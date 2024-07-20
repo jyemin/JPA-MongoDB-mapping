@@ -2,7 +2,7 @@ package org.hibernate.omm.jdbc.exception;
 
 import java.sql.SQLException;
 
-public abstract class SimulatedSQLException extends SQLException {
+public class SimulatedSQLException extends SQLException {
 
 	public SimulatedSQLException() {
 	}
