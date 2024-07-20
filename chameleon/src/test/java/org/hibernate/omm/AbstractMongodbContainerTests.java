@@ -22,8 +22,7 @@ public abstract class AbstractMongodbContainerTests {
 					"org.hibernate.omm.jdbc.MongodbConnectionProvider"
 			);
 			cfg.setProperty(
-					MongodbAvailableSettings.MONGODB_CONNECTION_URL,
-					"mongodb+srv://nathanqingyangxu:I0Oj6kwaf3r1ZuRh@cluster0.gfxzieb.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+					MongodbAvailableSettings.MONGODB_CONNECTION_URL, "mongodb://localhost/?directConnection=false"
 			);
 			cfg.setProperty( MongodbAvailableSettings.MONGODB_DATABASE, "sample_training" );
 			sessionFactory = cfg.buildSessionFactory();

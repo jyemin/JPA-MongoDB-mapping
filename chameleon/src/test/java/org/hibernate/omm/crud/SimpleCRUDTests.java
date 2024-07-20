@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
-	private Long id = 1234L;
+	private final Long id = 1234L;
 
 	@BeforeEach
 	void setUp() {
@@ -30,21 +30,23 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 	}
 
 	Book insertBook() {
-		return getSessionFactory().fromSession( session -> {
-			var book = new Book();
-			book.id = id;
-			book.title = "War and Peace";
-			book.author = "Leo Tolstoy";
-			book.publishYear = 1869;
-			session.persist( book );
-			return book;
-		} );
+		var book = new Book();
+		book.id = id;
+		book.title = "War and Peace";
+		book.author = "Leo Tolstoy";
+		book.publishYear = 1869;
+
+		getSessionFactory().inTransaction( session -> session.persist( book ));
+		return book;
 	}
 	void deleteBook() {
-		getSessionFactory().inTransaction( session -> {
-			var book = session.getReference( Book.class,  id );
-			session.remove( book );
-		} );
+		try {
+			getSessionFactory().inTransaction( session -> {
+				var book = session.getReference( Book.class,  id );
+				session.remove( book );
+			} );
+		} catch (Exception ignored) {
+		}
 	}
 
 	@Test
@@ -60,14 +62,12 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testDelete() {
-		var insertedBook = insertBook();
+		insertBook();
 		getSessionFactory().inTransaction( session -> {
 			var book = session.getReference( Book.class,  id );
 			session.remove( book );
 		} );
-		getSessionFactory().inSession( session -> {
-			assertThat( session.load( Book.class, id ) ).isNull();
-		} );
+		getSessionFactory().inSession( session -> assertThat( session.get( Book.class, id ) ).isNull());
 	}
 
 	@Test
