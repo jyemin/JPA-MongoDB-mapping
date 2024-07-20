@@ -41,5 +41,6 @@ counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation 
 
 * SQL table joining: MongoDB has view based feature to simulate (https://www.mongodb.com/docs/manual/core/views/join-collections-with-view/)
 * transaction: since Mongodb v4, transaction is provided
+* embedding array field: since Hibernate v6.1 (https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html), JDBC's ARRAY type is supported
 
 
