@@ -6,24 +6,6 @@
  */
 package org.hibernate.omm.dialect;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.QueryException;
@@ -45,19 +27,15 @@ import org.hibernate.internal.util.collections.Stack;
 import org.hibernate.internal.util.collections.StandardStack;
 import org.hibernate.metamodel.mapping.AttributeMapping;
 import org.hibernate.metamodel.mapping.BasicValuedMapping;
-import org.hibernate.metamodel.mapping.EmbeddableMappingType;
-import org.hibernate.metamodel.mapping.EmbeddableValuedModelPart;
 import org.hibernate.metamodel.mapping.EntityAssociationMapping;
 import org.hibernate.metamodel.mapping.EntityIdentifierMapping;
 import org.hibernate.metamodel.mapping.JdbcMapping;
-import org.hibernate.metamodel.mapping.JdbcMappingContainer;
 import org.hibernate.metamodel.mapping.MappingModelExpressible;
 import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
-import org.hibernate.omm.util.StringUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -98,15 +76,6 @@ import org.hibernate.sql.ast.tree.AbstractUpdateOrDeleteStatement;
 import org.hibernate.sql.ast.tree.MutationStatement;
 import org.hibernate.sql.ast.tree.SqlAstNode;
 import org.hibernate.sql.ast.tree.Statement;
-import org.hibernate.sql.ast.tree.cte.CteColumn;
-import org.hibernate.sql.ast.tree.cte.CteContainer;
-import org.hibernate.sql.ast.tree.cte.CteMaterialization;
-import org.hibernate.sql.ast.tree.cte.CteObject;
-import org.hibernate.sql.ast.tree.cte.CteSearchClauseKind;
-import org.hibernate.sql.ast.tree.cte.CteStatement;
-import org.hibernate.sql.ast.tree.cte.CteTableGroup;
-import org.hibernate.sql.ast.tree.cte.SearchClauseSpecification;
-import org.hibernate.sql.ast.tree.cte.SelfRenderingCteObject;
 import org.hibernate.sql.ast.tree.delete.DeleteStatement;
 import org.hibernate.sql.ast.tree.expression.AggregateColumnWriteExpression;
 import org.hibernate.sql.ast.tree.expression.Any;
@@ -187,7 +156,6 @@ import org.hibernate.sql.ast.tree.select.SelectStatement;
 import org.hibernate.sql.ast.tree.select.SortSpecification;
 import org.hibernate.sql.ast.tree.update.Assignment;
 import org.hibernate.sql.ast.tree.update.UpdateStatement;
-import org.hibernate.sql.exec.ExecutionException;
 import org.hibernate.sql.exec.internal.AbstractJdbcParameter;
 import org.hibernate.sql.exec.internal.JdbcOperationQueryInsertImpl;
 import org.hibernate.sql.exec.internal.JdbcParameterBindingImpl;
@@ -228,61 +196,31 @@ import org.hibernate.type.descriptor.sql.DdlType;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
 
-import static org.hibernate.query.sqm.BinaryArithmeticOperator.DIVIDE_PORTABLE;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import static org.hibernate.query.sqm.TemporalUnit.NANOSECOND;
 import static org.hibernate.sql.ast.SqlTreePrinter.logSqlAst;
 import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomainResultGraph;
 
 /**
- * @author Steve Ebersole
+ * @author Nathan Xu
  */
 public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
-
-    /**
-     * When emulating the recursive WITH clause subclauses SEARCH and CYCLE,
-     * we need to build a string path and some database like MySQL require that
-     * we cast the expression to a char with certain size.
-     * To estimate the size, we need to assume a certain max recursion depth.
-     */
-    private static final int MAX_RECURSION_DEPTH_ESTIMATE = 1000;
-    /* The following are size estimates for various temporal types */
-    private static final int DATE_CHAR_SIZE_ESTIMATE =
-            // year
-            4 +
-                    // separator
-                    1 +
-                    // month
-                    2 +
-                    // separator
-                    1 +
-                    // day
-                    2;
-    private static final int TIME_CHAR_SIZE_ESTIMATE =
-            // hour
-            2 +
-                    // separator
-                    1 +
-                    // minute
-                    2 +
-                    // separator
-                    1 +
-                    // second
-                    2;
-    private static final int TIMESTAMP_CHAR_SIZE_ESTIMATE =
-            DATE_CHAR_SIZE_ESTIMATE +
-                    // separator
-                    1 +
-                    TIME_CHAR_SIZE_ESTIMATE +
-                    // separator
-                    1 +
-                    // nanos
-                    9;
-    private static final int OFFSET_TIMESTAMP_CHAR_SIZE_ESTIMATE =
-            TIMESTAMP_CHAR_SIZE_ESTIMATE +
-                    // separator
-                    1 +
-                    // zone offset
-                    6;
 
     // pre-req state
     private final SessionFactoryImplementor sessionFactory;
@@ -304,7 +242,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
     private final Dialect dialect;
     private final Set<String> affectedTableNames = new HashSet<>();
-    private CteStatement currentCteStatement;
     private boolean needsSelectAliases;
     // Column aliases that need to be injected
     private List<String> columnAliases;
@@ -317,12 +254,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     private int queryPartForRowNumberingClauseDepth = -1;
     private int queryPartForRowNumberingAliasCounter;
     private int queryGroupAliasCounter;
-    // This field is used to remember the index of the most recently rendered top level with clause element in the sqlBuffer.
-    // See #visitCteContainer for details about the usage.
-    private int topLevelWithClauseIndex;
-    // This field holds the index of where the "recursive" keyword should appear in the sqlBuffer.
-    // See #visitCteContainer for details about the usage.
-    private final int withClauseRecursiveIndex = -1;
+
     private transient AbstractSqmSelfRenderingFunctionDescriptor castFunction;
     private transient LazySessionWrapperOptions lazySessionWrapperOptions;
     private transient BasicType<Integer> integerType;
@@ -341,17 +273,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         this.dialect = jdbcServices.getDialect();
         this.statementStack.push(statement);
         this.parameterMarkerStrategy = jdbcServices.getParameterMarkerStrategy();
-    }
-
-    private static Clause matchWithClause(Clause clause) {
-        if (clause == Clause.WITH) {
-            return Clause.WITH;
-        }
-        return null;
-    }
-
-    public Dialect getDialect() {
-        return dialect;
     }
 
     @Override
@@ -559,10 +480,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return this;
     }
 
-    protected JdbcServices getJdbcServices() {
-        return getSessionFactory().getJdbcServices();
-    }
-
     protected void addAppliedParameterBinding(JdbcParameter parameter, JdbcParameterBinding binding) {
         if (appliedParameterBindings.isEmpty()) {
             appliedParameterBindings = new IdentityHashMap<>();
@@ -601,34 +518,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
     protected boolean hasLimit() {
         return limit != null && !limit.isEmpty();
-    }
-
-    protected boolean hasLimit(QueryPart queryPart) {
-        if (queryPart.isRoot() && hasLimit() && limit.getMaxRows() != null) {
-            return true;
-        } else {
-            return queryPart.getFetchClauseExpression() != null;
-        }
-    }
-
-    protected boolean hasOffset(QueryPart queryPart) {
-        if (queryPart.isRoot() && hasLimit() && limit.getFirstRow() != null) {
-            return true;
-        } else {
-            return queryPart.getOffsetClauseExpression() != null;
-        }
-    }
-
-    protected boolean useOffsetFetchClause(QueryPart queryPart) {
-        return !queryPart.isRoot() || limit == null || limit.isEmpty();
-    }
-
-    protected boolean isRowsOnlyFetchClauseType(QueryPart queryPart) {
-        if (queryPart.isRoot() && hasLimit() || queryPart.getFetchClauseType() == null) {
-            return true;
-        } else {
-            return queryPart.getFetchClauseType() == FetchClauseType.ROWS_ONLY;
-        }
     }
 
     protected JdbcParameter getOffsetParameter() {
@@ -746,30 +635,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     @Override
     public Stack<Clause> getCurrentClauseStack() {
         return clauseStack;
-    }
-
-    protected CteStatement getCurrentCteStatement() {
-        return currentCteStatement;
-    }
-
-    protected CteStatement getCteStatement(final String cteName) {
-        return statementStack.findCurrentFirstWithParameter(cteName, MongodbSqlAstTranslator::matchCteStatement);
-    }
-
-    private static CteStatement matchCteStatement(final Statement stmt, final String cteName) {
-        if (stmt instanceof CteContainer cteContainer) {
-            return cteContainer.getCteStatement(cteName);
-        }
-        return null;
-    }
-
-    private static CteContainer matchCteContainerByStatement(final Statement stmt, final String cteName) {
-        if (stmt instanceof CteContainer cteContainer) {
-            if (cteContainer.getCteStatement(cteName) != null) {
-                return cteContainer;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -1179,62 +1044,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void visitSetAssignmentEmulateJoin(Assignment assignment, UpdateStatement statement) {
-        final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
-        final Expression valueExpression;
-        if (columnReferences.size() == 1) {
-            columnReferences.get(0).appendColumnForWrite(this, null);
-            appendSql('=');
-            final Expression assignedValue = assignment.getAssignedValue();
-            final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple(assignedValue);
-            if (sqlTuple != null) {
-                assert sqlTuple.getExpressions().size() == 1;
-                valueExpression = sqlTuple.getExpressions().get(0);
-            } else {
-                valueExpression = assignedValue;
-            }
-        } else {
-            char separator = OPEN_PARENTHESIS;
-            for (ColumnReference columnReference : columnReferences) {
-                appendSql(separator);
-                columnReference.appendColumnForWrite(this, null);
-                separator = COMMA_SEPARATOR_CHAR;
-            }
-            appendSql(")=");
-            valueExpression = assignment.getAssignedValue();
-        }
-
-        final QuerySpec querySpec = new QuerySpec(false, 1);
-        final TableGroup dmlTargetTableGroup = statement.getFromClause().getRoots().get(0);
-        assert dmlTargetTableGroup.getPrimaryTableReference() == statement.getTargetTable();
-        for (TableGroup root : statement.getFromClause().getRoots()) {
-            querySpec.getFromClause().addRoot(root);
-        }
-        querySpec.getSelectClause().addSqlSelection(new SqlSelectionImpl(valueExpression));
-        querySpec.applyPredicate(
-                createRowMatchingPredicate(
-                        dmlTargetTableGroup,
-                        "dml_target_",
-                        dmlTargetTableGroup.getPrimaryTableReference().getIdentificationVariable()
-                )
-        );
-        new SelectStatement(querySpec).accept(this);
-    }
-
-    protected boolean isStruct(JdbcMappingContainer expressionType) {
-        if (expressionType instanceof EmbeddableValuedModelPart) {
-            final EmbeddableMappingType embeddableMappingType = ((EmbeddableValuedModelPart) expressionType).getEmbeddableTypeDescriptor();
-            return embeddableMappingType.getAggregateMapping() != null && embeddableMappingType.getAggregateMapping()
-                    .getJdbcMapping()
-                    .getJdbcType()
-                    .getDefaultSqlTypeCode() == SqlTypes.STRUCT;
-        } else if (expressionType instanceof BasicValuedMapping) {
-            final JdbcMapping jdbcMapping = ((BasicValuedMapping) expressionType).getJdbcMapping();
-            return jdbcMapping.getJdbcType().getDefaultSqlTypeCode() == SqlTypes.STRUCT;
-        }
-        return false;
-    }
-
     protected void visitInsertStatementOnly(InsertSelectStatement statement) {
         clauseStack.push(Clause.INSERT);
 
@@ -1300,151 +1109,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             appendSql(']');
             clauseStack.pop();
         }
-    }
-
-    protected boolean isIntegerDivisionEmulationRequired(BinaryArithmeticExpression expression) {
-        return expression.getOperator() == DIVIDE_PORTABLE
-                && jdbcType(expression.getLeftHandOperand()).isInteger()
-                && jdbcType(expression.getRightHandOperand()).isInteger();
-    }
-
-    private JdbcType jdbcType(Expression expression) {
-        return expression.getExpressionType().getSingleJdbcMapping().getJdbcType();
-    }
-
-    protected void visitInsertSource(InsertSelectStatement statement) {
-        if (statement.getSourceSelectStatement() != null) {
-            statement.getSourceSelectStatement().accept(this);
-        } else {
-            visitValuesList(statement.getValuesList());
-        }
-    }
-
-    protected void visitInsertStatementEmulateMerge(InsertSelectStatement statement) {
-        assert statement.getConflictClause() != null;
-
-        final ConflictClause conflictClause = statement.getConflictClause();
-        final String constraintName = conflictClause.getConstraintName();
-        if (constraintName != null) {
-            throw new IllegalQueryOperationException("Dialect does not support constraint name in conflict clause");
-        }
-
-        appendSql("merge into ");
-        clauseStack.push(Clause.MERGE);
-        renderNamedTableReference(statement.getTargetTable(), LockMode.NONE);
-        clauseStack.pop();
-        appendSql(" using ");
-
-        final List<ColumnReference> targetColumnReferences = statement.getTargetColumns();
-        final List<String> columnNames = new ArrayList<>(targetColumnReferences.size());
-        for (ColumnReference targetColumnReference : targetColumnReferences) {
-            columnNames.add(targetColumnReference.getColumnExpression());
-        }
-
-        final DerivedTableReference derivedTableReference;
-        if (statement.getSourceSelectStatement() != null) {
-            derivedTableReference = new QueryPartTableReference(
-                    new SelectStatement(statement.getSourceSelectStatement()),
-                    "excluded",
-                    columnNames,
-                    false,
-                    sessionFactory
-            );
-        } else {
-            derivedTableReference = new ValuesTableReference(
-                    statement.getValuesList(),
-                    "excluded",
-                    columnNames,
-                    sessionFactory
-            );
-        }
-        clauseStack.push(Clause.FROM);
-        derivedTableReference.accept(this);
-        appendSql(" on (");
-
-        String separator = "";
-        for (String constraintColumnName : conflictClause.getConstraintColumnNames()) {
-            appendSql(separator);
-            appendSql(statement.getTargetTable().getIdentificationVariable());
-            appendSql('.');
-            appendSql(constraintColumnName);
-            appendSql("=excluded.");
-            appendSql(constraintColumnName);
-            separator = " and ";
-        }
-        appendSql(')');
-
-        final List<Assignment> assignments = conflictClause.getAssignments();
-        if (!assignments.isEmpty()) {
-            appendSql(" when matched");
-            renderMergeUpdateClause(assignments, conflictClause.getPredicate());
-        }
-
-        appendSql(" when not matched then insert ");
-        char separatorChar = OPEN_PARENTHESIS;
-        for (ColumnReference targetColumnReference : targetColumnReferences) {
-            appendSql(separatorChar);
-            appendSql(targetColumnReference.getColumnExpression());
-            separatorChar = COMMA_SEPARATOR_CHAR;
-        }
-        clauseStack.pop();
-
-        clauseStack.push(Clause.VALUES);
-        appendSql(") values ");
-        separatorChar = OPEN_PARENTHESIS;
-        for (ColumnReference targetColumnReference : targetColumnReferences) {
-            appendSql(separatorChar);
-            appendSql("excluded.");
-            appendSql(targetColumnReference.getColumnExpression());
-            separatorChar = COMMA_SEPARATOR_CHAR;
-        }
-        clauseStack.pop();
-
-        appendSql(')');
-
-        visitReturningColumns(statement.getReturningColumns());
-    }
-
-    protected void visitUpdateStatementEmulateMerge(UpdateStatement statement) {
-        appendSql("merge into ");
-        clauseStack.push(Clause.MERGE);
-        appendSql(statement.getTargetTable().getTableExpression());
-        registerAffectedTable(statement.getTargetTable());
-        appendSql(" as t");
-        clauseStack.pop();
-
-        final QueryPartTableReference inlineView = updateSourceAsSubquery(statement, false);
-        appendSql(" using ");
-        clauseStack.push(Clause.FROM);
-        visitQueryPartTableReference(inlineView);
-        clauseStack.pop();
-        appendSql(" on ");
-        final String rowIdExpression = dialect.rowId(null);
-        if (rowIdExpression == null) {
-            final TableGroup dmlTargetTableGroup = statement.getFromClause().getRoots().get(0);
-            assert dmlTargetTableGroup.getPrimaryTableReference() == statement.getTargetTable();
-            createRowMatchingPredicate(dmlTargetTableGroup, "t", "s").accept(this);
-        } else {
-            appendSql("t.");
-            appendSql(rowIdExpression);
-            appendSql("=s.c");
-            appendSql(inlineView.getColumnNames().size() - 1);
-        }
-        appendSql(" when matched then update set");
-        char separator = ' ';
-        int column = 0;
-        for (Assignment assignment : statement.getAssignments()) {
-            final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
-            for (int j = 0; j < columnReferences.size(); j++) {
-                appendSql(separator);
-                columnReferences.get(j).appendColumnForWrite(this, "t");
-                appendSql("=s.c");
-                appendSql(column++);
-                separator = ',';
-            }
-        }
-
-        visitReturningColumns(statement.getReturningColumns());
     }
 
     private QueryPartTableReference updateSourceAsSubquery(UpdateStatement statement, boolean correlated) {
@@ -1538,52 +1202,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         );
     }
 
-    protected void visitUpdateStatementEmulateInlineView(UpdateStatement statement) {
-        appendSql("update ");
-        final Stack<Clause> clauseStack = getClauseStack();
-        try {
-            clauseStack.push(Clause.UPDATE);
-            final QueryPartTableReference inlineView = updateSourceAsInlineView(statement);
-            visitQueryPartTableReference(inlineView);
-            appendSql(" set");
-            char separator = ' ';
-            for (int i = 0; i < inlineView.getColumnNames().size(); i += 2) {
-                appendSql(separator);
-                appendSql("t.c");
-                appendSql(i);
-                appendSql("=t.c");
-                appendSql(i + 1);
-                separator = ',';
-            }
-        } finally {
-            clauseStack.pop();
-        }
-        visitReturningColumns(statement.getReturningColumns());
-    }
-
-    protected void visitUpdateStatementEmulateTupleSet(UpdateStatement statement) {
-        renderUpdateClause(statement);
-        appendSql(" set ");
-        char separator = '(';
-        try {
-            clauseStack.push(Clause.SET);
-            for (Assignment assignment : statement.getAssignments()) {
-                final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
-                for (ColumnReference columnReference : columnReferences) {
-                    appendSql(separator);
-                    separator = COMMA_SEPARATOR_CHAR;
-                    columnReference.appendColumnForWrite(this, null);
-                }
-            }
-            appendSql(")=");
-            updateSourceAsSubquery(statement, true).getStatement().accept(this);
-        } finally {
-            clauseStack.pop();
-        }
-
-        visitWhereClause(determineWhereClauseRestrictionWithJoinEmulation(statement));
-    }
-
     private QueryPartTableReference updateSourceAsInlineView(UpdateStatement statement) {
         final QuerySpec inlineView = new QuerySpec(true);
         final SelectClause selectClause = inlineView.getSelectClause();
@@ -1623,20 +1241,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         );
     }
 
-    protected void renderMergeUpdateClause(List<Assignment> assignments, Predicate wherePredicate) {
-        if (wherePredicate != null) {
-            appendSql(" and ");
-            clauseStack.push(Clause.WHERE);
-            wherePredicate.accept(this);
-            clauseStack.pop();
-        }
-        appendSql(" then update");
-        renderSetClause(assignments);
-    }
-
-    private void renderImplicitTargetColumnSpec() {
-    }
-
     protected void visitValuesList(List<Values> valuesList) {
         visitValuesListStandard(valuesList);
     }
@@ -1662,21 +1266,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                     expressions.get(j).accept(this);
                 }
                 appendSql(')');
-            }
-        } finally {
-            clauseStack.pop();
-        }
-    }
-
-    protected void visitValuesListEmulateSelectUnion(List<Values> valuesList) {
-        String separator = "";
-        final Stack<Clause> clauseStack = getClauseStack();
-        try {
-            clauseStack.push(Clause.VALUES);
-            for (int i = 0; i < valuesList.size(); i++) {
-                appendSql(separator);
-                renderExpressionsAsSubquery(valuesList.get(i).getExpressions());
-                separator = " union all ";
             }
         } finally {
             clauseStack.pop();
@@ -1867,28 +1456,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return lockMode == null ? LockMode.NONE : lockMode;
     }
 
-    protected int getEffectiveLockTimeout(LockMode lockMode) {
-        if (getLockOptions() == null) {
-            return LockOptions.WAIT_FOREVER;
-        }
-        int timeoutMillis = getLockOptions().getTimeOut();
-        switch (lockMode) {
-            case UPGRADE_NOWAIT:
-            case PESSIMISTIC_FORCE_INCREMENT: {
-                timeoutMillis = LockOptions.NO_WAIT;
-                break;
-            }
-            case UPGRADE_SKIPLOCKED: {
-                timeoutMillis = LockOptions.SKIP_LOCKED;
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-        return timeoutMillis;
-    }
-
     protected boolean hasAggregateFunctions(QuerySpec querySpec) {
         return AggregateFunctionChecker.hasAggregateFunctions(querySpec);
     }
@@ -1963,103 +1530,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return strategy;
     }
 
-    protected void visitConflictClause(ConflictClause conflictClause) {
-        if (conflictClause != null) {
-            // By default, we only support do nothing with an optional constraint name
-            if (!conflictClause.getConstraintColumnNames().isEmpty()) {
-                throw new IllegalQueryOperationException(
-                        "Insert conflict clause with constraint column names is not supported");
-            }
-            if (conflictClause.isDoUpdate()) {
-                throw new IllegalQueryOperationException("Insert conflict do update clause is not supported");
-            }
-        }
-    }
-
-    protected void visitStandardConflictClause(ConflictClause conflictClause) {
-        if (conflictClause == null) {
-            return;
-        }
-
-        clauseStack.push(Clause.CONFLICT);
-        appendSql(" on conflict");
-        final String constraintName = conflictClause.getConstraintName();
-        if (constraintName != null) {
-            appendSql(" on constraint ");
-            appendSql(constraintName);
-        } else if (!conflictClause.getConstraintColumnNames().isEmpty()) {
-            char separator = '(';
-            for (String columnName : conflictClause.getConstraintColumnNames()) {
-                appendSql(separator);
-                appendSql(columnName);
-                separator = ',';
-            }
-            appendSql(')');
-        }
-        final List<Assignment> assignments = conflictClause.getAssignments();
-        if (assignments.isEmpty()) {
-            appendSql(" do nothing");
-        } else {
-            appendSql(" do update");
-            renderSetClause(assignments);
-
-            final Predicate predicate = conflictClause.getPredicate();
-            if (predicate != null) {
-                clauseStack.push(Clause.WHERE);
-                appendSql(" where ");
-                predicate.accept(this);
-                clauseStack.pop();
-            }
-        }
-        clauseStack.pop();
-    }
-
-    protected void visitOnDuplicateKeyConflictClause(ConflictClause conflictClause) {
-        if (conflictClause == null) {
-            return;
-        }
-        // The duplicate key clause does not support specifying the constraint name or constraint column names,
-        // but to allow compatibility, we have to require the user to specify either one in the SQM conflict clause.
-        // To allow meaningful usage, we simply ignore the constraint column names in this emulation.
-        // A possible problem with this is when the constraint column names contain the primary key columns,
-        // but the insert fails due to a unique constraint violation. This emulation will not cause a failure to be
-        // propagated, but instead will run the respective conflict action.
-        final String constraintName = conflictClause.getConstraintName();
-        if (constraintName != null) {
-            if (conflictClause.isDoUpdate()) {
-                throw new IllegalQueryOperationException(
-                        "Insert conflict 'do update' clause with constraint name is not supported");
-            } else {
-                return;
-            }
-        }
-//		final List<String> constraintColumnNames = conflictClause.getConstraintColumnNames();
-//		if ( !constraintColumnNames.isEmpty() ) {
-//			throw new IllegalQueryOperationException( "Dialect does not support constraint column names in conflict clause" );
-//		}
-
-        final InsertSelectStatement statement = (InsertSelectStatement) statementStack.getCurrent();
-        clauseStack.push(Clause.CONFLICT);
-        appendSql(" on duplicate key update");
-        final List<Assignment> assignments = conflictClause.getAssignments();
-        if (assignments.isEmpty()) {
-            // Emulate do nothing by setting the first column to itself
-            final ColumnReference columnReference = statement.getTargetColumns().get(0);
-            try {
-                clauseStack.push(Clause.SET);
-                appendSql(' ');
-                appendSql(columnReference.getColumnExpression());
-                appendSql('=');
-                visitColumnReference(columnReference);
-            } finally {
-                clauseStack.pop();
-            }
-        } else {
-            renderPredicatedSetAssignments(assignments, conflictClause.getPredicate());
-        }
-        clauseStack.pop();
-    }
-
     private void renderPredicatedSetAssignments(List<Assignment> assignments, Predicate predicate) {
         char separator = ' ';
         try {
@@ -2113,1184 +1583,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    private void visitCteStatement(CteStatement cte) {
-        appendSql(cte.getCteTable().getTableExpression());
-
-        appendSql(" (");
-
-        renderCteColumns(cte);
-
-        appendSql(") as ");
-
-        if (cte.getMaterialization() != CteMaterialization.UNDEFINED) {
-            renderMaterializationHint(cte.getMaterialization());
-        }
-
-        final boolean needsParenthesis = !(cte.getCteDefinition() instanceof SelectStatement)
-                || ((SelectStatement) cte.getCteDefinition()).getQueryPart().isRoot();
-        if (needsParenthesis) {
-            appendSql(OPEN_PARENTHESIS);
-        }
-        visitCteDefinition(cte);
-        if (needsParenthesis) {
-            appendSql(CLOSE_PARENTHESIS);
-        }
-
-        renderSearchClause(cte);
-        renderCycleClause(cte);
-    }
-
-    protected void visitCteObject(CteObject cteObject) {
-        if (cteObject instanceof SelfRenderingCteObject) {
-            ((SelfRenderingCteObject) cteObject).render(this, this, sessionFactory);
-        } else {
-            throw new IllegalArgumentException("Can't render CTE object " + cteObject.getName() + ": " + cteObject);
-        }
-    }
-
-    private boolean isRecursive(Collection<CteStatement> cteStatements) {
-        for (CteStatement cteStatement : cteStatements) {
-            if (cteStatement.isRecursive()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected void renderCteColumns(CteStatement cte) {
-        String separator = "";
-        if (cte.getCteTable().getCteColumns() == null) {
-            final List<String> columnExpressions = new ArrayList<>();
-            cte.getCteTable().getTableGroupProducer().visitSubParts(
-                    modelPart -> modelPart.forEachSelectable(
-                            0,
-                            (index, mapping) -> columnExpressions.add(mapping.getSelectionExpression())
-                    ),
-                    null
-            );
-            for (String columnExpression : columnExpressions) {
-                appendSql(separator);
-                appendSql(columnExpression);
-                separator = COMMA_SEPARATOR;
-            }
-        } else {
-            for (CteColumn cteColumn : cte.getCteTable().getCteColumns()) {
-                appendSql(separator);
-                appendSql(cteColumn.getColumnExpression());
-                separator = COMMA_SEPARATOR;
-            }
-        }
-        if (cte.isRecursive()) {
-            if (!supportsRecursiveSearchClause()) {
-                if (cte.getSearchColumn() != null) {
-                    appendSql(COMMA_SEPARATOR);
-                    if (cte.getSearchClauseKind() == CteSearchClauseKind.BREADTH_FIRST) {
-                        appendSql(determineDepthColumnName(cte));
-                        appendSql(COMMA_SEPARATOR);
-                    }
-                    appendSql(cte.getSearchColumn().getColumnExpression());
-                }
-            }
-            if (!supportsRecursiveCycleClause()) {
-                if (cte.getCycleMarkColumn() != null) {
-                    appendSql(COMMA_SEPARATOR);
-                    appendSql(cte.getCycleMarkColumn().getColumnExpression());
-                }
-            }
-            if (cte.getCycleMarkColumn() != null && !supportsRecursiveCycleClause()
-                    || cte.getCyclePathColumn() != null && !supportsRecursiveCycleUsingClause()) {
-                appendSql(COMMA_SEPARATOR);
-                appendSql(determineCyclePathColumnName(cte));
-            }
-        }
-    }
-
-    private String determineDepthColumnName(CteStatement cte) {
-        String baseName = "depth";
-        OUTER:
-        for (int tries = 0; tries < 5; tries++) {
-            final String name = tries == 0 ? baseName : (baseName + "_" + tries);
-            for (CteColumn cteColumn : cte.getCteTable().getCteColumns()) {
-                if (name.equals(cteColumn.getColumnExpression())) {
-                    continue OUTER;
-                }
-            }
-            if (cte.getSearchColumn() != null && name.equals(cte.getSearchColumn().getColumnExpression())) {
-                continue;
-            }
-            if (cte.getCycleMarkColumn() != null && name.equals(cte.getCycleMarkColumn().getColumnExpression())) {
-                continue;
-            }
-            if (cte.getCyclePathColumn() != null && name.equals(cte.getCyclePathColumn().getColumnExpression())) {
-                continue;
-            }
-
-            return name;
-        }
-        throw new IllegalStateException("Could not determine a depth column name after 5 tries!");
-    }
-
-    protected String determineCyclePathColumnName(CteStatement cte) {
-        final CteColumn cyclePathColumn = cte.getCyclePathColumn();
-        if (cyclePathColumn != null) {
-            return cyclePathColumn.getColumnExpression();
-        }
-        String baseName = "path";
-        OUTER:
-        for (int tries = 0; tries < 5; tries++) {
-            final String name = tries == 0 ? baseName : (baseName + "_" + tries);
-            for (CteColumn cteColumn : cte.getCteTable().getCteColumns()) {
-                if (name.equals(cteColumn.getColumnExpression())) {
-                    continue OUTER;
-                }
-            }
-            if (cte.getSearchColumn() != null && name.equals(cte.getSearchColumn().getColumnExpression())) {
-                continue;
-            }
-            if (cte.getCycleMarkColumn() != null && name.equals(cte.getCycleMarkColumn().getColumnExpression())) {
-                continue;
-            }
-
-            return name;
-        }
-        throw new IllegalStateException("Could not determine a path column name after 5 tries!");
-    }
-
-    protected boolean isInRecursiveQueryPart() {
-        return currentCteStatement != null && currentCteStatement.isRecursive()
-                && ((QueryGroup) ((SelectStatement) currentCteStatement.getCteDefinition()).getQueryPart()).getQueryParts()
-                .get(1) == getCurrentQueryPart();
-    }
-
-    protected boolean isInSubquery() {
-        return statementStack.depth() > 1 && statementStack.getCurrent() instanceof SelectStatement
-                && !((SelectStatement) statementStack.getCurrent()).getQueryPart().isRoot();
-    }
-
-    protected void visitCteDefinition(CteStatement cte) {
-        final CteStatement oldCteStatement = currentCteStatement;
-        currentCteStatement = cte;
-        final Limit oldLimit = limit;
-        limit = null;
-        cte.getCteDefinition().accept(this);
-        currentCteStatement = oldCteStatement;
-        limit = oldLimit;
-    }
-
-    /**
-     * Whether the SQL with clause is supported.
-     */
-    protected boolean supportsWithClause() {
-        return true;
-    }
-
-    /**
-     * Whether the SQL with clause is supported within a CTE.
-     */
-    protected boolean supportsNestedWithClause() {
-        return supportsWithClauseInSubquery();
-    }
-
-    /**
-     * Whether the SQL with clause is supported within a subquery.
-     */
-    protected boolean supportsWithClauseInSubquery() {
-        return supportsWithClause();
-    }
-
-    /**
-     * Whether CTEs should be inlined rather than rendered as CTEs.
-     */
-    protected boolean needsCteInlining() {
-        return !supportsWithClause() || !supportsWithClauseInSubquery() && isInSubquery();
-    }
-
-    /**
-     * Whether CTEs should be inlined rather than rendered as CTEs.
-     */
-    protected boolean shouldInlineCte(TableGroup tableGroup) {
-        if (tableGroup instanceof CteTableGroup) {
-            if (!supportsWithClause()) {
-                return true;
-            }
-            if (!supportsWithClauseInSubquery() && isInSubquery()) {
-                final String cteName = tableGroup.getPrimaryTableReference().getTableId();
-                final CteContainer cteOwner = statementStack.findCurrentFirstWithParameter(
-                        cteName,
-                        MongodbSqlAstTranslator::matchCteContainerByStatement
-                );
-                // If the CTE is owned by the root statement, it will be rendered as CTE, so we can refer to it
-                return cteOwner != statementStack.getRoot() && !cteOwner.getCteStatement(cteName).isRecursive();
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Whether the SQL with clause requires the "recursive" keyword for recursive CTEs.
-     */
-    protected boolean needsRecursiveKeywordInWithClause() {
-        return true;
-    }
-
-    /**
-     * Whether the SQL search clause is supported, which can be used for recursive CTEs.
-     */
-    protected boolean supportsRecursiveSearchClause() {
-        return false;
-    }
-
-    /**
-     * Whether the SQL cycle clause is supported, which can be used for recursive CTEs.
-     */
-    protected boolean supportsRecursiveCycleClause() {
-        return false;
-    }
-
-    /**
-     * Whether the SQL cycle clause supports the using sub-clause.
-     */
-    protected boolean supportsRecursiveCycleUsingClause() {
-        return false;
-    }
-
-    /**
-     * Whether the recursive search and cycle clause emulations based on the array and row constructor is supported.
-     */
-    protected boolean supportsRecursiveClauseArrayAndRowEmulation() {
-        return (supportsRowConstructor() || currentCteStatement.getSearchClauseKind() == CteSearchClauseKind.DEPTH_FIRST
-                && currentCteStatement.getSearchBySpecifications().size() == 1)
-                && supportsArrayConstructor();
-    }
-
-    /**
-     * Whether the SQL row constructor is supported.
-     */
-    protected boolean supportsRowConstructor() {
-        return false;
-    }
-
-    /**
-     * Whether the SQL array constructor is supported.
-     */
-    protected boolean supportsArrayConstructor() {
-        return false;
-    }
-
-    protected void renderMaterializationHint(CteMaterialization materialization) {
-        // No-op by default
-    }
-
-    protected void renderSearchClause(CteStatement cte) {
-        if (supportsRecursiveSearchClause()) {
-            renderStandardSearchClause(cte);
-        }
-    }
-
-    protected void renderStandardSearchClause(CteStatement cte) {
-        String separator;
-        if (cte.getSearchClauseKind() != null) {
-            appendSql(" search ");
-            if (cte.getSearchClauseKind() == CteSearchClauseKind.DEPTH_FIRST) {
-                appendSql(" depth ");
-            } else {
-                appendSql(" breadth ");
-            }
-            appendSql(" first by ");
-            separator = "";
-            for (SearchClauseSpecification searchBySpecification : cte.getSearchBySpecifications()) {
-                appendSql(separator);
-                appendSql(searchBySpecification.getCteColumn().getColumnExpression());
-                final SortDirection sortOrder = searchBySpecification.getSortOrder();
-                if (sortOrder != null) {
-                    NullPrecedence nullPrecedence = searchBySpecification.getNullPrecedence();
-                    if (nullPrecedence == null || nullPrecedence == NullPrecedence.NONE) {
-                        nullPrecedence = sessionFactory.getSessionFactoryOptions().getDefaultNullPrecedence();
-                    }
-                    final boolean renderNullPrecedence = nullPrecedence != null &&
-                            !nullPrecedence.isDefaultOrdering(sortOrder, dialect.getNullOrdering());
-                    if (sortOrder == SortDirection.DESCENDING) {
-                        appendSql(" desc");
-                    } else if (renderNullPrecedence) {
-                        appendSql(" asc");
-                    }
-                    if (renderNullPrecedence) {
-                        if (searchBySpecification.getNullPrecedence() == NullPrecedence.FIRST) {
-                            appendSql(" nulls first");
-                        } else {
-                            appendSql(" nulls last");
-                        }
-                    }
-                }
-                separator = COMMA_SEPARATOR;
-            }
-            appendSql(" set ");
-            appendSql(cte.getSearchColumn().getColumnExpression());
-        }
-    }
-
-    protected void renderCycleClause(CteStatement cte) {
-        if (supportsRecursiveCycleClause()) {
-            renderStandardCycleClause(cte);
-        }
-    }
-
-    protected void renderStandardCycleClause(CteStatement cte) {
-        String separator;
-        if (cte.getCycleMarkColumn() != null) {
-            appendSql(" cycle ");
-            separator = "";
-            for (CteColumn cycleColumn : cte.getCycleColumns()) {
-                appendSql(separator);
-                appendSql(cycleColumn.getColumnExpression());
-                separator = COMMA_SEPARATOR;
-            }
-            appendSql(" set ");
-            appendSql(cte.getCycleMarkColumn().getColumnExpression());
-            appendSql(" to ");
-            cte.getCycleValue().accept(this);
-            appendSql(" default ");
-            cte.getNoCycleValue().accept(this);
-            if (cte.getCyclePathColumn() != null && supportsRecursiveCycleUsingClause()) {
-                appendSql(" using ");
-                appendSql(cte.getCyclePathColumn().getColumnExpression());
-            }
-        }
-    }
-
-    protected void renderRecursiveCteVirtualSelections(SelectClause selectClause) {
-        if (currentCteStatement != null && currentCteStatement.isRecursive()) {
-            if (currentCteStatement.getSearchColumn() != null && !supportsRecursiveSearchClause()) {
-                appendSql(COMMA_SEPARATOR);
-                if (supportsRecursiveClauseArrayAndRowEmulation()) {
-                    emulateSearchClauseOrderWithRowAndArray(selectClause);
-                } else {
-                    emulateSearchClauseOrderWithString(selectClause);
-                }
-            }
-            if (!supportsRecursiveCycleClause() || currentCteStatement.getCyclePathColumn() != null && !supportsRecursiveCycleUsingClause()) {
-                if (currentCteStatement.getCycleMarkColumn() != null) {
-                    appendSql(COMMA_SEPARATOR);
-                    if (supportsRecursiveClauseArrayAndRowEmulation()) {
-                        emulateCycleClauseWithRowAndArray(selectClause);
-                    } else {
-                        emulateCycleClauseWithString(selectClause);
-                    }
-                    if (!supportsRecursiveCycleClause() && isInRecursiveQueryPart()) {
-                        final ColumnReference cycleColumnReference = new ColumnReference(
-                                findTableReferenceByTableId(currentCteStatement.getCteTable().getTableExpression()),
-                                currentCteStatement.getCycleMarkColumn().getColumnExpression(),
-                                false,
-                                null,
-                                currentCteStatement.getCycleMarkColumn().getJdbcMapping()
-                        );
-                        if (currentCteStatement.getCycleValue().getJdbcMapping() == getBooleanType()
-                                && currentCteStatement.getCycleValue().getLiteralValue() == Boolean.TRUE
-                                && currentCteStatement.getNoCycleValue().getLiteralValue() == Boolean.FALSE) {
-                            addAdditionalWherePredicate(
-                                    new BooleanExpressionPredicate(
-                                            cycleColumnReference,
-                                            true,
-                                            cycleColumnReference.getExpressionType()
-                                    )
-                            );
-                        } else {
-                            addAdditionalWherePredicate(
-                                    new ComparisonPredicate(
-                                            cycleColumnReference,
-                                            ComparisonOperator.EQUAL,
-                                            currentCteStatement.getNoCycleValue()
-                                    )
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    protected void emulateSearchClauseOrderWithRowAndArray(SelectClause selectClause) {
-        final BasicType<Integer> integerType = getIntegerType();
-
-        if (isInRecursiveQueryPart()) {
-            final TableReference recursiveTableReference = findTableReferenceByTableId(
-                    currentCteStatement.getCteTable().getTableExpression()
-            );
-            if (currentCteStatement.getSearchClauseKind() == CteSearchClauseKind.BREADTH_FIRST) {
-                final String depthColumnName = determineDepthColumnName(currentCteStatement);
-                final ColumnReference depthColumnReference = new ColumnReference(
-                        recursiveTableReference,
-                        depthColumnName,
-                        false,
-                        null,
-                        integerType
-                );
-                visitColumnReference(depthColumnReference);
-                appendSql("+1");
-                appendSql(COMMA_SEPARATOR);
-                appendSql("row(");
-                visitColumnReference(depthColumnReference);
-
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                    appendSql(COMMA_SEPARATOR);
-                    sqlSelection.accept(this);
-                }
-                appendSql(')');
-            } else {
-                visitColumnReference(
-                        new ColumnReference(
-                                recursiveTableReference,
-                                currentCteStatement.getSearchColumn().getColumnExpression(),
-                                false,
-                                null,
-                                currentCteStatement.getSearchColumn().getJdbcMapping()
-                        )
-                );
-                appendSql("||");
-                appendSql("array[");
-                if (currentCteStatement.getSearchBySpecifications().size() > 1) {
-                    appendSql("row(");
-                }
-                String separator = NO_SEPARATOR;
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                    appendSql(separator);
-                    sqlSelection.accept(this);
-                    separator = COMMA_SEPARATOR;
-                }
-                if (currentCteStatement.getSearchBySpecifications().size() > 1) {
-                    appendSql(CLOSE_PARENTHESIS);
-                }
-                appendSql(']');
-            }
-        } else {
-            if (currentCteStatement.getSearchClauseKind() == CteSearchClauseKind.BREADTH_FIRST) {
-                appendSql('1');
-                appendSql(COMMA_SEPARATOR);
-                appendSql("row(0");
-
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                    appendSql(COMMA_SEPARATOR);
-                    sqlSelection.accept(this);
-                }
-                appendSql(')');
-            } else {
-                appendSql("array[");
-                if (currentCteStatement.getSearchBySpecifications().size() > 1) {
-                    appendSql("row(");
-                }
-                String separator = NO_SEPARATOR;
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                    appendSql(separator);
-                    sqlSelection.accept(this);
-                    separator = COMMA_SEPARATOR;
-                }
-                if (currentCteStatement.getSearchBySpecifications().size() > 1) {
-                    appendSql(CLOSE_PARENTHESIS);
-                }
-                appendSql(']');
-            }
-        }
-    }
-
-    /**
-     * The following emulation is not 100% perfect, because it will serialize search clause attributes to a string,
-     * which might have a different sort order than the attributes in their original data types,
-     * but we try our best to avoid issues with that by formatting data in a certain format.
-     * To support multiple search clause attributes, we also depend on the fact that regular data columns
-     * will not contain the NULL character represented by '\0', which is used as separator for column values.
-     * <p>
-     * We serialize attributes to a string by concatenating them with each other, separated by '\0'.
-     * The mappings are implemented in {@link #wrapRowComponentAsOrderPreservingConcatArgument(Expression)}.
-     */
-    private void emulateSearchClauseOrderWithString(SelectClause selectClause) {
-        final AbstractSqmSelfRenderingFunctionDescriptor concat = findSelfRenderingFunction("concat", 2);
-        final AbstractSqmSelfRenderingFunctionDescriptor coalesce = findSelfRenderingFunction("coalesce", 2);
-        final BasicType<String> stringType = getStringType();
-        final BasicType<Integer> integerType = getIntegerType();
-        // Shift by 1 bit instead of multiplying by 2
-        final List<SqlAstNode> arguments = new ArrayList<>(currentCteStatement.getSearchBySpecifications()
-                .size() << 1);
-        final Expression nullSeparator = createNullSeparator();
-
-        if (isInRecursiveQueryPart()) {
-            final TableReference recursiveTableReference = findTableReferenceByTableId(
-                    currentCteStatement.getCteTable().getTableExpression()
-            );
-            if (currentCteStatement.getSearchClauseKind() == CteSearchClauseKind.BREADTH_FIRST) {
-                final String depthColumnName = determineDepthColumnName(currentCteStatement);
-                final ColumnReference depthColumnReference = new ColumnReference(
-                        recursiveTableReference,
-                        depthColumnName,
-                        false,
-                        null,
-                        integerType
-                );
-                visitColumnReference(depthColumnReference);
-                appendSql("+1");
-                appendSql(COMMA_SEPARATOR);
-
-                arguments.add(lpad(castToString(depthColumnReference), 10, "0"));
-                arguments.add(nullSeparator);
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                            .getExpression();
-                    arguments.add(
-                            new SelfRenderingFunctionSqlAstExpression(
-                                    "coalesce",
-                                    coalesce,
-                                    List.of(
-                                            wrapRowComponentAsOrderPreservingConcatArgument(selectionExpression),
-                                            nullSeparator
-                                    ),
-                                    stringType,
-                                    stringType
-                            )
-                    );
-                    arguments.add(nullSeparator);
-                }
-                concat.render(this, arguments, stringType, this);
-            } else {
-                arguments.add(
-                        new ColumnReference(
-                                recursiveTableReference,
-                                currentCteStatement.getSearchColumn().getColumnExpression(),
-                                false,
-                                null,
-                                currentCteStatement.getSearchColumn().getJdbcMapping()
-                        )
-                );
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                            .getExpression();
-                    arguments.add(
-                            new SelfRenderingFunctionSqlAstExpression(
-                                    "coalesce",
-                                    coalesce,
-                                    List.of(
-                                            wrapRowComponentAsOrderPreservingConcatArgument(selectionExpression),
-                                            nullSeparator
-                                    ),
-                                    stringType,
-                                    stringType
-                            )
-                    );
-                    arguments.add(nullSeparator);
-                }
-                arguments.add(nullSeparator);
-                concat.render(this, arguments, stringType, this);
-            }
-        } else {
-            int columnSizeEstimate = 0;
-            if (currentCteStatement.getSearchClauseKind() == CteSearchClauseKind.BREADTH_FIRST) {
-                appendSql('1');
-                appendSql(COMMA_SEPARATOR);
-
-                arguments.add(new QueryLiteral<>(StringHelper.repeat('0', 10), stringType));
-                arguments.add(nullSeparator);
-                columnSizeEstimate += 11;
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                            .getExpression();
-                    arguments.add(
-                            new SelfRenderingFunctionSqlAstExpression(
-                                    "coalesce",
-                                    coalesce,
-                                    List.of(
-                                            wrapRowComponentAsOrderPreservingConcatArgument(selectionExpression),
-                                            nullSeparator
-                                    ),
-                                    stringType,
-                                    stringType
-                            )
-                    );
-                    arguments.add(nullSeparator);
-                    columnSizeEstimate += wrapRowComponentAsOrderPreservingConcatArgumentSizeEstimate(
-                            selectionExpression) + 1;
-                }
-                visitRecursivePath(
-                        new SelfRenderingFunctionSqlAstExpression(
-                                "concat",
-                                concat,
-                                arguments,
-                                stringType,
-                                stringType
-                        ),
-                        columnSizeEstimate
-                );
-            } else {
-                for (SearchClauseSpecification searchBySpecification : currentCteStatement.getSearchBySpecifications()) {
-                    if (searchBySpecification.getSortOrder() == SortDirection.DESCENDING) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for descending search specifications");
-                    }
-                    if (searchBySpecification.getNullPrecedence() != NullPrecedence.NONE) {
-                        throw new IllegalArgumentException(
-                                "Can't emulate search clause for search specifications with explicit null precedence");
-                    }
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(searchBySpecification.getCteColumn());
-                    final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                            .getExpression();
-                    arguments.add(
-                            new SelfRenderingFunctionSqlAstExpression(
-                                    "coalesce",
-                                    coalesce,
-                                    List.of(
-                                            wrapRowComponentAsEqualityPreservingConcatArgument(selectionExpression),
-                                            nullSeparator
-                                    ),
-                                    stringType,
-                                    stringType
-                            )
-                    );
-                    arguments.add(nullSeparator);
-                    columnSizeEstimate += wrapRowComponentAsOrderPreservingConcatArgumentSizeEstimate(
-                            selectionExpression) + 1;
-                }
-                arguments.add(nullSeparator);
-                columnSizeEstimate += 1;
-                visitRecursivePath(
-                        new SelfRenderingFunctionSqlAstExpression(
-                                "concat",
-                                concat,
-                                arguments,
-                                stringType,
-                                stringType
-                        ),
-                        columnSizeEstimate * MAX_RECURSION_DEPTH_ESTIMATE
-                );
-            }
-        }
-    }
-
-    /**
-     * Renders the recursive path, possibly wrapping a cast expression around it,
-     * to make sure a type with proper size is chosen.
-     */
-    protected void visitRecursivePath(Expression recursivePath, int sizeEstimate) {
-        recursivePath.accept(this);
-    }
-
-    protected void emulateCycleClauseWithRowAndArray(SelectClause selectClause) {
-        if (isInRecursiveQueryPart()) {
-            final BasicType<String> stringType = getStringType();
-            final TableReference recursiveTableReference = findTableReferenceByTableId(
-                    currentCteStatement.getCteTable().getTableExpression()
-            );
-            final String cyclePathColumnName = determineCyclePathColumnName(currentCteStatement);
-            final ColumnReference cyclePathColumnReference = new ColumnReference(
-                    recursiveTableReference,
-                    cyclePathColumnName,
-                    false,
-                    null,
-                    stringType
-            );
-
-            if (!supportsRecursiveCycleClause()) {
-                // Cycle mark
-                appendSql("case when ");
-                final String arrayContainsFunction = getArrayContainsFunction();
-                if (arrayContainsFunction != null) {
-                    appendSql(arrayContainsFunction);
-                    appendSql(OPEN_PARENTHESIS);
-                    visitColumnReference(cyclePathColumnReference);
-                    appendSql(COMMA_SEPARATOR);
-                }
-                if (currentCteStatement.getCycleColumns().size() > 1) {
-                    appendSql("row(");
-                    String separator = NO_SEPARATOR;
-                    for (CteColumn cycleColumn : currentCteStatement.getCycleColumns()) {
-                        final int selectionIndex = currentCteStatement.getCteTable()
-                                .getCteColumns()
-                                .indexOf(cycleColumn);
-                        final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                        appendSql(separator);
-                        sqlSelection.accept(this);
-                        separator = COMMA_SEPARATOR;
-                    }
-                    appendSql(')');
-                } else {
-                    final int selectionIndex = currentCteStatement.getCteTable()
-                            .getCteColumns()
-                            .indexOf(currentCteStatement.getCycleColumns().get(0));
-                    final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                    sqlSelection.accept(this);
-                }
-                if (arrayContainsFunction == null) {
-                    appendSql("=any(");
-                    visitColumnReference(cyclePathColumnReference);
-                }
-                appendSql(CLOSE_PARENTHESIS);
-
-                appendSql(" then ");
-                currentCteStatement.getCycleValue().accept(this);
-                appendSql(" else ");
-                currentCteStatement.getNoCycleValue().accept(this);
-                appendSql(" end");
-                appendSql(COMMA_SEPARATOR);
-            }
-
-            // Cycle path
-            visitColumnReference(cyclePathColumnReference);
-            appendSql("||array[");
-            if (currentCteStatement.getCycleColumns().size() > 1) {
-                appendSql("row(");
-            }
-            String separator = NO_SEPARATOR;
-            for (CteColumn cycleColumn : currentCteStatement.getCycleColumns()) {
-                final int selectionIndex = currentCteStatement.getCteTable()
-                        .getCteColumns()
-                        .indexOf(cycleColumn);
-                final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                appendSql(separator);
-                sqlSelection.accept(this);
-                separator = COMMA_SEPARATOR;
-            }
-            if (currentCteStatement.getCycleColumns().size() > 1) {
-                appendSql(CLOSE_PARENTHESIS);
-            }
-            appendSql(']');
-        } else {
-            if (!supportsRecursiveCycleClause()) {
-                // Cycle mark
-                currentCteStatement.getNoCycleValue().accept(this);
-                appendSql(COMMA_SEPARATOR);
-            }
-
-            // Cycle path
-            appendSql("array[");
-            if (currentCteStatement.getCycleColumns().size() > 1) {
-                appendSql("row(");
-            }
-            String separator = NO_SEPARATOR;
-            for (CteColumn cycleColumn : currentCteStatement.getCycleColumns()) {
-                final int selectionIndex = currentCteStatement.getCteTable()
-                        .getCteColumns()
-                        .indexOf(cycleColumn);
-                final SqlSelection sqlSelection = selectClause.getSqlSelections().get(selectionIndex);
-                appendSql(separator);
-                sqlSelection.accept(this);
-                separator = COMMA_SEPARATOR;
-            }
-            if (currentCteStatement.getCycleColumns().size() > 1) {
-                appendSql(CLOSE_PARENTHESIS);
-            }
-            appendSql(']');
-        }
-    }
-
-    /**
-     * Returns the name of the <code>array_contains(array, element)</code> function,
-     * which is used for emulating the cycle clause.
-     */
-    protected String getArrayContainsFunction() {
-        return null;
-    }
-
-    private Expression createNullSeparator() {
-        final AbstractSqmSelfRenderingFunctionDescriptor chr = findSelfRenderingFunction("chr", 1);
-        final BasicType<String> stringType = getStringType();
-        return new SelfRenderingFunctionSqlAstExpression(
-                "chr",
-                chr,
-                List.of(new QueryLiteral<>(0, getIntegerType())),
-                stringType,
-                stringType
-        );
-    }
-
-    /**
-     * The following emulation is not 100% perfect, because it will serialize cycle clause attributes to a string,
-     * which might have a different equality rules than the attributes in the original data types,
-     * but we try our best to avoid issues with that by formatting data in a certain format.
-     * To support multiple cycle clause attributes, we also depend on the fact that regular data columns
-     * will not contain the NULL character represented by '\0', which is used as separator for column values.
-     * <p>
-     * We serialize attributes to a string by concatenating them with each other, separated by '\0'.
-     * The mappings are implemented in {@link #wrapRowComponentAsEqualityPreservingConcatArgument(Expression)}.
-     */
-    private void emulateCycleClauseWithString(SelectClause selectClause) {
-        final AbstractSqmSelfRenderingFunctionDescriptor concat = findSelfRenderingFunction("concat", 2);
-        final AbstractSqmSelfRenderingFunctionDescriptor coalesce = findSelfRenderingFunction("coalesce", 2);
-        final BasicType<String> stringType = getStringType();
-        // Shift by 2 bit instead of multiplying by 4
-        final List<SqlAstNode> arguments = new ArrayList<>(currentCteStatement.getCycleColumns().size() << 2);
-        final Expression nullSeparator = createNullSeparator();
-
-        if (isInRecursiveQueryPart()) {
-            final TableReference recursiveTableReference = findTableReferenceByTableId(
-                    currentCteStatement.getCteTable().getTableExpression()
-            );
-            final String cyclePathColumnName = determineCyclePathColumnName(currentCteStatement);
-            final ColumnReference cyclePathColumnReference = new ColumnReference(
-                    recursiveTableReference,
-                    cyclePathColumnName,
-                    false,
-                    null,
-                    stringType
-            );
-            for (CteColumn cycleColumn : currentCteStatement.getCycleColumns()) {
-                final int selectionIndex = currentCteStatement.getCteTable()
-                        .getCteColumns()
-                        .indexOf(cycleColumn);
-                final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                        .getExpression();
-                arguments.add(nullSeparator);
-                arguments.add(
-                        new SelfRenderingFunctionSqlAstExpression(
-                                "coalesce",
-                                coalesce,
-                                List.of(
-                                        wrapRowComponentAsEqualityPreservingConcatArgument(selectionExpression),
-                                        nullSeparator
-                                ),
-                                stringType,
-                                stringType
-                        )
-                );
-                arguments.add(nullSeparator);
-            }
-            arguments.add(nullSeparator);
-
-            if (!supportsRecursiveCycleClause()) {
-                // Cycle mark
-                appendSql("case when ");
-                renderStringContainsExactlyPredicate(
-                        cyclePathColumnReference,
-                        new SelfRenderingFunctionSqlAstExpression(
-                                "concat",
-                                concat,
-                                arguments,
-                                stringType,
-                                stringType
-                        )
-                );
-                appendSql(" then ");
-                currentCteStatement.getCycleValue().accept(this);
-                appendSql(" else ");
-                currentCteStatement.getNoCycleValue().accept(this);
-                appendSql(" end");
-                appendSql(COMMA_SEPARATOR);
-            }
-
-            // Add the previous path
-            arguments.add(0, cyclePathColumnReference);
-            // Cycle path
-            concat.render(this, arguments, stringType, this);
-        } else {
-            if (!supportsRecursiveCycleClause()) {
-                // Cycle mark
-                currentCteStatement.getNoCycleValue().accept(this);
-                appendSql(COMMA_SEPARATOR);
-            }
-
-            // Cycle path
-            int columnSizeEstimate = 1;
-            for (CteColumn cycleColumn : currentCteStatement.getCycleColumns()) {
-                final int selectionIndex = currentCteStatement.getCteTable()
-                        .getCteColumns()
-                        .indexOf(cycleColumn);
-                final Expression selectionExpression = selectClause.getSqlSelections().get(selectionIndex)
-                        .getExpression();
-                arguments.add(nullSeparator);
-                arguments.add(
-                        new SelfRenderingFunctionSqlAstExpression(
-                                "coalesce",
-                                coalesce,
-                                List.of(
-                                        wrapRowComponentAsEqualityPreservingConcatArgument(selectionExpression),
-                                        nullSeparator
-                                ),
-                                stringType,
-                                stringType
-                        )
-                );
-                arguments.add(nullSeparator);
-                columnSizeEstimate += wrapRowComponentAsEqualityPreservingConcatArgumentSizeEstimate(
-                        selectionExpression) + 1;
-            }
-            arguments.add(nullSeparator);
-            visitRecursivePath(
-                    new SelfRenderingFunctionSqlAstExpression(
-                            "concat",
-                            concat,
-                            arguments,
-                            stringType,
-                            stringType
-                    ),
-                    columnSizeEstimate * MAX_RECURSION_DEPTH_ESTIMATE
-            );
-        }
-    }
-
-    protected void renderStringContainsExactlyPredicate(Expression haystack, Expression needle) {
-        final AbstractSqmSelfRenderingFunctionDescriptor position = findSelfRenderingFunction("position", 2);
-        new SelfRenderingFunctionSqlAstExpression(
-                "position",
-                position,
-                List.of(needle, haystack),
-                getStringType(),
-                getStringType()
-        ).accept(this);
-        append(">0");
-    }
-
-    /**
-     * Wraps the given expression so that it produces a string, which should have the same ordering as the original value.
-     * Here are the mappings for various data types:
-     * - Boolean types are casted to strings, which will produce `true`/`false` which is ordered correctly
-     * - Integral types are left padded by 0 to lengths 19, as that is the maximum number of digits in a 64 bit number
-     * - Numeric/Decimal types are left padded by 0 to the length of `precision`, and if that isn't available will fail
-     * <p>
-     * Encounters of data types other than character types will result in an exception to be thrown.
-     * This is because the translation from the types to strings is not guaranteed to result in the same ordering.
-     */
-    private SqlAstNode wrapRowComponentAsOrderPreservingConcatArgument(Expression expression) {
-        final JdbcMapping jdbcMapping = expression.getExpressionType().getSingleJdbcMapping();
-        switch (jdbcMapping.getCastType()) {
-            case STRING:
-                return expression;
-            case BOOLEAN:
-            case INTEGER_BOOLEAN:
-            case TF_BOOLEAN:
-            case YN_BOOLEAN:
-                return castToString(expression);
-            case INTEGER:
-            case LONG:
-                return castNumberToString(expression, 19, 0);
-            case FIXED:
-                if (expression.getExpressionType() instanceof SqlTypedMapping sqlTypedMapping) {
-                    if (sqlTypedMapping.getPrecision() != null && sqlTypedMapping.getScale() != null) {
-                        return castNumberToString(
-                                expression,
-                                sqlTypedMapping.getPrecision(),
-                                sqlTypedMapping.getScale()
-                        );
-                    }
-                }
-                throw new IllegalArgumentException(
-                        String.format(
-                                "Can't emulate order preserving row constructor through string concatenation for numeric expression [%s] without precision or scale",
-                                expression
-                        )
-                );
-        }
-        throw new IllegalArgumentException(
-                String.format(
-                        "Can't emulate order preserving row constructor through string concatenation for expression [%s] which is of type [%s]",
-                        expression,
-                        jdbcMapping.getCastType()
-                )
-        );
-    }
-
-    private int wrapRowComponentAsOrderPreservingConcatArgumentSizeEstimate(Expression expression) {
-        final JdbcMapping jdbcMapping = expression.getExpressionType().getSingleJdbcMapping();
-        switch (jdbcMapping.getCastType()) {
-            case STRING:
-                if (expression.getExpressionType() instanceof SqlTypedMapping) {
-                    final SqlTypedMapping sqlTypedMapping = (SqlTypedMapping) expression.getExpressionType();
-                    if (sqlTypedMapping.getLength() != null) {
-                        return sqlTypedMapping.getLength().intValue();
-                    }
-                }
-                return Short.MAX_VALUE;
-            case BOOLEAN:
-            case INTEGER_BOOLEAN:
-            case TF_BOOLEAN:
-            case YN_BOOLEAN:
-                return 5;
-            case INTEGER:
-            case LONG:
-                return 20;
-            case FIXED:
-                if (expression.getExpressionType() instanceof SqlTypedMapping) {
-                    final SqlTypedMapping sqlTypedMapping = (SqlTypedMapping) expression.getExpressionType();
-                    if (sqlTypedMapping.getPrecision() != null && sqlTypedMapping.getScale() != null) {
-                        return sqlTypedMapping.getPrecision() + sqlTypedMapping.getScale() + 2;
-                    }
-                }
-        }
-        return 1;
-    }
-
-    /**
-     * Wraps the given expression so that it produces a string, but preserves equality with respect to what the original value was.
-     * <p>
-     * The following data types are supported and simply concatenated, with optional casting:
-     * - String types
-     * - Boolean types
-     * - Integral types
-     * - Numeric/Decimal types
-     * - Temporal types
-     * <p>
-     * Encounters of other data types will result in an exception to be thrown.
-     * This is because the translation from the types to strings is not guaranteed to preserve equality.
-     */
-    private SqlAstNode wrapRowComponentAsEqualityPreservingConcatArgument(Expression expression) {
-        final JdbcMapping jdbcMapping = expression.getExpressionType().getSingleJdbcMapping();
-        switch (jdbcMapping.getCastType()) {
-            case STRING:
-                return expression;
-            case BOOLEAN:
-            case INTEGER_BOOLEAN:
-            case TF_BOOLEAN:
-            case YN_BOOLEAN:
-            case INTEGER:
-            case LONG:
-            case FIXED:
-            case DATE:
-            case TIME:
-            case TIMESTAMP:
-            case OFFSET_TIMESTAMP:
-            case ZONE_TIMESTAMP:
-                if (dialect.requiresCastForConcatenatingNonStrings()) {
-                    return castToString(expression);
-                }
-                // Should we maybe always cast instead? Not sure what is faster/better...
-                final BasicType<String> stringType = getStringType();
-                final AbstractSqmSelfRenderingFunctionDescriptor concat = findSelfRenderingFunction("concat", 2);
-                return new SelfRenderingFunctionSqlAstExpression(
-                        "concat",
-                        concat,
-                        List.of(
-                                expression,
-                                new QueryLiteral<>("", stringType)
-                        ),
-                        stringType,
-                        stringType
-                );
-        }
-        throw new IllegalArgumentException(
-                String.format(
-                        "Can't emulate equality preserving row constructor through string concatenation for expression [%s] which is of type [%s]",
-                        expression,
-                        jdbcMapping.getCastType()
-                )
-        );
-    }
-
-    private int wrapRowComponentAsEqualityPreservingConcatArgumentSizeEstimate(Expression expression) {
-        final JdbcMapping jdbcMapping = expression.getExpressionType().getSingleJdbcMapping();
-        switch (jdbcMapping.getCastType()) {
-            case STRING:
-                if (expression.getExpressionType() instanceof SqlTypedMapping) {
-                    final SqlTypedMapping sqlTypedMapping = (SqlTypedMapping) expression.getExpressionType();
-                    if (sqlTypedMapping.getLength() != null) {
-                        return sqlTypedMapping.getLength().intValue();
-                    }
-                }
-                return Short.MAX_VALUE;
-            case BOOLEAN:
-            case INTEGER_BOOLEAN:
-            case TF_BOOLEAN:
-            case YN_BOOLEAN:
-                return 5;
-            case INTEGER:
-            case LONG:
-                return 20;
-            case FIXED:
-                if (expression.getExpressionType() instanceof SqlTypedMapping) {
-                    final SqlTypedMapping sqlTypedMapping = (SqlTypedMapping) expression.getExpressionType();
-                    if (sqlTypedMapping.getPrecision() != null && sqlTypedMapping.getScale() != null) {
-                        return sqlTypedMapping.getPrecision() + sqlTypedMapping.getScale() + 2;
-                    }
-                }
-            case DATE:
-                return DATE_CHAR_SIZE_ESTIMATE;
-            case TIME:
-                return TIME_CHAR_SIZE_ESTIMATE;
-            case TIMESTAMP:
-                return TIMESTAMP_CHAR_SIZE_ESTIMATE;
-            case OFFSET_TIMESTAMP:
-            case ZONE_TIMESTAMP:
-                return OFFSET_TIMESTAMP_CHAR_SIZE_ESTIMATE;
-        }
-        return 1;
-    }
-
     private Expression abs(Expression expression) {
         final AbstractSqmSelfRenderingFunctionDescriptor abs = findSelfRenderingFunction("abs", 2);
         return new SelfRenderingFunctionSqlAstExpression(
@@ -3330,36 +1622,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return (AbstractSqmSelfRenderingFunctionDescriptor) functionDescriptor;
     }
 
-    /**
-     * Casts a number expression to a string with the given precision and scale.
-     */
-    protected Expression castNumberToString(Expression expression, int precision, int scale) {
-        final BasicType<String> stringType = getStringType();
-        final AbstractSqmSelfRenderingFunctionDescriptor concat = findSelfRenderingFunction("concat", 2);
-
-        final CaseSearchedExpression signExpression = new CaseSearchedExpression(stringType);
-        signExpression.when(
-                new ComparisonPredicate(
-                        expression,
-                        ComparisonOperator.LESS_THAN,
-                        new QueryLiteral<>(0, getIntegerType())
-                ),
-                new QueryLiteral<>("-", stringType)
-        );
-        signExpression.otherwise(new QueryLiteral<>("-", stringType));
-        final int stringLength = precision + (scale > 0 ? (scale + 1) : 0);
-        return new SelfRenderingFunctionSqlAstExpression(
-                "concat",
-                concat,
-                List.of(
-                        signExpression,
-                        lpad(castToString(abs(expression)), stringLength, "0")
-                ),
-                stringType,
-                stringType
-        );
-    }
-
     private Expression castToString(SqlAstNode node) {
         final BasicType<String> stringType = getStringType();
         return new SelfRenderingFunctionSqlAstExpression(
@@ -3368,18 +1630,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                 List.of(node, new CastTarget(stringType)),
                 stringType,
                 stringType
-        );
-    }
-
-    private TableReference findTableReferenceByTableId(String tableExpression) {
-        final QuerySpec currentQuerySpec = (QuerySpec) getCurrentQueryPart();
-        return currentQuerySpec.getFromClause().queryTableReferences(
-                tableReference -> {
-                    if (tableExpression.equals(tableReference.getTableId())) {
-                        return tableReference;
-                    }
-                    return null;
-                }
         );
     }
 
@@ -3810,26 +2060,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void emulateSelectTupleComparison(
-            List<SqlSelection> lhsSelections,
-            List<? extends SqlAstNode> rhsExpressions,
-            ComparisonOperator operator,
-            boolean indexOptimized) {
-        final List<? extends SqlAstNode> lhsExpressions;
-        if (lhsSelections.size() == rhsExpressions.size()) {
-            lhsExpressions = lhsSelections;
-        } else if (lhsSelections.size() == 1) {
-            lhsExpressions = SqlTupleContainer.getSqlTuple(lhsSelections.get(0).getExpression()).getExpressions();
-        } else {
-            final List<Expression> list = new ArrayList<>(rhsExpressions.size());
-            for (SqlSelection lhsSelection : lhsSelections) {
-                list.addAll(SqlTupleContainer.getSqlTuple(lhsSelection.getExpression()).getExpressions());
-            }
-            lhsExpressions = list;
-        }
-        emulateTupleComparison(lhsExpressions, rhsExpressions, operator, indexOptimized);
-    }
-
     /**
      * A tuple comparison like <code>(a, b) &gt; (1, 2)</code> can be emulated through it logical definition: <code>a &gt; 1 or a = 1 and b &gt; 2</code>.
      * The normal tuple comparison emulation is not very index friendly though because of the top level OR predicate.
@@ -4030,13 +2260,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void renderSelectSimpleComparison(
-            final List<SqlSelection> lhsExpressions,
-            Expression expression,
-            ComparisonOperator operator) {
-        renderComparison(lhsExpressions.get(0).getExpression(), operator, expression);
-    }
-
     protected void renderSelectTupleComparison(
             final List<SqlSelection> lhsExpressions,
             SqlTuple tuple,
@@ -4072,120 +2295,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         appendSql(": ");
         rhs.accept(this);
         appendSql(" } }");
-    }
-
-    protected void renderComparisonDistinctOperator(Expression lhs, ComparisonOperator operator, Expression rhs) {
-        final boolean notWrapper;
-        final String operatorText;
-        switch (operator) {
-            case DISTINCT_FROM:
-                notWrapper = true;
-                operatorText = "<=>";
-                break;
-            case NOT_DISTINCT_FROM:
-                notWrapper = false;
-                operatorText = "<=>";
-                break;
-            default:
-                notWrapper = false;
-                operatorText = operator.sqlText();
-                break;
-        }
-        if (notWrapper) {
-            appendSql("not(");
-        }
-        lhs.accept(this);
-        appendSql(operatorText);
-        rhs.accept(this);
-        if (notWrapper) {
-            appendSql(CLOSE_PARENTHESIS);
-        }
-    }
-
-    protected void renderComparisonEmulateDecode(Expression lhs, ComparisonOperator operator, Expression rhs) {
-        renderComparisonEmulateDecode(lhs, operator, rhs, SqlAstNodeRenderingMode.DEFAULT);
-    }
-
-    protected void renderComparisonEmulateDecode(
-            Expression lhs,
-            ComparisonOperator operator,
-            Expression rhs,
-            SqlAstNodeRenderingMode firstArgRenderingMode) {
-        switch (operator) {
-            case DISTINCT_FROM:
-                appendSql("decode(");
-                render(lhs, firstArgRenderingMode);
-                appendSql(',');
-                rhs.accept(this);
-                appendSql(",0,1)=1");
-                break;
-            case NOT_DISTINCT_FROM:
-                appendSql("decode(");
-                render(lhs, firstArgRenderingMode);
-                appendSql(',');
-                rhs.accept(this);
-                appendSql(",0,1)=0");
-                break;
-            default:
-                lhs.accept(this);
-                appendSql(operator.sqlText());
-                rhs.accept(this);
-                break;
-        }
-    }
-
-    protected void renderComparisonEmulateCase(Expression lhs, ComparisonOperator operator, Expression rhs) {
-        switch (operator) {
-            case DISTINCT_FROM:
-                appendSql("case when ");
-                lhs.accept(this);
-                appendSql('=');
-                rhs.accept(this);
-                appendSql(" or ");
-                lhs.accept(this);
-                appendSql(" is null and ");
-                rhs.accept(this);
-                appendSql(" is null then 0 else 1 end=1");
-                break;
-            case NOT_DISTINCT_FROM:
-                appendSql("case when ");
-                lhs.accept(this);
-                appendSql('=');
-                rhs.accept(this);
-                appendSql(" or ");
-                lhs.accept(this);
-                appendSql(" is null and ");
-                rhs.accept(this);
-                appendSql(" is null then 0 else 1 end=0");
-                break;
-            default:
-                lhs.accept(this);
-                appendSql(operator.sqlText());
-                rhs.accept(this);
-                break;
-        }
-    }
-
-    protected void renderComparisonEmulateIntersect(Expression lhs, ComparisonOperator operator, Expression rhs) {
-        switch (operator) {
-            case DISTINCT_FROM:
-                appendSql("not ");
-            case NOT_DISTINCT_FROM: {
-                appendSql("exists (select ");
-                clauseStack.push(Clause.SELECT);
-                visitSqlSelectExpression(lhs);
-                appendSql(getFromDualForSelectOnly());
-                appendSql(" intersect select ");
-                visitSqlSelectExpression(rhs);
-                appendSql(getFromDualForSelectOnly());
-                clauseStack.pop();
-                appendSql(CLOSE_PARENTHESIS);
-                return;
-            }
-        }
-        lhs.accept(this);
-        appendSql(operator.sqlText());
-        rhs.accept(this);
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4344,80 +2453,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         fetchExpression.accept(this);
     }
 
-    protected void renderTopClause(QuerySpec querySpec, boolean addOffset, boolean needsParenthesis) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderTopClause(
-                    getOffsetParameter(),
-                    getLimitParameter(),
-                    FetchClauseType.ROWS_ONLY,
-                    addOffset,
-                    needsParenthesis
-            );
-        } else {
-            renderTopClause(
-                    querySpec.getOffsetClauseExpression(),
-                    querySpec.getFetchClauseExpression(),
-                    querySpec.getFetchClauseType(),
-                    addOffset,
-                    needsParenthesis
-            );
-        }
-    }
-
-    protected void renderTopClause(
-            Expression offsetExpression,
-            Expression fetchExpression,
-            FetchClauseType fetchClauseType,
-            boolean addOffset,
-            boolean needsParenthesis) {
-        if (fetchExpression != null) {
-            appendSql("top ");
-            if (needsParenthesis) {
-                appendSql(OPEN_PARENTHESIS);
-            }
-            final Stack<Clause> clauseStack = getClauseStack();
-            clauseStack.push(Clause.FETCH);
-            try {
-                if (addOffset && offsetExpression != null) {
-                    renderFetchPlusOffsetExpression(fetchExpression, offsetExpression, 0);
-                } else {
-                    renderFetchExpression(fetchExpression);
-                }
-            } finally {
-                clauseStack.pop();
-            }
-            if (needsParenthesis) {
-                appendSql(CLOSE_PARENTHESIS);
-            }
-            appendSql(WHITESPACE);
-            switch (fetchClauseType) {
-                case ROWS_WITH_TIES:
-                    appendSql("with ties ");
-                    break;
-                case PERCENT_ONLY:
-                    appendSql("percent ");
-                    break;
-                case PERCENT_WITH_TIES:
-                    appendSql("percent with ties ");
-                    break;
-            }
-        }
-    }
-
-    protected void renderTopStartAtClause(QuerySpec querySpec) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderTopStartAtClause(getOffsetParameter(), getLimitParameter(), FetchClauseType.ROWS_ONLY);
-        } else {
-            renderTopStartAtClause(
-                    querySpec.getOffsetClauseExpression(),
-                    querySpec.getFetchClauseExpression(),
-                    querySpec.getFetchClauseType()
-            );
-        }
-    }
-
     protected void renderTopStartAtClause(
             Expression offsetExpression,
             Expression fetchExpression,
@@ -4452,16 +2487,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                     appendSql("percent with ties ");
                     break;
             }
-        }
-    }
-
-    protected void renderRowsToClause(QuerySpec querySpec) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderRowsToClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(querySpec);
-            renderRowsToClause(querySpec.getOffsetClauseExpression(), querySpec.getFetchClauseExpression());
         }
     }
 
@@ -4502,522 +2527,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void renderFetchPlusOffsetExpressionAsLiteral(
-            Expression fetchClauseExpression,
-            Expression offsetClauseExpression,
-            int offset) {
-        final Number offsetCount = interpretExpression(offsetClauseExpression, jdbcParameterBindings);
-        final Number fetchCount = interpretExpression(fetchClauseExpression, jdbcParameterBindings);
-        appendSql(fetchCount.intValue() + offsetCount.intValue() + offset);
-    }
-
-    protected void renderFetchPlusOffsetExpressionAsSingleParameter(
-            Expression fetchClauseExpression,
-            Expression offsetClauseExpression,
-            int offset) {
-        if (fetchClauseExpression instanceof Literal) {
-            final Number fetchCount = (Number) ((Literal) fetchClauseExpression).getLiteralValue();
-            if (offsetClauseExpression instanceof Literal) {
-                final Number offsetCount = (Number) ((Literal) offsetClauseExpression).getLiteralValue();
-                appendSql(fetchCount.intValue() + offsetCount.intValue() + offset);
-            } else {
-                appendSql(PARAM_MARKER);
-                final JdbcParameter offsetParameter = (JdbcParameter) offsetClauseExpression;
-                final int offsetValue = offset + fetchCount.intValue();
-                jdbcParameters.addParameter(offsetParameter);
-                parameterBinders.add(
-                        (statement, startPosition, jdbcParameterBindings, executionContext) -> {
-                            final JdbcParameterBinding binding = jdbcParameterBindings.getBinding(offsetParameter);
-                            if (binding == null) {
-                                throw new ExecutionException("JDBC parameter value not bound - " + offsetParameter);
-                            }
-                            final Number bindValue = (Number) binding.getBindValue();
-                            //noinspection unchecked
-                            offsetParameter.getExpressionType().getSingleJdbcMapping().getJdbcValueBinder().bind(
-                                    statement,
-                                    bindValue.intValue() + offsetValue,
-                                    startPosition,
-                                    executionContext.getSession()
-                            );
-                        }
-                );
-            }
-        } else {
-            appendSql(PARAM_MARKER);
-            final JdbcParameter offsetParameter = (JdbcParameter) offsetClauseExpression;
-            final JdbcParameter fetchParameter = (JdbcParameter) fetchClauseExpression;
-            final OffsetReceivingParameterBinder fetchBinder = new OffsetReceivingParameterBinder(
-                    offsetParameter,
-                    fetchParameter,
-                    offset
-            );
-            // We don't register and bind the special OffsetJdbcParameter as that comes from the query options
-            // And in this case, we only want to bind a single JDBC parameter
-            if (!(offsetParameter instanceof OffsetJdbcParameter)) {
-                jdbcParameters.addParameter(offsetParameter);
-                parameterBinders.add(
-                        (statement, startPosition, jdbcParameterBindings, executionContext) -> {
-                            final JdbcParameterBinding binding = jdbcParameterBindings.getBinding(offsetParameter);
-                            if (binding == null) {
-                                throw new ExecutionException("JDBC parameter value not bound - " + offsetParameter);
-                            }
-                            fetchBinder.dynamicOffset = (Number) binding.getBindValue();
-                        }
-                );
-            }
-            jdbcParameters.addParameter(fetchParameter);
-            parameterBinders.add(fetchBinder);
-        }
-    }
-
-    private static class OffsetReceivingParameterBinder implements JdbcParameterBinder {
-
-        private final JdbcParameter offsetParameter;
-        private final JdbcParameter fetchParameter;
-        private final int staticOffset;
-        private Number dynamicOffset;
-
-        public OffsetReceivingParameterBinder(
-                JdbcParameter offsetParameter,
-                JdbcParameter fetchParameter,
-                int staticOffset) {
-            this.offsetParameter = offsetParameter;
-            this.fetchParameter = fetchParameter;
-            this.staticOffset = staticOffset;
-        }
-
-        @Override
-        public void bindParameterValue(
-                PreparedStatement statement,
-                int startPosition,
-                JdbcParameterBindings jdbcParameterBindings,
-                ExecutionContext executionContext) throws SQLException {
-            final Number bindValue;
-            if (fetchParameter instanceof LimitJdbcParameter) {
-                bindValue = executionContext.getQueryOptions().getEffectiveLimit().getMaxRows();
-            } else {
-                final JdbcParameterBinding binding = jdbcParameterBindings.getBinding(fetchParameter);
-                if (binding == null) {
-                    throw new ExecutionException("JDBC parameter value not bound - " + fetchParameter);
-                }
-                bindValue = (Number) binding.getBindValue();
-            }
-            final int offsetValue;
-            if (offsetParameter instanceof OffsetJdbcParameter) {
-                offsetValue = executionContext.getQueryOptions().getEffectiveLimit().getFirstRow();
-            } else {
-                offsetValue = dynamicOffset.intValue() + staticOffset;
-                dynamicOffset = null;
-            }
-            //noinspection unchecked
-            fetchParameter.getExpressionType().getSingleJdbcMapping().getJdbcValueBinder().bind(
-                    statement,
-                    bindValue.intValue() + offsetValue,
-                    startPosition,
-                    executionContext.getSession()
-            );
-        }
-    }
-
-    protected void renderFirstSkipClause(QuerySpec querySpec) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderFirstSkipClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(querySpec);
-            renderFirstSkipClause(querySpec.getOffsetClauseExpression(), querySpec.getFetchClauseExpression());
-        }
-    }
-
-    protected void renderFirstSkipClause(Expression offsetExpression, Expression fetchExpression) {
-        final Stack<Clause> clauseStack = getClauseStack();
-        if (fetchExpression != null) {
-            appendSql("first ");
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(WHITESPACE);
-        }
-        if (offsetExpression != null) {
-            appendSql("skip ");
-            clauseStack.push(Clause.OFFSET);
-            try {
-                renderOffsetExpression(offsetExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(WHITESPACE);
-        }
-    }
-
-    protected void renderSkipFirstClause(QuerySpec querySpec) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderSkipFirstClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(querySpec);
-            renderSkipFirstClause(querySpec.getOffsetClauseExpression(), querySpec.getFetchClauseExpression());
-        }
-    }
-
-    protected void renderSkipFirstClause(Expression offsetExpression, Expression fetchExpression) {
-        final Stack<Clause> clauseStack = getClauseStack();
-        if (offsetExpression != null) {
-            appendSql("skip ");
-            clauseStack.push(Clause.OFFSET);
-            try {
-                renderOffsetExpression(offsetExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(WHITESPACE);
-        }
-        if (fetchExpression != null) {
-            appendSql("first ");
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(WHITESPACE);
-        }
-    }
-
-    protected void renderFirstClause(QuerySpec querySpec) {
-        if (querySpec.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderFirstClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(querySpec);
-            renderFirstClause(querySpec.getOffsetClauseExpression(), querySpec.getFetchClauseExpression());
-        }
-    }
-
-    protected void renderFirstClause(Expression offsetExpression, Expression fetchExpression) {
-        final Stack<Clause> clauseStack = getClauseStack();
-        if (fetchExpression != null) {
-            appendSql("first ");
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchPlusOffsetExpression(fetchExpression, offsetExpression, 0);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(WHITESPACE);
-        }
-    }
-
-    protected void renderCombinedLimitClause(QueryPart queryPart) {
-        if (queryPart.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderCombinedLimitClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(queryPart);
-            renderCombinedLimitClause(queryPart.getOffsetClauseExpression(), queryPart.getFetchClauseExpression());
-        }
-    }
-
-    protected void renderCombinedLimitClause(Expression offsetExpression, Expression fetchExpression) {
-        if (offsetExpression != null) {
-            final Stack<Clause> clauseStack = getClauseStack();
-            appendSql(" limit ");
-            clauseStack.push(Clause.OFFSET);
-            try {
-                renderOffsetExpression(offsetExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            appendSql(COMMA_SEPARATOR_CHAR);
-            if (fetchExpression != null) {
-                clauseStack.push(Clause.FETCH);
-                try {
-                    renderFetchExpression(fetchExpression);
-                } finally {
-                    clauseStack.pop();
-                }
-            } else {
-                appendSql(Integer.MAX_VALUE);
-            }
-        } else if (fetchExpression != null) {
-            final Stack<Clause> clauseStack = getClauseStack();
-            appendSql(" limit ");
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchExpression);
-            } finally {
-                clauseStack.pop();
-            }
-        }
-    }
-
-    protected void renderLimitOffsetClause(QueryPart queryPart) {
-        if (queryPart.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            renderLimitOffsetClause(getOffsetParameter(), getLimitParameter());
-        } else {
-            assertRowsOnlyFetchClauseType(queryPart);
-            renderLimitOffsetClause(queryPart.getOffsetClauseExpression(), queryPart.getFetchClauseExpression());
-        }
-    }
-
-    protected void renderLimitOffsetClause(Expression offsetExpression, Expression fetchExpression) {
-        if (fetchExpression != null) {
-            appendSql(" limit ");
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchExpression);
-            } finally {
-                clauseStack.pop();
-            }
-        } else if (offsetExpression != null) {
-            appendSql(" limit ");
-            appendSql(Integer.MAX_VALUE);
-        }
-        if (offsetExpression != null) {
-            final Stack<Clause> clauseStack = getClauseStack();
-            appendSql(" offset ");
-            clauseStack.push(Clause.OFFSET);
-            try {
-                renderOffsetExpression(offsetExpression);
-            } finally {
-                clauseStack.pop();
-            }
-        }
-    }
-
-    protected void assertRowsOnlyFetchClauseType(QueryPart queryPart) {
-        if (!queryPart.isRoot() || !hasLimit()) {
-            final FetchClauseType fetchClauseType = queryPart.getFetchClauseType();
-            if (fetchClauseType != null && fetchClauseType != FetchClauseType.ROWS_ONLY) {
-                throw new IllegalArgumentException("Can't emulate fetch clause type: " + fetchClauseType);
-            }
-        }
-    }
-
-    protected QueryPart getQueryPartForRowNumbering() {
-        return queryPartForRowNumbering;
-    }
-
     protected boolean isRowNumberingCurrentQueryPart() {
         return queryPartForRowNumbering != null;
     }
-
-    protected void emulateFetchOffsetWithWindowFunctions(QueryPart queryPart, boolean emulateFetchClause) {
-        if (queryPart.isRoot() && hasLimit()) {
-            prepareLimitOffsetParameters();
-            emulateFetchOffsetWithWindowFunctions(
-                    queryPart,
-                    getOffsetParameter(),
-                    getLimitParameter(),
-                    FetchClauseType.ROWS_ONLY,
-                    emulateFetchClause
-            );
-        } else {
-            emulateFetchOffsetWithWindowFunctions(
-                    queryPart,
-                    queryPart.getOffsetClauseExpression(),
-                    queryPart.getFetchClauseExpression(),
-                    queryPart.getFetchClauseType(),
-                    emulateFetchClause
-            );
-        }
-    }
-
-    protected void emulateFetchOffsetWithWindowFunctions(
-            QueryPart queryPart,
-            Expression offsetExpression,
-            Expression fetchExpression,
-            FetchClauseType fetchClauseType,
-            boolean emulateFetchClause) {
-        final QueryPart queryPartForRowNumbering = this.queryPartForRowNumbering;
-        final int queryPartForRowNumberingClauseDepth = this.queryPartForRowNumberingClauseDepth;
-        final boolean needsSelectAliases = this.needsSelectAliases;
-        try {
-            this.queryPartForRowNumbering = queryPart;
-            this.queryPartForRowNumberingClauseDepth = clauseStack.depth();
-            this.needsSelectAliases = true;
-            final String alias = "r_" + queryPartForRowNumberingAliasCounter + '_';
-            queryPartForRowNumberingAliasCounter++;
-            // We always need query wrapping if we are in a query group and the query part has a fetch clause
-            final boolean needsParenthesis = queryPart instanceof QueryGroup && queryPart.hasOffsetOrFetchClause()
-                    && !queryPart.isRoot();
-            if (needsParenthesis) {
-                appendSql(OPEN_PARENTHESIS);
-            }
-            appendSql("select ");
-            // When we emulate a root statement, we don't need to select the select items
-            // to filter out the row number column we introduce, because we will simply ignore it anyway
-            if (getClauseStack().isEmpty() && !(getStatement() instanceof InsertSelectStatement)
-                    // If the query part is a child of a query group, we have can't do that,
-                    // since we need the select items to properly align in query group parts
-                    && !(getCurrentQueryPart() instanceof QueryGroup)) {
-                appendSql('*');
-            } else if (columnAliases != null) {
-                String separator = "";
-                for (String columnAlias : columnAliases) {
-                    appendSql(separator);
-                    appendSql(alias);
-                    appendSql('.');
-                    appendSql(columnAlias);
-                    separator = COMMA_SEPARATOR;
-                }
-            } else {
-                int size = 0;
-                for (SqlSelection sqlSelection : queryPart.getFirstQuerySpec().getSelectClause().getSqlSelections()) {
-                    size += sqlSelection.getExpressionType().getJdbcTypeCount();
-                }
-                String separator = "";
-                for (int i = 0; i < size; i++) {
-                    appendSql(separator);
-                    appendSql(alias);
-                    appendSql(".c");
-                    appendSql(i);
-                    separator = COMMA_SEPARATOR;
-                }
-            }
-            appendSql(" from ");
-            emulateFetchOffsetWithWindowFunctionsVisitQueryPart(queryPart);
-            appendSql(WHITESPACE);
-            appendSql(alias);
-            appendSql(" where ");
-            final Stack<Clause> clauseStack = getClauseStack();
-            clauseStack.push(Clause.WHERE);
-            try {
-                if (emulateFetchClause && fetchExpression != null) {
-                    switch (fetchClauseType) {
-                        case PERCENT_ONLY:
-                            appendSql(alias);
-                            appendSql(".rn<=");
-                            if (offsetExpression != null) {
-                                offsetExpression.accept(this);
-                                appendSql('+');
-                            }
-                            appendSql("ceil(");
-                            appendSql(alias);
-                            appendSql(".cnt*");
-                            fetchExpression.accept(this);
-                            appendSql("/100)");
-                            break;
-                        case ROWS_ONLY:
-                            appendSql(alias);
-                            appendSql(".rn<=");
-                            if (offsetExpression != null) {
-                                offsetExpression.accept(this);
-                                appendSql('+');
-                            }
-                            fetchExpression.accept(this);
-                            break;
-                        case PERCENT_WITH_TIES:
-                            appendSql(alias);
-                            appendSql(".rnk<=");
-                            if (offsetExpression != null) {
-                                offsetExpression.accept(this);
-                                appendSql('+');
-                            }
-                            appendSql("ceil(");
-                            appendSql(alias);
-                            appendSql(".cnt*");
-                            fetchExpression.accept(this);
-                            appendSql("/100)");
-                            break;
-                        case ROWS_WITH_TIES:
-                            appendSql(alias);
-                            appendSql(".rnk<=");
-                            if (offsetExpression != null) {
-                                offsetExpression.accept(this);
-                                appendSql('+');
-                            }
-                            fetchExpression.accept(this);
-                            break;
-                    }
-                }
-                // todo: not sure if databases handle order by row number or the original ordering better..
-                if (offsetExpression == null) {
-                    final Predicate additionalWherePredicate = this.additionalWherePredicate;
-                    if (additionalWherePredicate != null && !additionalWherePredicate.isEmpty()) {
-                        this.additionalWherePredicate = null;
-                        appendSql(" and ");
-                        additionalWherePredicate.accept(this);
-                    }
-                    if (queryPart.isRoot()) {
-                        switch (fetchClauseType) {
-                            case PERCENT_ONLY:
-                            case ROWS_ONLY:
-                                appendSql(" order by ");
-                                appendSql(alias);
-                                appendSql(".rn");
-                                break;
-                            case PERCENT_WITH_TIES:
-                            case ROWS_WITH_TIES:
-                                appendSql(" order by ");
-                                appendSql(alias);
-                                appendSql(".rnk");
-                                break;
-                        }
-                    }
-                } else {
-                    if (emulateFetchClause && fetchExpression != null) {
-                        appendSql(" and ");
-                    }
-                    appendSql(alias);
-                    appendSql(".rn>");
-                    offsetExpression.accept(this);
-                    final Predicate additionalWherePredicate = this.additionalWherePredicate;
-                    if (additionalWherePredicate != null && !additionalWherePredicate.isEmpty()) {
-                        this.additionalWherePredicate = null;
-                        appendSql(" and ");
-                        additionalWherePredicate.accept(this);
-                    }
-                    if (queryPart.isRoot()) {
-                        appendSql(" order by ");
-                        appendSql(alias);
-                        appendSql(".rn");
-                    }
-                }
-
-                // We render the FOR UPDATE clause in the outer query
-                if (queryPart instanceof QuerySpec) {
-                    visitForUpdateClause((QuerySpec) queryPart);
-                }
-            } finally {
-                clauseStack.pop();
-            }
-            if (needsParenthesis) {
-                appendSql(CLOSE_PARENTHESIS);
-            }
-        } finally {
-            this.queryPartForRowNumbering = queryPartForRowNumbering;
-            this.queryPartForRowNumberingClauseDepth = queryPartForRowNumberingClauseDepth;
-            this.needsSelectAliases = needsSelectAliases;
-        }
-    }
-
-    protected void emulateFetchOffsetWithWindowFunctionsVisitQueryPart(QueryPart queryPart) {
-        appendSql(OPEN_PARENTHESIS);
-        queryPart.accept(this);
-        appendSql(CLOSE_PARENTHESIS);
-    }
-
-    protected final void withRowNumbering(QueryPart queryPart, boolean needsSelectAliases, Runnable r) {
-        final QueryPart queryPartForRowNumbering = this.queryPartForRowNumbering;
-        final int queryPartForRowNumberingClauseDepth = this.queryPartForRowNumberingClauseDepth;
-        final boolean originalNeedsSelectAliases = this.needsSelectAliases;
-        try {
-            this.queryPartForRowNumbering = queryPart;
-            this.queryPartForRowNumberingClauseDepth = clauseStack.depth();
-            this.needsSelectAliases = needsSelectAliases;
-            r.run();
-        } finally {
-            this.queryPartForRowNumbering = queryPartForRowNumbering;
-            this.queryPartForRowNumberingClauseDepth = queryPartForRowNumberingClauseDepth;
-            this.needsSelectAliases = originalNeedsSelectAliases;
-        }
-    }
-
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // SELECT clause
@@ -5031,7 +2543,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 				appendSql( "distinct " );
 			}*/
             visitSqlSelections(selectClause);
-            renderVirtualSelections(selectClause);
             appendSql(" }");
         } finally {
             clauseStack.pop();
@@ -5127,10 +2638,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                 separator = ", ";
             }
         }
-    }
-
-    protected void renderVirtualSelections(SelectClause selectClause) {
-        renderRecursiveCteVirtualSelections(selectClause);
     }
 
     private BitSet getSelectItemsToInline() {
@@ -5357,10 +2864,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return expression instanceof JdbcParameter || expression instanceof SqmParameterInterpretation;
     }
 
-    protected final boolean isLiteral(Expression expression) {
-        return expression instanceof Literal;
-    }
-
     protected List<SortSpecification> getSortSpecificationsRowNumbering(
             SelectClause selectClause,
             QueryPart queryPart) {
@@ -5480,30 +2983,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void renderSelectExpressionWithCastedOrInlinedPlainParameters(Expression expression) {
-        // Null literals have to be casted in the select clause
-        if (expression instanceof Literal literal) {
-            if (literal.getLiteralValue() == null) {
-                renderCasted(literal);
-            } else {
-                renderLiteral(literal, true);
-            }
-        } else if (isParameter(expression)) {
-            final SqlAstNodeRenderingMode parameterRenderingMode = getParameterRenderingMode();
-            if (parameterRenderingMode == SqlAstNodeRenderingMode.INLINE_PARAMETERS || parameterRenderingMode == SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
-                renderExpressionAsLiteral(expression, getJdbcParameterBindings());
-            } else {
-                renderCasted(expression);
-            }
-        } else if (expression instanceof CaseSimpleExpression) {
-            visitCaseSimpleExpression((CaseSimpleExpression) expression, true);
-        } else if (expression instanceof CaseSearchedExpression) {
-            visitCaseSearchedExpression((CaseSearchedExpression) expression, true);
-        } else {
-            renderExpressionAsClauseItem(expression);
-        }
-    }
-
     protected void renderCasted(Expression expression) {
         if (expression instanceof SqmParameterInterpretation) {
             expression = ((SqmParameterInterpretation) expression).getResolvedExpression();
@@ -5591,53 +3070,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return tableGroup.getModelPart();
     }
 
-    protected void renderFromClauseSpaces(FromClause fromClause) {
-        try {
-            clauseStack.push(Clause.FROM);
-            String separator = NO_SEPARATOR;
-            for (TableGroup root : fromClause.getRoots()) {
-                separator = renderFromClauseRoot(root, separator);
-            }
-        } finally {
-            clauseStack.pop();
-        }
-    }
-
-    protected void renderFromClauseExcludingDmlTargetReference(UpdateStatement statement) {
-        final FromClause fromClause = statement.getFromClause();
-        if (hasNonTrivialFromClause(fromClause)) {
-            appendSql(" from ");
-            try {
-                clauseStack.push(Clause.FROM);
-                final List<TableGroup> roots = fromClause.getRoots();
-                renderDmlTargetTableGroup(roots.get(0));
-                for (int i = 1; i < roots.size(); i++) {
-                    TableGroup root = roots.get(i);
-                    renderFromClauseRoot(root, COMMA_SEPARATOR);
-                }
-            } finally {
-                clauseStack.pop();
-            }
-        }
-    }
-
-    protected void renderFromClauseJoiningDmlTargetReference(UpdateStatement statement) {
-        final FromClause fromClause = statement.getFromClause();
-        if (hasNonTrivialFromClause(fromClause)) {
-            visitFromClause(fromClause);
-            final TableGroup dmlTargetTableGroup = statement.getFromClause().getRoots().get(0);
-            assert dmlTargetTableGroup.getPrimaryTableReference() == statement.getTargetTable();
-            addAdditionalWherePredicate(
-                    // Render the match predicate like `table.ctid=alias.ctid`
-                    createRowMatchingPredicate(
-                            dmlTargetTableGroup,
-                            statement.getTargetTable().getTableExpression(),
-                            statement.getTargetTable().getIdentificationVariable()
-                    )
-            );
-        }
-    }
-
     protected Predicate createRowMatchingPredicate(TableGroup dmlTargetTableGroup, String lhsAlias, String rhsAlias) {
         final String rowIdExpression = dialect.rowId(null);
         if (rowIdExpression == null) {
@@ -5681,71 +3113,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                             lhsAlias + "." + rowIdExpression + "=" + rhsAlias + "." + rowIdExpression
                     )
             );
-        }
-    }
-
-    protected void renderDmlTargetTableGroup(TableGroup tableGroup) {
-        assert getStatementStack().getCurrent() instanceof UpdateStatement
-                && ((UpdateStatement) getStatementStack().getCurrent()).getTargetTable() == tableGroup.getPrimaryTableReference();
-        appendSql(getDual());
-        renderTableReferenceJoins(tableGroup);
-        processNestedTableGroupJoins(tableGroup, null);
-        processTableGroupJoins(tableGroup);
-        ModelPartContainer modelPart = tableGroup.getModelPart();
-        if (modelPart instanceof AbstractEntityPersister) {
-            String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
-            for (int i = 0; i < querySpaces.length; i++) {
-                registerAffectedTable(querySpaces[i]);
-            }
-        }
-    }
-
-    private String renderFromClauseRoot(TableGroup root, String separator) {
-        if (root.isVirtual()) {
-            for (TableGroupJoin tableGroupJoin : root.getTableGroupJoins()) {
-                addAdditionalWherePredicate(tableGroupJoin.getPredicate());
-                separator = renderFromClauseRoot(tableGroupJoin.getJoinedGroup(), separator);
-            }
-            for (TableGroupJoin tableGroupJoin : root.getNestedTableGroupJoins()) {
-                addAdditionalWherePredicate(tableGroupJoin.getPredicate());
-                separator = renderFromClauseRoot(tableGroupJoin.getJoinedGroup(), separator);
-            }
-        } else if (root.isInitialized()) {
-            appendSql(separator);
-            renderRootTableGroup(root, null);
-            separator = COMMA_SEPARATOR;
-        }
-        return separator;
-    }
-
-    protected void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
-        final LockMode effectiveLockMode = getEffectiveLockMode(tableGroup.getSourceAlias());
-        final boolean usesLockHint = renderPrimaryTableReference(tableGroup, effectiveLockMode);
-        if (tableGroup.isLateral() && !dialect.supportsLateral()) {
-            addAdditionalWherePredicate(determineLateralEmulationPredicate(tableGroup));
-        }
-
-        renderTableReferenceJoins(tableGroup);
-        processNestedTableGroupJoins(tableGroup, tableGroupJoinCollector);
-        if (tableGroupJoinCollector != null) {
-            tableGroupJoinCollector.addAll(tableGroup.getTableGroupJoins());
-        } else {
-            processTableGroupJoins(tableGroup);
-        }
-        ModelPartContainer modelPart = tableGroup.getModelPart();
-        if (modelPart instanceof AbstractEntityPersister) {
-            String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
-            for (int i = 0; i < querySpaces.length; i++) {
-                registerAffectedTable(querySpaces[i]);
-            }
-        }
-        if (!usesLockHint && tableGroup.getSourceAlias() != null && LockMode.READ.lessThan(effectiveLockMode)) {
-            if (forUpdate == null) {
-                forUpdate = new ForUpdateClause(effectiveLockMode);
-            } else {
-                forUpdate.setLockMode(effectiveLockMode);
-            }
-            forUpdate.applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
         }
     }
 
@@ -5830,20 +3197,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected boolean needsLocking(QuerySpec querySpec) {
-        return querySpec.getFromClause().queryTableGroups(
-                tableGroup -> {
-                    if (LockMode.READ.lessThan(getEffectiveLockMode(
-                            tableGroup.getSourceAlias(),
-                            querySpec.isRoot()
-                    ))) {
-                        return true;
-                    }
-                    return null;
-                }
-        ) != null;
-    }
-
     protected boolean hasNestedTableGroupsToRender(List<TableGroupJoin> nestedTableGroupJoins) {
         for (TableGroupJoin nestedTableGroupJoin : nestedTableGroupJoins) {
             final TableGroup joinedGroup = nestedTableGroupJoin.getJoinedGroup();
@@ -5863,10 +3216,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     protected boolean renderPrimaryTableReference(TableGroup tableGroup, LockMode lockMode) {
-        if (shouldInlineCte(tableGroup)) {
-            inlineCteTableGroup(tableGroup, lockMode);
-            return false;
-        }
         final TableReference tableReference = tableGroup.getPrimaryTableReference();
         if (tableReference instanceof NamedTableReference) {
             return renderNamedTableReference((NamedTableReference) tableReference, lockMode);
@@ -5918,43 +3267,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         return false;
     }
 
-    protected void inlineCteTableGroup(TableGroup tableGroup, LockMode lockMode) {
-        // Emulate CTE with a query part table reference
-        final TableReference tableReference = tableGroup.getPrimaryTableReference();
-        final CteStatement cteStatement = getCteStatement(tableReference.getTableId());
-        final List<CteColumn> cteColumns = cteStatement.getCteTable().getCteColumns();
-        final List<String> columnNames = new ArrayList<>(cteColumns.size());
-        for (CteColumn cteColumn : cteColumns) {
-            columnNames.add(cteColumn.getColumnExpression());
-        }
-        final SelectStatement cteDefinition = (SelectStatement) cteStatement.getCteDefinition();
-        final QueryPartTableGroup queryPartTableGroup = new QueryPartTableGroup(
-                tableGroup.getNavigablePath(),
-                cteStatement.getCteTable().getTableGroupProducer(),
-                cteDefinition,
-                tableReference.getIdentificationVariable(),
-                columnNames,
-                isCorrelated(cteStatement),
-                true,
-                null
-        );
-        final Limit oldLimit = limit;
-        limit = null;
-        statementStack.push(cteDefinition);
-        renderPrimaryTableReference(queryPartTableGroup, lockMode);
-        if (queryPartTableGroup.isLateral() && !dialect.supportsLateral()) {
-            addAdditionalWherePredicate(determineLateralEmulationPredicate(queryPartTableGroup));
-        }
-        limit = oldLimit;
-        statementStack.pop();
-    }
-
-    protected boolean isCorrelated(CteStatement cteStatement) {
-        // Assume that a CTE is correlated/lateral when the CTE is defined in a subquery
-        return statementStack.getCurrent() instanceof SelectStatement
-                && !((SelectStatement) statementStack.getCurrent()).getQueryPart().isRoot();
-    }
-
     protected boolean renderNamedTableReference(NamedTableReference tableReference, LockMode lockMode) {
         appendSql(tableReference.getTableExpression());
         registerAffectedTable(tableReference);
@@ -5986,55 +3298,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     public void visitFunctionTableReference(FunctionTableReference tableReference) {
         tableReference.getFunctionExpression().accept(this);
         renderDerivedTableReference(tableReference);
-    }
-
-    protected void emulateQueryPartTableReferenceColumnAliasing(QueryPartTableReference tableReference) {
-        final boolean needsSelectAliases = this.needsSelectAliases;
-        final List<String> columnAliases = this.columnAliases;
-        this.needsSelectAliases = true;
-        this.columnAliases = tableReference.getColumnNames();
-        if (tableReference.getQueryPart().isRoot()) {
-            appendSql(OPEN_PARENTHESIS);
-            tableReference.getStatement().accept(this);
-            appendSql(CLOSE_PARENTHESIS);
-        } else {
-            tableReference.getStatement().accept(this);
-        }
-        this.needsSelectAliases = needsSelectAliases;
-        this.columnAliases = columnAliases;
-        renderTableReferenceIdentificationVariable(tableReference);
-    }
-
-    protected void emulateValuesTableReferenceColumnAliasing(ValuesTableReference tableReference) {
-        final List<Values> valuesList = tableReference.getValuesList();
-        append('(');
-        final Stack<Clause> clauseStack = getClauseStack();
-        clauseStack.push(Clause.VALUES);
-        try {
-            // We render the first select statement with aliases
-            clauseStack.push(Clause.SELECT);
-
-            try {
-                appendSql("select ");
-
-                renderCommaSeparatedSelectExpression(
-                        valuesList.get(0).getExpressions(),
-                        tableReference.getColumnNames()
-                );
-                appendSql(getFromDualForSelectOnly());
-            } finally {
-                clauseStack.pop();
-            }
-            // The others, without the aliases
-            for (int i = 1; i < valuesList.size(); i++) {
-                appendSql(" union all ");
-                renderExpressionsAsSubquery(valuesList.get(i).getExpressions());
-            }
-        } finally {
-            clauseStack.pop();
-        }
-        append(')');
-        renderTableReferenceIdentificationVariable(tableReference);
     }
 
     protected void renderDerivedTableReference(DerivedTableReference tableReference) {
@@ -6586,7 +3849,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     protected String determineColumnReferenceQualifier(ColumnReference columnReference) {
-        final DmlTargetColumnQualifierSupport qualifierSupport = getDialect().getDmlTargetColumnQualifierSupport();
+        final DmlTargetColumnQualifierSupport qualifierSupport = dialect.getDmlTargetColumnQualifierSupport();
         final MutationStatement currentDmlStatement;
         final String dmlAlias;
         if (qualifierSupport == DmlTargetColumnQualifierSupport.TABLE_ALIAS
@@ -6771,18 +4034,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void withParameterRenderingMode(SqlAstNodeRenderingMode renderingMode, Runnable runnable) {
-        SqlAstNodeRenderingMode original = this.parameterRenderingMode;
-        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
-            this.parameterRenderingMode = renderingMode;
-        }
-        try {
-            runnable.run();
-        } finally {
-            this.parameterRenderingMode = original;
-        }
-    }
-
     @Override
     public void visitTuple(SqlTuple tuple) {
         // A tuple in a values clause of an insert-select statement must be unwrapped,
@@ -6826,32 +4077,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
                 expression.accept(this);
             }
             separator = COMMA_SEPARATOR;
-        }
-    }
-
-    protected final void renderCommaSeparatedSelectExpression(
-            Iterable<? extends SqlAstNode> expressions,
-            Iterable<String> aliases) {
-        String separator = NO_SEPARATOR;
-        final Iterator<String> aliasIterator = aliases.iterator();
-        for (SqlAstNode expression : expressions) {
-            final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple(expression);
-            if (sqlTuple != null) {
-                for (Expression e : sqlTuple.getExpressions()) {
-                    appendSql(separator);
-                    renderSelectExpression(e);
-                    separator = COMMA_SEPARATOR;
-                }
-            } else if (expression instanceof Expression) {
-                appendSql(separator);
-                renderSelectExpression((Expression) expression);
-            } else {
-                appendSql(separator);
-                expression.accept(this);
-            }
-            separator = COMMA_SEPARATOR;
-            append(WHITESPACE);
-            append(aliasIterator.next());
         }
     }
 
@@ -6957,53 +4182,9 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         appendSql(" end");
     }
 
-    protected void visitDecodeCaseSearchedExpression(CaseSearchedExpression caseSearchedExpression) {
-        appendSql("decode( ");
-        final SqlAstNodeRenderingMode original = this.parameterRenderingMode;
-        final List<CaseSearchedExpression.WhenFragment> whenFragments = caseSearchedExpression.getWhenFragments();
-        final int caseNumber = whenFragments.size();
-        CaseSearchedExpression.WhenFragment firstWhenFragment = null;
-        for (int i = 0; i < caseNumber; i++) {
-            final CaseSearchedExpression.WhenFragment whenFragment = whenFragments.get(i);
-            Predicate predicate = whenFragment.getPredicate();
-            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
-                this.parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
-            }
-            if (i != 0) {
-                appendSql(',');
-                getLeftHandExpression(predicate).accept(this);
-                this.parameterRenderingMode = original;
-                appendSql(',');
-                whenFragment.getResult().accept(this);
-            } else {
-                getLeftHandExpression(predicate).accept(this);
-                firstWhenFragment = whenFragment;
-            }
-        }
-        this.parameterRenderingMode = original;
-        appendSql(',');
-        firstWhenFragment.getResult().accept(this);
-
-        final Expression otherwise = caseSearchedExpression.getOtherwise();
-        if (otherwise != null) {
-            appendSql(',');
-            otherwise.accept(this);
-        }
-
-        appendSql(CLOSE_PARENTHESIS);
-    }
-
     @Override
     public final void visitCaseSimpleExpression(CaseSimpleExpression caseSimpleExpression) {
         visitAnsiCaseSimpleExpression(caseSimpleExpression, e -> e.accept(this));
-    }
-
-    protected void visitCaseSimpleExpression(CaseSimpleExpression caseSimpleExpression, boolean inSelect) {
-        if (inSelect) {
-            visitAnsiCaseSimpleExpression(caseSimpleExpression, this::renderSelectExpression);
-        } else {
-            visitAnsiCaseSimpleExpression(caseSimpleExpression, e -> e.accept(this));
-        }
     }
 
     protected void visitAnsiCaseSimpleExpression(
@@ -7032,34 +4213,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             resultRenderer.accept(otherwise);
         }
         appendSql(" end");
-    }
-
-    protected boolean areAllResultsParameters(CaseSearchedExpression caseSearchedExpression) {
-        final List<CaseSearchedExpression.WhenFragment> whenFragments = caseSearchedExpression.getWhenFragments();
-        final Expression firstResult = whenFragments.get(0).getResult();
-        if (isParameter(firstResult)) {
-            for (int i = 1; i < whenFragments.size(); i++) {
-                if (!isParameter(whenFragments.get(i).getResult())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-    protected boolean areAllResultsParameters(CaseSimpleExpression caseSimpleExpression) {
-        final List<CaseSimpleExpression.WhenFragment> whenFragments = caseSimpleExpression.getWhenFragments();
-        final Expression firstResult = whenFragments.get(0).getResult();
-        if (isParameter(firstResult)) {
-            for (int i = 1; i < whenFragments.size(); i++) {
-                if (!isParameter(whenFragments.get(i).getResult())) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
     }
 
     @Override
@@ -7749,65 +4902,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
     }
 
-    protected void renderBackslashEscapedLikePattern(
-            Expression pattern,
-            Expression escapeCharacter,
-            boolean noBackslashEscapes) {
-        // Check if escapeCharacter was explicitly set and do nothing in that case
-        // Note: this does not cover cases where it's set via parameter binding
-        boolean isExplicitEscape = false;
-        if (escapeCharacter instanceof Literal) {
-            Object literalValue = ((Literal) escapeCharacter).getLiteralValue();
-            isExplicitEscape = literalValue != null && !literalValue.toString().equals("");
-        }
-        if (isExplicitEscape) {
-            pattern.accept(this);
-        } else {
-            // Since escape with empty or null character is ignored we need
-            // four backslashes to render a single one in a like pattern
-            if (pattern instanceof Literal) {
-                Object literalValue = ((Literal) pattern).getLiteralValue();
-                if (literalValue == null) {
-                    pattern.accept(this);
-                } else {
-                    appendBackslashEscapedLikeLiteral(this, literalValue.toString(), noBackslashEscapes);
-                }
-            } else {
-                // replace(<pattern>,'\\','\\\\')
-                appendSql("replace");
-                appendSql(OPEN_PARENTHESIS);
-                pattern.accept(this);
-                if (noBackslashEscapes) {
-                    appendSql(",'\\','\\\\'");
-                } else {
-                    appendSql(",'\\\\','\\\\\\\\'");
-                }
-                appendSql(CLOSE_PARENTHESIS);
-            }
-        }
-    }
-
-    protected void appendBackslashEscapedLikeLiteral(SqlAppender appender, String literal, boolean noBackslashEscapes) {
-        appender.appendSql('\'');
-        for (int i = 0; i < literal.length(); i++) {
-            final char c = literal.charAt(i);
-            switch (c) {
-                case '\'':
-                    appender.appendSql('\'');
-                    break;
-                case '\\':
-                    if (noBackslashEscapes) {
-                        appender.appendSql('\\');
-                    } else {
-                        appender.appendSql("\\\\\\");
-                    }
-                    break;
-            }
-            appender.appendSql(c);
-        }
-        appender.appendSql('\'');
-    }
-
     @Override
     public void visitNegatedPredicate(NegatedPredicate negatedPredicate) {
         if (negatedPredicate.isEmpty()) {
@@ -8050,18 +5144,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     /**
-     * Is this dialect known to support quantified predicates.
-     * <p>
-     * Basically, does it support syntax like
-     * {@code ... where FIRST_NAME > ALL (select ...) ...}
-     *
-     * @return True if this SQL dialect is known to support quantified predicates; false otherwise.
-     */
-    protected boolean supportsQuantifiedPredicates() {
-        return true;
-    }
-
-    /**
      * Is this SQL dialect known to support some kind of distinct from predicate.
      * <p>
      * Basically, does it support syntax like
@@ -8115,19 +5197,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
      */
     protected boolean supportsRowValueConstructorDistinctFromSyntax() {
         return supportsRowValueConstructorSyntax() && supportsDistinctFromPredicate();
-    }
-
-    /**
-     * Is this dialect known to support  what ANSI-SQL terms "row value constructor" syntax,
-     * sometimes called tuple syntax, in the SET clause;
-     * <p>
-     * Basically, does it support syntax like
-     * {@code ... SET (FIRST_NAME, LAST_NAME) = ('Steve', 'Ebersole') ...}
-     *
-     * @return True if this SQL dialect is known to support "row value constructor" syntax in the SET clause; false otherwise.
-     */
-    protected boolean supportsRowValueConstructorSyntaxInSet() {
-        return supportsRowValueConstructorSyntax();
     }
 
     /**
@@ -8518,13 +5587,6 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
         }
 
         appendSql(" } } } ]");
-    }
-
-    private void applySqlComment(String comment) {
-        if (comment != null) {
-            appendSql(", comment: ");
-            dialect.appendLiteral(this, comment);
-        }
     }
 
     @Override
