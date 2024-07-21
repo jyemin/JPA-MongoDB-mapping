@@ -50,7 +50,7 @@ public class MongodbConnection extends ConnectionAdapter {
 	public DatabaseMetaData getMetaData() throws SimulatedSQLException {
 		Document result = mongoDatabase.runCommand( new Document( "buildinfo", 1 ) );
 		if ( result.getDouble( "ok" ) != 1.0 ) {
-			throw new CommandRunFailSQLException(result.toJson());
+			throw new CommandRunFailSQLException( result.toJson() );
 		}
 		String version = result.getString( "version" );
 		List<Integer> versionArray = result.getList( "versionArray", Integer.class );
@@ -60,6 +60,7 @@ public class MongodbConnection extends ConnectionAdapter {
 			public String getDatabaseProductVersion() {
 				return version;
 			}
+
 			@Override
 			public int getDatabaseMajorVersion() {
 				return versionArray.get( 0 );

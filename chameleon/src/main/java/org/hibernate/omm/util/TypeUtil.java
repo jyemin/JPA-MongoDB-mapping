@@ -16,7 +16,8 @@ import org.bson.BsonType;
 import org.bson.BsonValue;
 
 public final class TypeUtil {
-	private TypeUtil() {}
+	private TypeUtil() {
+	}
 
 	public static Integer getJdbcType(BsonType bsonType) {
 		return switch ( bsonType ) {
@@ -53,7 +54,7 @@ public final class TypeUtil {
 	}
 
 	public static Object unwrap(BsonValue bsonValue) {
-		if (bsonValue == null) {
+		if ( bsonValue == null ) {
 			return null;
 		}
 		return switch ( bsonValue.getBsonType() ) {

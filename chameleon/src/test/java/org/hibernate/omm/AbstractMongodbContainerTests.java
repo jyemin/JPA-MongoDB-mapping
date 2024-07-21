@@ -13,7 +13,7 @@ public abstract class AbstractMongodbContainerTests {
 	public abstract List<Class<?>> getAnnotatedClasses();
 
 	protected SessionFactory getSessionFactory() {
-		if (sessionFactory == null) {
+		if ( sessionFactory == null ) {
 			Configuration cfg = new Configuration();
 			getAnnotatedClasses().forEach( cfg::addAnnotatedClass );
 			cfg.setProperty( AvailableSettings.DIALECT, "org.hibernate.omm.dialect.MongodbDialect" );

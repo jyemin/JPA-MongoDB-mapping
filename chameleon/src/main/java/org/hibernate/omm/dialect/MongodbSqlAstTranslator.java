@@ -322,7 +322,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	private int topLevelWithClauseIndex;
 	// This field holds the index of where the "recursive" keyword should appear in the sqlBuffer.
 	// See #visitCteContainer for details about the usage.
-	private int withClauseRecursiveIndex = -1;
+	private final int withClauseRecursiveIndex = -1;
 	private transient AbstractSqmSelfRenderingFunctionDescriptor castFunction;
 	private transient LazySessionWrapperOptions lazySessionWrapperOptions;
 	private transient BasicType<Integer> integerType;
@@ -767,16 +767,14 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	private static CteStatement matchCteStatement(final Statement stmt, final String cteName) {
-		if ( stmt instanceof CteContainer ) {
-			final CteContainer cteContainer = (CteContainer) stmt;
+		if ( stmt instanceof CteContainer cteContainer ) {
 			return cteContainer.getCteStatement( cteName );
 		}
 		return null;
 	}
 
 	private static CteContainer matchCteContainerByStatement(final Statement stmt, final String cteName) {
-		if ( stmt instanceof CteContainer ) {
-			final CteContainer cteContainer = (CteContainer) stmt;
+		if ( stmt instanceof CteContainer cteContainer ) {
 			if ( cteContainer.getCteStatement( cteName ) != null ) {
 				return cteContainer;
 			}
@@ -1066,7 +1064,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			visitWhereClause( determineWhereClauseRestrictionWithJoinEmulation( statement ) );
 		}
 		//visitReturningColumns( statement.getReturningColumns() );
-		appendSql( " } ] }" );
+		appendSql( ", limit: 0 } ] }" );
 	}
 
 	protected boolean supportsJoinsInDelete() {
@@ -1074,12 +1072,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	protected void renderDeleteClause(DeleteStatement statement) {
-		appendSql( "{ delete: \"" );
+		appendSql( "{ delete: " );
 		final Stack<Clause> clauseStack = getClauseStack();
 		try {
 			clauseStack.push( Clause.DELETE );
 			renderDmlTargetTableExpression( statement.getTargetTable() );
-			appendSql( "\"" );
 		}
 		finally {
 			clauseStack.pop();
@@ -3224,8 +3221,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			case LONG:
 				return castNumberToString( expression, 19, 0 );
 			case FIXED:
-				if ( expression.getExpressionType() instanceof SqlTypedMapping ) {
-					final SqlTypedMapping sqlTypedMapping = (SqlTypedMapping) expression.getExpressionType();
+				if ( expression.getExpressionType() instanceof SqlTypedMapping sqlTypedMapping ) {
 					if ( sqlTypedMapping.getPrecision() != null && sqlTypedMapping.getScale() != null ) {
 						return castNumberToString(
 								expression,
@@ -3408,8 +3404,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		final SqmFunctionDescriptor functionDescriptor = sessionFactory.getQueryEngine()
 				.getSqmFunctionRegistry()
 				.findFunctionDescriptor( functionName );
-		if ( functionDescriptor instanceof MultipatternSqmFunctionDescriptor ) {
-			final MultipatternSqmFunctionDescriptor multiPatternFunction = (MultipatternSqmFunctionDescriptor) functionDescriptor;
+		if ( functionDescriptor instanceof MultipatternSqmFunctionDescriptor multiPatternFunction ) {
 			return (AbstractSqmSelfRenderingFunctionDescriptor) multiPatternFunction.getFunction( argumentCount );
 		}
 		return (AbstractSqmSelfRenderingFunctionDescriptor) functionDescriptor;
@@ -3642,7 +3637,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			visitOffsetFetchClause( querySpec );
 			// We render the FOR UPDATE clause in the parent query
 			//if ( queryPartForRowNumbering == null ) {
-				//visitForUpdateClause( querySpec );
+			//visitForUpdateClause( querySpec );
 			//}
 			appendSql( " }" );
 		}
@@ -3853,8 +3848,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		if ( expression instanceof Literal ) {
 			appendSql( "()" );
 		}
-		else if ( expression instanceof Summarization ) {
-			Summarization summarization = (Summarization) expression;
+		else if ( expression instanceof Summarization summarization ) {
 			appendSql( summarization.getKind().sqlText() );
 			appendSql( OPEN_PARENTHESIS );
 			renderCommaSeparated( summarization.getGroupings() );
@@ -3883,11 +3877,11 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	protected void visitOrderBy(List<SortSpecification> sortSpecifications) {
 		// If we have a query part for row numbering, there is no need to render the order by clause
 		// as that is part of the row numbering window function already, by which we then order by in the outer query
-		appendSql( '{');
+		appendSql( '{' );
 		if ( queryPartForRowNumbering == null ) {
 			renderOrderBy( true, sortSpecifications );
 		}
-		appendSql(" }");
+		appendSql( " }" );
 	}
 
 	protected void renderOrderBy(boolean addWhitespace, List<SortSpecification> sortSpecifications) {
@@ -5392,8 +5386,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		final Expression overExpression = over.getExpression();
 		overExpression.accept( this );
 		final boolean orderedSetAggregate;
-		if ( overExpression instanceof OrderedSetAggregateFunctionExpression ) {
-			final OrderedSetAggregateFunctionExpression expression = (OrderedSetAggregateFunctionExpression) overExpression;
+		if ( overExpression instanceof OrderedSetAggregateFunctionExpression expression ) {
 			orderedSetAggregate = expression.getWithinGroup() != null && !expression.getWithinGroup().isEmpty();
 		}
 		else {
@@ -5662,8 +5655,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
 	protected void renderSelectExpressionWithCastedOrInlinedPlainParameters(Expression expression) {
 		// Null literals have to be casted in the select clause
-		if ( expression instanceof Literal ) {
-			final Literal literal = (Literal) expression;
+		if ( expression instanceof Literal literal ) {
 			if ( literal.getLiteralValue() == null ) {
 				renderCasted( literal );
 			}
@@ -5698,8 +5690,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		final List<SqlAstNode> arguments = new ArrayList<>( 2 );
 		arguments.add( expression );
 		final CastTarget castTarget;
-		if ( expression instanceof SqlTypedMappingJdbcParameter ) {
-			final SqlTypedMappingJdbcParameter parameter = (SqlTypedMappingJdbcParameter) expression;
+		if ( expression instanceof SqlTypedMappingJdbcParameter parameter ) {
 			final SqlTypedMapping sqlTypedMapping = parameter.getSqlTypedMapping();
 			castTarget = new CastTarget(
 					parameter.getJdbcMapping(),
@@ -5757,19 +5748,20 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	@Override
 	public void visitFromClause(FromClause fromClause) {
 		ModelPartContainer modelPart = getModelPartContainer( fromClause );
-		if ( modelPart instanceof AbstractEntityPersister abstractEntityPersister) {
+		if ( modelPart instanceof AbstractEntityPersister abstractEntityPersister ) {
 			String[] querySpaces = (String[]) abstractEntityPersister.getQuerySpaces();
-			if (querySpaces.length > 1) {
+			if ( querySpaces.length > 1 ) {
 				throw new NotSupportedRuntimeException( "Multiple tables not supported" );
 			}
 			dialect.appendLiteral( this, querySpaces[0] );
-		} else {
+		}
+		else {
 			throw new NotSupportedRuntimeException( "table group's model part is not AbstractEntityPersister!" );
 		}
 	}
 
 	private ModelPartContainer getModelPartContainer(FromClause fromClause) {
-		if ( fromClause == null || fromClause.getRoots().size() != 1) {
+		if ( fromClause == null || fromClause.getRoots().size() != 1 ) {
 			throw new NotSupportedRuntimeException( "empty or multiple roots in from clause not supported" );
 		}
 		TableGroup tableGroup = fromClause.getRoots().get( 0 );
@@ -6079,17 +6071,15 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 			if ( dialect.supportsLateral() ) {
 				appendSql( "lateral " );
 			}
-			else if ( tableReference instanceof QueryPartTableReference ) {
-				final QueryPartTableReference queryPartTableReference = (QueryPartTableReference) tableReference;
+			else if ( tableReference instanceof QueryPartTableReference queryPartTableReference ) {
 				final SelectStatement emulationStatement = stripToSelectClause( queryPartTableReference.getStatement() );
 				final QueryPart queryPart = queryPartTableReference.getStatement().getQueryPart();
 				final QueryPart emulationQueryPart = emulationStatement.getQueryPart();
 				final List<String> columnNames;
-				if ( queryPart instanceof QuerySpec && needsLateralSortExpressionVirtualSelections( (QuerySpec) queryPart ) ) {
+				if ( queryPart instanceof QuerySpec querySpec && needsLateralSortExpressionVirtualSelections( (QuerySpec) queryPart ) ) {
 					// One of our lateral emulations requires that sort expressions are present in the select clause
 					// when the query spec use limit/offset. So we add selections for these, if necessary
 					columnNames = new ArrayList<>( queryPartTableReference.getColumnNames() );
-					final QuerySpec querySpec = (QuerySpec) queryPart;
 					final QuerySpec emulationQuerySpec = (QuerySpec) emulationQueryPart;
 					final List<SqlSelection> sqlSelections = emulationQuerySpec.getSelectClause().getSqlSelections();
 					final List<SortSpecification> sortSpecifications = queryPart.getSortSpecifications();
@@ -6367,8 +6357,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	protected Predicate determineLateralEmulationPredicate(TableGroup tableGroup) {
-		if ( tableGroup.getPrimaryTableReference() instanceof QueryPartTableReference ) {
-			final QueryPartTableReference tableReference = (QueryPartTableReference) tableGroup.getPrimaryTableReference();
+		if ( tableGroup.getPrimaryTableReference() instanceof QueryPartTableReference tableReference ) {
 			final List<String> columnNames = tableReference.getColumnNames();
 			final List<ColumnReference> columnReferences = new ArrayList<>( columnNames.size() );
 			final SelectStatement statement = tableReference.getStatement();
@@ -7423,13 +7412,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 		// Most databases do not support boolean expressions in a predicate context, so we render `expr=true`
 		booleanExpressionPredicate.getExpression().accept( this );
 		appendSql( '=' );
-		if ( booleanExpressionPredicate.isNegated() ) {
-			dialect.appendBooleanValueString( this, false );
-
-		}
-		else {
-			dialect.appendBooleanValueString( this, true );
-		}
+		dialect.appendBooleanValueString( this, !booleanExpressionPredicate.isNegated() );
 	}
 
 	@Override
@@ -7939,8 +7922,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	}
 
 	private void visitJunctionPredicate(Junction.Nature nature, Predicate p) {
-		if ( p instanceof Junction ) {
-			final Junction junction = (Junction) p;
+		if ( p instanceof Junction junction ) {
 			// If we have the same nature, or if this is a disjunction and the operand is a conjunction,
 			// then we don't need parenthesis, because the AND operator binds stronger
 			if ( nature == junction.getNature() || nature == Junction.Nature.DISJUNCTION ) {
@@ -8498,7 +8480,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 	protected enum LockStrategy {
 		CLAUSE,
 		FOLLOW_ON,
-		NONE;
+		NONE
 	}
 
 	protected static class ForUpdateClause {
@@ -8794,7 +8776,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 				} );
 			}
 
-			if (tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null) {
+			if ( tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null ) {
 				appendSql( ", " );
 				appendSql( tableUpdateStandard.getWhereFragment() );
 			}

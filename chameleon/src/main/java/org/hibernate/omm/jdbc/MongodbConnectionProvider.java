@@ -42,7 +42,8 @@ public class MongodbConnectionProvider implements ConnectionProvider, Configurab
 	@Override
 	public Connection getConnection() throws SQLException {
 		if ( mongoDatabase == null ) {
-			throw new IllegalStateException( "mongoDatabase instance should have been configured during Configurable mechanism " );
+			throw new IllegalStateException(
+					"mongoDatabase instance should have been configured during Configurable mechanism " );
 		}
 		ClientSession clientSession = mongoClient.startSession();
 		return new MongodbConnection( clientSession, mongoDatabase );

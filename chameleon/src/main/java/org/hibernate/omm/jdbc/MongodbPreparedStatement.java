@@ -35,10 +35,14 @@ import com.mongodb.client.MongoDatabase;
 public class MongodbPreparedStatement extends MongodbStatement
 		implements PreparedStatementAdapter {
 
-	private String parameterizedCommandJson;
-	private Map<Integer, String> parameters;
+	private final String parameterizedCommandJson;
+	private final Map<Integer, String> parameters;
 
-	public MongodbPreparedStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection, String parameterizedCommandJson) {
+	public MongodbPreparedStatement(
+			MongoDatabase mongoDatabase,
+			ClientSession clientSession,
+			Connection connection,
+			String parameterizedCommandJson) {
 		super( mongoDatabase, clientSession, connection );
 		this.parameterizedCommandJson = parameterizedCommandJson;
 		this.parameters = new HashMap<>();

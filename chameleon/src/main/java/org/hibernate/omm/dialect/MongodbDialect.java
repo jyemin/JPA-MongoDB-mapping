@@ -14,7 +14,7 @@ import org.hibernate.sql.exec.spi.JdbcOperation;
 public class MongodbDialect extends Dialect {
 
 	public MongodbDialect(DialectResolutionInfo dialectResolutionInfo) {
-		super(dialectResolutionInfo);
+		super( dialectResolutionInfo );
 	}
 
 	@Override

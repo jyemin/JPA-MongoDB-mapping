@@ -3,6 +3,7 @@ package org.hibernate.omm.crud;
 import java.util.List;
 
 import org.hibernate.omm.AbstractMongodbContainerTests;
+import org.hibernate.query.Query;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
-	private Long id = 1234L;
+	private final Long id = 1234L;
 
 	@BeforeEach
 	void setUp() {
@@ -30,7 +31,7 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 	}
 
 	Book insertBook() {
-		return getSessionFactory().fromSession( session -> {
+		return getSessionFactory().fromTransaction( session -> {
 			var book = new Book();
 			book.id = id;
 			book.title = "War and Peace";
@@ -40,10 +41,12 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 			return book;
 		} );
 	}
+
 	void deleteBook() {
 		getSessionFactory().inTransaction( session -> {
-			var book = session.getReference( Book.class,  id );
-			session.remove( book );
+			Query query = session.createQuery( "delete Book where id = :id" );
+			query.setParameter( "id", id );
+			query.executeUpdate();
 		} );
 	}
 
@@ -60,13 +63,15 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testDelete() {
-		var insertedBook = insertBook();
+		insertBook();
 		getSessionFactory().inTransaction( session -> {
-			var book = session.getReference( Book.class,  id );
+			var book = session.getReference( Book.class, id );
 			session.remove( book );
 		} );
-		getSessionFactory().inSession( session -> {
-			assertThat( session.load( Book.class, id ) ).isNull();
+		getSessionFactory().inTransaction( session -> {
+			var query = session.createQuery( "from Book where id = :id" );
+			query.setParameter( "id", id );
+			assertThat( query.getResultList() ).isEmpty();
 		} );
 	}
 
@@ -121,7 +126,7 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 	}
 
 	@Entity(name = "Book")
-	@Table(name = "book")
+	@Table(name = "books")
 	static class Book {
 		@Id
 		@Column(name = "_id")
