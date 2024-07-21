@@ -88,7 +88,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { find: "books", filter: { $and: [ { _id: { $eq: ? } } ] }, sort: { } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
+        // { find: "books", filter: { _id: { $eq: ? } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
         getSessionFactory().inTransaction(session -> {
             var book = new Book();
             session.load(book, id);
@@ -102,7 +102,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { find: "books", filter: { $and: [ { _id: { $eq: ? } } ] }, sort: { } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
+        // { find: "books", filter: { _id: { $eq: ? } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
         getSessionFactory().inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);

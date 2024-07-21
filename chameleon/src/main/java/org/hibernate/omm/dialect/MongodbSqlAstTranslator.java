@@ -36,6 +36,7 @@ import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -1790,21 +1791,26 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
             if (queryGroupAlias != null) {
                 throw new NotSupportedRuntimeException("query group not supported");
             }
-            appendSql("{ find: ");
-            visitFromClause(querySpec.getFromClause());
-            appendSql(", filter: ");
-            visitWhereClause(querySpec.getWhereClauseRestrictions());
-            appendSql(", sort: ");
-            visitOrderBy(querySpec.getSortSpecifications());
-            append(" }, projection: ");
-            visitSelectClause(querySpec.getSelectClause());
-            //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
-            //visitHavingClause( querySpec );
-            visitOffsetFetchClause(querySpec);
-            // We render the FOR UPDATE clause in the parent query
-            //if ( queryPartForRowNumbering == null ) {
-            //visitForUpdateClause( querySpec );
-            //}
+            appendSql('{');
+            {
+                appendSql(" find: ");
+                visitFromClause(querySpec.getFromClause());
+                appendSql(", filter: ");
+                visitWhereClause(querySpec.getWhereClauseRestrictions());
+                if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
+                    appendSql(", sort: ");
+                    visitOrderBy(querySpec.getSortSpecifications());
+                }
+                append(", projection: ");
+                visitSelectClause(querySpec.getSelectClause());
+                //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
+                //visitHavingClause( querySpec );
+                visitOffsetFetchClause(querySpec);
+                // We render the FOR UPDATE clause in the parent query
+                //if ( queryPartForRowNumbering == null ) {
+                //visitForUpdateClause( querySpec );
+                //}
+            }
             appendSql(" }");
         } finally {
             this.queryPartStack.pop();
