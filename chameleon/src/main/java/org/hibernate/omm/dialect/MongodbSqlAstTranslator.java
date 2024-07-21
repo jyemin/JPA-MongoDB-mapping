@@ -3674,24 +3674,28 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
 
 	protected final void visitWhereClause(Predicate whereClauseRestrictions) {
 		final Predicate additionalWherePredicate = this.additionalWherePredicate;
-		if ( whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty() || additionalWherePredicate != null ) {
-			appendSql( "{ $and: [ " );
-
+		boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
+		boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
+		boolean requiredAndPredicate = existsWhereClauseRestrictions && existsAdditionalWherePredicate;
+		if ( existsWhereClauseRestrictions || existsAdditionalWherePredicate ) {
+			if ( requiredAndPredicate ) {
+				appendSql( "{ $and: [ " );
+			}
 			clauseStack.push( Clause.WHERE );
 			try {
-				if ( whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty() ) {
+				if ( existsWhereClauseRestrictions ) {
 					whereClauseRestrictions.accept( this );
-					if ( additionalWherePredicate != null ) {
-						appendSql( ", " );
-						this.additionalWherePredicate = null;
-						additionalWherePredicate.accept( this );
-					}
 				}
-				else if ( additionalWherePredicate != null ) {
+				if ( requiredAndPredicate ) {
+					appendSql( ", " );
+				}
+				if ( existsAdditionalWherePredicate ) {
 					this.additionalWherePredicate = null;
 					additionalWherePredicate.accept( this );
 				}
-				appendSql( " ] }" );
+				if ( requiredAndPredicate ) {
+					appendSql( " ] }" );
+				}
 			}
 			finally {
 				clauseStack.pop();

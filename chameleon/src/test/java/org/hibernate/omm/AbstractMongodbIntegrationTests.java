@@ -4,8 +4,9 @@ import java.util.List;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.omm.id.MongodbIdentifierColumnNamingStrategy;
 
-public abstract class AbstractMongodbContainerTests {
+public abstract class AbstractMongodbIntegrationTests {
 	private SessionFactory sessionFactory;
 
 	public abstract List<Class<?>> getAnnotatedClasses();
@@ -13,6 +14,7 @@ public abstract class AbstractMongodbContainerTests {
 	protected SessionFactory getSessionFactory() {
 		if ( sessionFactory == null ) {
 			Configuration cfg = new Configuration();
+			cfg.setImplicitNamingStrategy( new MongodbIdentifierColumnNamingStrategy() );
 			getAnnotatedClasses().forEach( cfg::addAnnotatedClass );
 			sessionFactory = cfg.buildSessionFactory();
 		}

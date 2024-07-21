@@ -2,8 +2,7 @@ package org.hibernate.omm.crud;
 
 import java.util.List;
 
-import org.hibernate.omm.AbstractMongodbContainerTests;
-import org.hibernate.query.Query;
+import org.hibernate.omm.AbstractMongodbIntegrationTests;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +15,7 @@ import jakarta.persistence.Table;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class SimpleCRUDTests extends AbstractMongodbContainerTests {
+class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
 
 	private final Long id = 1234L;
 
@@ -44,7 +43,7 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	void deleteBook() {
 		getSessionFactory().inTransaction( session -> {
-			Query query = session.createQuery( "delete Book where id = :id" );
+			var query = session.createQuery( "delete Book where id = :id" );
 			query.setParameter( "id", id );
 			query.executeUpdate();
 		} );
@@ -52,7 +51,11 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testInsert() {
+
+		// the following JSON command will be issued:
+		// { insert: "books", documents: [ { author: ?, publishYear: ?, title: ?, _id: ? } ] }
 		var insertedBook = insertBook();
+
 		getSessionFactory().inTransaction( session -> {
 			var query = session.createQuery( "from Book where id = :id", Book.class );
 			query.setParameter( "id", id );
@@ -63,7 +66,11 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testDelete() {
+
 		insertBook();
+
+		// the following JSON command will be issued:
+		// { delete: "books", deletes: [ { q: { _id: { $eq: ? } }, limit: 0 } ] }
 		getSessionFactory().inTransaction( session -> {
 			var book = session.getReference( Book.class, id );
 			session.remove( book );
@@ -77,7 +84,11 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testLoad() {
+
 		var insertedBook = insertBook();
+
+		// the following JSON command will be issued:
+		// { find: "books", filter: { $and: [ { _id: { $eq: ? } } ] }, sort: { } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
 			session.load( book, id );
@@ -87,7 +98,11 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 
 	@Test
 	void testQuery() {
+
 		var insertedBook = insertBook();
+
+		// the following JSON command will be issued:
+		// { find: "books", filter: { $and: [ { _id: { $eq: ? } } ] }, sort: { } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
 		getSessionFactory().inTransaction( session -> {
 			var query = session.createQuery( "from Book where id = :id", Book.class );
 			query.setParameter( "id", id );
@@ -99,9 +114,12 @@ class SimpleCRUDTests extends AbstractMongodbContainerTests {
 	@Test
 	void testUpdate() {
 		insertBook();
-		String newAuthor = "Fyodor Dostoevsky";
-		String newTitle = "Crime and Punishment";
+		var newAuthor = "Fyodor Dostoevsky";
+		var newTitle = "Crime and Punishment";
 		int newPublishYear = 1866;
+
+		// the following JSON command will be issued:
+		// { update: "books", updates: [ { q: { $and: [ { _id: { $eq: ? } } ] }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
 		getSessionFactory().inTransaction( session -> {
 			var book = new Book();
 			session.load( book, id );
