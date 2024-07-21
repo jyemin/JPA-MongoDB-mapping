@@ -1,5 +1,6 @@
 package org.hibernate.omm.dialect;
 
+import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
@@ -12,7 +13,14 @@ import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 public class MongodbDialect extends Dialect {
+	private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make( 3 );
+	public MongodbDialect() {
+		this( MINIMUM_VERSION );
+	}
 
+	public MongodbDialect(DatabaseVersion version) {
+		super(version);
+	}
 	public MongodbDialect(DialectResolutionInfo dialectResolutionInfo) {
 		super( dialectResolutionInfo );
 	}

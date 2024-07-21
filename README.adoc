@@ -19,14 +19,13 @@ However, it lacks some basic JPA features (e.g. Criteria and Filter) and ceased 
 v6 release, it is extremely challenging to revive it by integrating with v6's new query model, if possible.
 
 *Spring Data MongoDB* (https://spring.io/projects/spring-data-mongodb) is a good choice for CRUD tasks, but it lacks
-other JPA features, including:
+other JPA features, for instance:
 
 * OOP Inheritance Mapping
 * JP-QL or HQL
 * Criteria
 * Lazy Loading and Entity Graph
 * Second-level Cache
-* ... ...
 
 There used to be lesser known libraries aiming Mongodb mapping exclusively every now and again, but usually they are not actively maintained and phased out quickly.
 
