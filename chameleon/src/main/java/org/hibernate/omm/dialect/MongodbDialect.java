@@ -13,14 +13,17 @@ import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 public class MongodbDialect extends Dialect {
+
 	private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make( 3 );
+
 	public MongodbDialect() {
 		this( MINIMUM_VERSION );
 	}
 
 	public MongodbDialect(DatabaseVersion version) {
-		super(version);
+		super( version );
 	}
+
 	public MongodbDialect(DialectResolutionInfo dialectResolutionInfo) {
 		super( dialectResolutionInfo );
 	}
