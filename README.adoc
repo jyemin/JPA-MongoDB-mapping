@@ -51,4 +51,18 @@ counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation 
 * transaction: since Mongodb v4, transaction is provided
 * embedding array field: since Hibernate v6.1 (https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html), JDBC's ARRAY type is supported
 
+== Mongodb Integration Unit Testing
+At current early stage, external Mongodb dependency is still needed. Very soon self-contained Mongodb integration testing mechanism will
+be enabled.
+
+For now you need to substitute your Mongodb connection URL and database name to the following two lines in src/test/resources/hibernate
+.properties:
+
+----
+mongodb.connection.url={your_mongodb_connection_url}
+mongodb.database={your_mongodb_database}
+----
+
+Then your testing cases should be running as expected.
+
 
