@@ -119,7 +119,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
         int newPublishYear = 1866;
 
         // the following JSON command will be issued:
-        // { update: "books", updates: [ { q: { $and: [ { _id: { $eq: ? } } ] }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
+        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
         getSessionFactory().inTransaction(session -> {
             var book = new Book();
             session.load(book, id);

@@ -5511,10 +5511,12 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     public void visitStandardTableUpdate(TableUpdateStandard tableUpdate) {
         getCurrentClauseStack().push(Clause.UPDATE);
         try {
-            appendSql("{ ");
-            visitTableUpdate(tableUpdate);
-        } finally {
+            appendSql('{');
+            {
+                visitTableUpdate(tableUpdate);
+            }
             appendSql(" }");
+        } finally {
             getCurrentClauseStack().pop();
         }
     }
@@ -5530,69 +5532,87 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     private void visitTableUpdate(RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
-        appendSql("update: ");
+        appendSql(" update: ");
         dialect.appendLiteral(this, tableUpdate.getMutatingTable().getTableName());
         registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
 
         appendSql(", updates: [ {");
-
-        getCurrentClauseStack().push(Clause.WHERE);
-        try {
-            appendSql(" q: { $and: [");
-            tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
-                if (position == 0) {
-                    appendSql(' ');
-                } else {
-                    appendSql(", ");
+        {
+            getCurrentClauseStack().push(Clause.WHERE);
+            try {
+                appendSql(" q:");
+                int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
+                boolean hasWhereFragment =
+                        tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
+                if (hasWhereFragment) {
+                    predicates++;
                 }
-                appendSql("{ ");
-                appendSql(columnValueBinding.getColumnReference().getColumnExpression());
-                appendSql(": { $eq: ");
-                columnValueBinding.getValueExpression().accept(this);
-                appendSql(" } }");
-            });
-
-            if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
-                tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
-                    appendSql(", { ");
-                    appendSql(columnValueBinding.getColumnReference().getColumnExpression());
-                    appendSql(": { $eq: ");
-                    if (columnValueBinding.getValueExpression() == null) {
-                        appendSql("null");
-                    } else {
-                        columnValueBinding.getValueExpression().accept(this);
+                if (predicates == 0) {
+                    appendSql("{}");
+                } else {
+                    if (predicates > 1) {
+                        appendSql(" { $and: [");
                     }
-                    appendSql(" } }");
-                });
-            }
+                    tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
+                        if (position == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        appendSql("{ ");
+                        appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                        appendSql(": { $eq: ");
+                        columnValueBinding.getValueExpression().accept(this);
+                        appendSql(" } }");
+                    });
 
-            if (tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null) {
-                appendSql(", ");
-                appendSql(tableUpdateStandard.getWhereFragment());
-            }
-        } finally {
-            getCurrentClauseStack().pop();
-        }
+                    if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+                        tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
+                            appendSql(", { ");
+                            appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                            appendSql(": { $eq: ");
+                            if (columnValueBinding.getValueExpression() == null) {
+                                appendSql("null");
+                            } else {
+                                columnValueBinding.getValueExpression().accept(this);
+                            }
+                            appendSql(" } }");
+                        });
+                    }
 
-        appendSql(" ] }, u: { $set: {");
-        getCurrentClauseStack().push(Clause.SET);
-        try {
-
-            tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
-                if (columnPosition == 0) {
-                    appendSql(' ');
-                } else {
-                    appendSql(", ");
+                    if (hasWhereFragment) {
+                        appendSql(", ");
+                        appendSql(((TableUpdateStandard) tableUpdate).getWhereFragment());
+                    }
+                    if (predicates > 1) {
+                        appendSql(" ] }");
+                    }
                 }
-                sqlBuffer.append(columnValueBinding.getColumnReference().getColumnExpression());
-                sqlBuffer.append(": ");
-                columnValueBinding.getValueExpression().accept(this);
-            });
-        } finally {
-            getCurrentClauseStack().pop();
-        }
+            } finally {
+                getCurrentClauseStack().pop();
+            }
 
-        appendSql(" } } } ]");
+            appendSql(", u: { $set: {");
+            {
+                getCurrentClauseStack().push(Clause.SET);
+                try {
+                    tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
+                        if (columnPosition == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        sqlBuffer.append(columnValueBinding.getColumnReference().getColumnExpression());
+                        sqlBuffer.append(": ");
+                        columnValueBinding.getValueExpression().accept(this);
+                    });
+                } finally {
+                    getCurrentClauseStack().pop();
+                }
+                appendSql(" } }");
+            }
+        }
+        appendSql(" } ]");
     }
 
     @Override
