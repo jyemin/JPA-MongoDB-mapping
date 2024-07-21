@@ -54,4 +54,9 @@ public class MongodbDialect extends Dialect {
     public boolean supportsStandardArrays() {
         return true;
     }
+
+    public boolean supportsTransaction() {
+        DatabaseVersion version = getVersion();
+        return version != null && version.getMajor() >= 4;
+    }
 }

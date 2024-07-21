@@ -27,6 +27,7 @@ public class MongodbConnection extends ConnectionAdapter {
     private final MongoDatabase mongoDatabase;
 
     private boolean autoCommit;
+    private boolean supportsTransaction;
     private boolean closed;
 
     private SQLWarning sqlWarning;
@@ -54,6 +55,10 @@ public class MongodbConnection extends ConnectionAdapter {
         }
         String version = result.getString("version");
         List<Integer> versionArray = result.getList("versionArray", Integer.class);
+
+        if (versionArray.get(0) >= 4) {
+            supportsTransaction = true;
+        }
         return new DatabaseMetaDataAdapter() {
 
             @Override
@@ -96,7 +101,7 @@ public class MongodbConnection extends ConnectionAdapter {
 
     @Override
     public void setAutoCommit(boolean autoCommit) {
-        if (!autoCommit) {
+        if (!autoCommit && supportsTransaction) {
             this.clientSession.startTransaction();
         }
         this.autoCommit = autoCommit;
@@ -104,12 +109,16 @@ public class MongodbConnection extends ConnectionAdapter {
 
     @Override
     public void commit() {
-        clientSession.commitTransaction();
+        if (!autoCommit && supportsTransaction) {
+            clientSession.commitTransaction();
+        }
     }
 
     @Override
     public void rollback() {
-        clientSession.abortTransaction();
+        if (!autoCommit && supportsTransaction) {
+            clientSession.abortTransaction();
+        }
     }
 
     @Override
