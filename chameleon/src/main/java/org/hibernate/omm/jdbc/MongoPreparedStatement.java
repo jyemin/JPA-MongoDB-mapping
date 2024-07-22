@@ -32,13 +32,13 @@ import org.hibernate.omm.util.StringUtil;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 
-public class MongodbPreparedStatement extends MongodbStatement
+public class MongoPreparedStatement extends MongodbStatement
         implements PreparedStatementAdapter {
 
     private final String parameterizedCommandJson;
     private final Map<Integer, String> parameters;
 
-    public MongodbPreparedStatement(
+    public MongoPreparedStatement(
             MongoDatabase mongoDatabase,
             ClientSession clientSession,
             Connection connection,

@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import java.util.Map;
 
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
-import org.hibernate.omm.cfg.MongodbAvailableSettings;
+import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.Stoppable;
 
@@ -19,14 +19,14 @@ import org.bson.codecs.configuration.CodecRegistry;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
-public class MongodbConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
+public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
     public static MongoDatabase mongoDatabase;
     private MongoClient mongoClient;
 
     @Override
     public void configure(Map<String, Object> configurationValues) {
-        String mongodbConnectionURL = (String) configurationValues.get(MongodbAvailableSettings.MONGODB_CONNECTION_URL);
-        String mongodbDatabaseName = (String) configurationValues.get(MongodbAvailableSettings.MONGODB_DATABASE);
+        String mongodbConnectionURL = (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL);
+        String mongodbDatabaseName = (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE);
         ConnectionString connectionString = new ConnectionString(mongodbConnectionURL);
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
@@ -46,7 +46,7 @@ public class MongodbConnectionProvider implements ConnectionProvider, Configurab
                     "mongoDatabase instance should have been configured during Configurable mechanism ");
         }
         ClientSession clientSession = mongoClient.startSession();
-        return new MongodbConnection(clientSession, mongoDatabase);
+        return new MongoConnection(clientSession, mongoDatabase);
     }
 
     @Override

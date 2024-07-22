@@ -3,7 +3,7 @@ package org.hibernate.omm;
 import com.mongodb.client.MongoDatabase;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
-import org.hibernate.omm.jdbc.MongodbConnectionProvider;
+import org.hibernate.omm.jdbc.MongoConnectionProvider;
 
 import java.util.List;
 
@@ -24,7 +24,7 @@ public abstract class AbstractMongodbIntegrationTests {
 
     protected MongoDatabase getMongoDatabase() {
         if (mongoDatabase == null) {
-            mongoDatabase = MongodbConnectionProvider.mongoDatabase;
+            mongoDatabase = MongoConnectionProvider.mongoDatabase;
         }
         return mongoDatabase;
     }

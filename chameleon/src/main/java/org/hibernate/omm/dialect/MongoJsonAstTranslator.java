@@ -221,7 +221,7 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
 /**
  * @author Nathan Xu
  */
-public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
+public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     // pre-req state
     private final SessionFactoryImplementor sessionFactory;
@@ -268,7 +268,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     private JdbcParameter limitParameter;
     private ForUpdateClause forUpdate;
 
-    public MongodbSqlAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
+    public MongoJsonAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
         this.sessionFactory = sessionFactory;
         final JdbcServices jdbcServices = sessionFactory.getJdbcServices();
         this.dialect = jdbcServices.getDialect();
@@ -414,7 +414,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     public MutationStatement getCurrentDmlStatement() {
-        return statementStack.findCurrentFirst(MongodbSqlAstTranslator::matchMutationStatement);
+        return statementStack.findCurrentFirst(MongoJsonAstTranslator::matchMutationStatement);
     }
 
     private static MutationStatement matchMutationStatement(Statement stmt) {
@@ -603,7 +603,7 @@ public class MongodbSqlAstTranslator<T extends JdbcOperation> implements SqlAstT
     }
 
     protected boolean inOverOrWithinGroupClause() {
-        return clauseStack.findCurrentFirst(MongodbSqlAstTranslator::matchOverOrWithinGroupClauses) != null;
+        return clauseStack.findCurrentFirst(MongoJsonAstTranslator::matchOverOrWithinGroupClauses) != null;
     }
 
     private static Boolean matchOverOrWithinGroupClauses(final Clause clause) {

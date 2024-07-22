@@ -12,16 +12,16 @@ import org.hibernate.omm.exception.NotSupportedRuntimeException;
  * @author Nathan Xu
  * @since 1.0
  */
-public class MongodbAdditionalMappingContributor implements AdditionalMappingContributor {
+public class MongoAdditionalMappingContributor implements AdditionalMappingContributor {
 
     @Override
     public String getContributorName() {
-        return "mongodb_additional_mapping";
+        return "mongo_additional_mapping";
     }
 
     @Override
     public void contribute(final AdditionalMappingContributions contributions, final InFlightMetadataCollector metadata, final ResourceStreamLocator resourceStreamLocator, final MetadataBuildingContext buildingContext) {
-        metadata.getEntityBindings().forEach(MongodbAdditionalMappingContributor::setIdentifierColumnName);
+        metadata.getEntityBindings().forEach(MongoAdditionalMappingContributor::setIdentifierColumnName);
     }
 
     private static void setIdentifierColumnName(PersistentClass persistentClass) {

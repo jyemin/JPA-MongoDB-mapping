@@ -21,7 +21,7 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
-public class MongodbConnection extends ConnectionAdapter {
+public class MongoConnection extends ConnectionAdapter {
 
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
@@ -32,7 +32,7 @@ public class MongodbConnection extends ConnectionAdapter {
 
     private SQLWarning sqlWarning;
 
-    public MongodbConnection(ClientSession clientSession, MongoDatabase mongoDatabase) {
+    public MongoConnection(ClientSession clientSession, MongoDatabase mongoDatabase) {
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
     }
@@ -44,7 +44,7 @@ public class MongodbConnection extends ConnectionAdapter {
 
     @Override
     public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
-        return new MongodbPreparedStatement(mongoDatabase, clientSession, this, sql);
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class MongodbConnection extends ConnectionAdapter {
 
             @Override
             public Connection getConnection() {
-                return MongodbConnection.this;
+                return MongoConnection.this;
             }
 
         };
