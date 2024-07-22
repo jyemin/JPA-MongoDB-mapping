@@ -4,9 +4,11 @@
 image:chameleon-logo.jpg[logo, 180, 120]
 
 == JPA and MongoDB
-JPA (**J**arkata **P**ersistence **A**PI) is an SQL persistence contract aiming to bridge the gap between Java OOP (**O**bject **O**riented **P**rogramming) and relational database pattern mismatch.
+JPA (**J**arkata **P**ersistence **A**PI) is an SQL persistence contract aiming to bridge the gap between Java OOP (**O**bject
+**O**riented **P**rogramming) paradigm and relational database model.
 Hibernate library as the reference implementation of JPA is the de facto ORM (**O**bject **R**elational **M**apping) framework in which
-Java developer could interact with POJO class objects whereas ORM library takes care of boilerplate JDBC processing automatically.
+Java developer could interact with POJOs (**P**lain **O**ld **J**ava **O**bject) whereas ORM library takes care of boilerplate JDBC processing
+automatically.
 
 MongoDB is a document NoSQL database, so seemingly JPA could not be applied directly, though the similar ORM spirit is still
 highly attractive to Java developers. Furthermore, MongoDB provides many features aligning with SQL databases (e.g. transaction, table joining simulation by view, etc.),
@@ -47,9 +49,10 @@ of JDBC layer invariably. Our "Virtual JDBC Layer" will act as an adapter betwee
 Obviously we can't anticipate all JPA features (entity class and JPA annotations, JP-QL or HQL statements) has one-to-one
 counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation to great extents, e.g.:
 
-* SQL table joining: MongoDB has view based feature to simulate (https://www.mongodb.com/docs/manual/core/views/join-collections-with-view/)
+* SQL table joining: MongoDB has collection joining simulation
 * transaction: since Mongodb v4, transaction is provided
-* embedding array field: since Hibernate v6.1 (https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html), JDBC's ARRAY type is supported
+* embedding array field: since https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html[Hibernate v6.1], JDBC's
+ARRAY type is supported
 
 == Mongodb Integration Unit Testing
 At current early stage, external Mongodb dependency is still needed. Very soon self-contained Mongodb integration testing mechanism will
