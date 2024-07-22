@@ -26,7 +26,7 @@ public class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
     }
 
     @Test
-    void test() {
+    void test_persist_into_mongo_embedded_array_field() {
         var insertedMovie = getSessionFactory().fromTransaction(session -> {
             var movie = new Movie();
             movie.id = id;
@@ -48,6 +48,23 @@ public class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
         Document doc = firstBatch.get(0);
 
         assertThat(doc).usingRecursiveComparison().isEqualTo(new Document("tags", insertedMovie.tags));
+    }
+
+    @Test
+    void test_load_from_mongo_embedded_array_field() {
+        var insertedMovie = getSessionFactory().fromTransaction(session -> {
+            var movie = new Movie();
+            movie.id = id;
+            movie.title = "Gone with Wind";
+            movie.tags = List.of("romantic", "classic");
+            session.persist(movie);
+            return movie;
+        });
+        getSessionFactory().inTransaction(session -> {
+            var loadedMovie = new Movie();
+            session.load(loadedMovie, id);
+            assertThat(loadedMovie).usingRecursiveComparison().isEqualTo(insertedMovie);
+        });
     }
 
     @Override
