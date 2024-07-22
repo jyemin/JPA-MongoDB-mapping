@@ -146,8 +146,8 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
     @Entity(name = "Book")
     @Table(name = "books")
     static class Book {
+
         @Id
-        @Column(name = "_id")
         Long id;
 
         String title;
