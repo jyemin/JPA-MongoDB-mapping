@@ -55,17 +55,25 @@ counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation 
 ARRAY type is supported
 
 == Mongodb Integration Unit Testing
-At current early stage, external Mongodb dependency is still needed. Very soon self-contained Mongodb integration testing mechanism will
-be enabled.
 
-For now you need to substitute your Mongodb connection URL and database name to the following two lines in src/test/resources/hibernate
-.properties:
+Currently there are two ways to go about MongoDB integration testing:
+
+=== Connect with External MongoDB (e.g. MongoDB Atlas)
+You need to substitute your Mongodb connection URL and database name to the following two lines in *src/test/resources/hibernate
+.properties*:
 
 ----
 mongodb.connection.url={your_mongodb_connection_url}
 mongodb.database={your_mongodb_database}
 ----
 
+Remember don't add your MongoDB connection configurations in Git commit, :).
+
 Then your testing cases should be running as expected.
 
+=== *Testcontainers* Based Testing
+Simply comment out the above external mongodb config entries
+and https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers approach] will take effect.
+Remember you need to launch docker service beforehand; otherwise testing will fail complaining docker is not started.
 
+There might be some MongoDB monitor related errors during the testing. Simply ignore them for testing doesn't rely on it.
