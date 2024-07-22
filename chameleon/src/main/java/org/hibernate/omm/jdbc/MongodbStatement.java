@@ -2,8 +2,8 @@ package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import org.bson.BsonDocument;
 import org.bson.Document;
-
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.List;
+import java.util.Map;
 
 public class MongodbStatement implements StatementAdapter {
 
@@ -44,11 +45,24 @@ public class MongodbStatement implements StatementAdapter {
     public ResultSet executeQuery(String sql) throws SimulatedSQLException {
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
+        Document projection = command.get("projection", Document.class);
         Document commandResult = runCommand(command);
         if (commandResult.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException();
         }
-        return new MongodbResultSet(commandResult);
+        List<String> columns =
+                projection.entrySet().stream().filter(entry -> this.projectionInclude(entry.getValue())).map(Map.Entry::getKey).toList();
+        return new MongodbResultSet(commandResult, columns);
+    }
+
+    private boolean projectionInclude(Object projectionValue) {
+        if (projectionValue instanceof BsonDocument bsonDocument) {
+            return bsonDocument.isInt32() && bsonDocument.asInt32().getValue() == 1
+                    || bsonDocument.isBoolean() && bsonDocument.asBoolean().getValue();
+        } else {
+            return projectionValue instanceof Integer integer && integer == 1
+                    || projectionValue instanceof Boolean bool && bool;
+        }
     }
 
     @Override

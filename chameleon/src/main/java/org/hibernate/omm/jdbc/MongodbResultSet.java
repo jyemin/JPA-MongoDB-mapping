@@ -1,24 +1,5 @@
 package org.hibernate.omm.jdbc;
 
-import java.math.BigDecimal;
-import java.sql.Array;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
-import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
-import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
-import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
-import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.omm.util.TypeUtil;
-
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDateTime;
@@ -28,22 +9,46 @@ import org.bson.BsonNumber;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
+import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
+import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
+import org.hibernate.omm.jdbc.adapter.ResultSetMetaDataAdapter;
+import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
+import org.hibernate.omm.jdbc.exception.ColumnInfoUnknownSQLException;
+import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.util.TypeUtil;
+
+import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.ResultSetMetaData;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 public class MongodbResultSet implements ResultSetAdapter {
 
     private final Iterator<Document> documentsIterator;
     private BsonDocument currentDocument;
-    private List<String> currentDocumentKeys = Collections.emptyList();
+    private List<String> currentDocumentKeys;
     private BsonValue lastRead;
-
     private volatile boolean closed;
 
     public MongodbResultSet(Document findCommandResult) {
+        this(findCommandResult, null);
+    }
+
+    public MongodbResultSet(Document findCommandResult, List<String> columns) {
         this.documentsIterator =
                 findCommandResult
                         .get("cursor", Document.class)
                         .getList("firstBatch", Document.class)
                         .iterator();
+        this.currentDocumentKeys = Collections.unmodifiableList(columns);
     }
 
     public MongodbResultSet(Iterable<Document> documentIterable) {
@@ -203,17 +208,49 @@ public class MongodbResultSet implements ResultSetAdapter {
         List<BsonValue> bsonValues = currentDocument.getArray(getKey(columnIndex)).getValues();
         return new ArrayAdapter() {
             @Override
-            public int getBaseType() throws SQLException {
+            public int getBaseType() throws SimulatedSQLException {
                 return bsonValues == null || bsonValues.isEmpty() ?
                         Types.NULL :
                         TypeUtil.getJdbcType(bsonValues.get(0).getBsonType());
             }
 
             @Override
-            public Object getArray() throws SQLException {
+            public Object getArray() throws SimulatedSQLException {
                 return bsonValues.stream().map(TypeUtil::unwrap).toArray();
             }
         };
+    }
+
+    @Override
+    public ResultSetMetaData getMetaData() throws SimulatedSQLException {
+        return new ResultSetMetaDataAdapter() {
+            @Override
+            public int getColumnCount() throws SimulatedSQLException {
+                if (currentDocumentKeys == null) {
+                    throw new ColumnInfoUnknownSQLException();
+                } else {
+                    return currentDocumentKeys.size();
+                }
+            }
+
+            @Override
+            public String getColumnLabel(final int column) throws SimulatedSQLException {
+                if (currentDocumentKeys == null) {
+                    throw new ColumnInfoUnknownSQLException();
+                } else {
+                    return currentDocumentKeys.get(column - 1);
+                }
+            }
+        };
+    }
+
+    @Override
+    public int findColumn(String columnLabel) throws SimulatedSQLException {
+        if (currentDocumentKeys == null) {
+            throw new ColumnInfoUnknownSQLException();
+        } else {
+            return currentDocumentKeys.indexOf(columnLabel) + 1;
+        }
     }
 
     private String getKey(int columnIndex) {
