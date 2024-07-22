@@ -14,7 +14,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.List;
-import java.util.Map;
+
+import static org.hibernate.omm.util.DocumentUtil.getProjectionFieldsIncluded;
 
 public class MongodbStatement implements StatementAdapter {
 
@@ -45,14 +46,11 @@ public class MongodbStatement implements StatementAdapter {
     public ResultSet executeQuery(String sql) throws SimulatedSQLException {
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
-        Document projection = command.get("projection", Document.class);
         Document commandResult = runCommand(command);
         if (commandResult.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException();
         }
-        List<String> columns =
-                projection.entrySet().stream().filter(entry -> this.projectionInclude(entry.getValue())).map(Map.Entry::getKey).toList();
-        return new MongodbResultSet(commandResult, columns);
+        return new MongodbResultSet(commandResult, getProjectionFieldsIncluded(command.get("projection", Document.class)));
     }
 
     private boolean projectionInclude(Object projectionValue) {

@@ -1,17 +1,14 @@
 package org.hibernate.omm.crud;
 
-import java.util.List;
-
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

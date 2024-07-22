@@ -20,7 +20,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 public class MongodbConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
-    private MongoDatabase mongoDatabase;
+    public static MongoDatabase mongoDatabase;
     private MongoClient mongoClient;
 
     @Override

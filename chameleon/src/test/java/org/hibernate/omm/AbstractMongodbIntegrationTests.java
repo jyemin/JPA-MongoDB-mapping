@@ -1,12 +1,15 @@
 package org.hibernate.omm;
 
+import com.mongodb.client.MongoDatabase;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.omm.jdbc.MongodbConnectionProvider;
 
 import java.util.List;
 
 public abstract class AbstractMongodbIntegrationTests {
     private SessionFactory sessionFactory;
+    private MongoDatabase mongoDatabase;
 
     public abstract List<Class<?>> getAnnotatedClasses();
 
@@ -17,5 +20,12 @@ public abstract class AbstractMongodbIntegrationTests {
             sessionFactory = cfg.buildSessionFactory();
         }
         return sessionFactory;
+    }
+
+    protected MongoDatabase getMongoDatabase() {
+        if (mongoDatabase == null) {
+            mongoDatabase = MongodbConnectionProvider.mongoDatabase;
+        }
+        return mongoDatabase;
     }
 }
