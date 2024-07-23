@@ -1,5 +1,15 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
+import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
+import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
+import org.hibernate.omm.jdbc.adapter.DatabaseMetaDataAdapter;
+import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -9,17 +19,6 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
-
-import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
-import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
-import org.hibernate.omm.jdbc.adapter.DatabaseMetaDataAdapter;
-import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-
-import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
 
 public class MongoConnection extends ConnectionAdapter {
 

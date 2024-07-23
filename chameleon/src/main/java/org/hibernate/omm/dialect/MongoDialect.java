@@ -55,8 +55,4 @@ public class MongoDialect extends Dialect {
         return true;
     }
 
-    public boolean supportsTransaction() {
-        DatabaseVersion version = getVersion();
-        return version != null && version.getMajor() >= 4;
-    }
 }

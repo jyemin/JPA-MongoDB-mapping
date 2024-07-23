@@ -1,11 +1,11 @@
 package org.hibernate.omm.jdbc.adapter;
 
+import org.hibernate.omm.exception.NotYetImplementedException;
+
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
-
-import org.hibernate.omm.exception.NotYetImplementedException;
 
 public abstract class ArrayAdapter implements Array {
     @Override

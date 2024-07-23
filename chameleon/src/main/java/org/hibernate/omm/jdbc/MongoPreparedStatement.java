@@ -1,5 +1,14 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoDatabase;
+import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
+import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
+import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.util.StringUtil;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -21,16 +30,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
-import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
-import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.omm.util.StringUtil;
-
-import com.mongodb.client.ClientSession;
-import com.mongodb.client.MongoDatabase;
 
 public class MongoPreparedStatement extends MongoStatement
         implements PreparedStatementAdapter {

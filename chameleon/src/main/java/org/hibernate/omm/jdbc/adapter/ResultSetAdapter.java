@@ -1,15 +1,28 @@
 package org.hibernate.omm.jdbc.adapter;
 
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
-
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 public interface ResultSetAdapter extends ResultSet {
 

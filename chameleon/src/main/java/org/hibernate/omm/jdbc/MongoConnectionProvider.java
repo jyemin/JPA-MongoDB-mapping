@@ -1,14 +1,5 @@
 package org.hibernate.omm.jdbc;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Map;
-
-import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
-import org.hibernate.omm.cfg.MongoAvailableSettings;
-import org.hibernate.service.spi.Configurable;
-import org.hibernate.service.spi.Stoppable;
-
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.ClientSession;
@@ -16,6 +7,14 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.omm.cfg.MongoAvailableSettings;
+import org.hibernate.service.spi.Configurable;
+import org.hibernate.service.spi.Stoppable;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 

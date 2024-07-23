@@ -58,22 +58,18 @@ ARRAY type is supported
 
 Currently there are two ways to go about MongoDB integration testing:
 
-=== Connect with External MongoDB (e.g. MongoDB Atlas)
-You need to substitute your Mongodb connection URL and database name to the following two lines in *src/test/resources/hibernate
-.properties*:
-
-----
-mongodb.connection.url={your_mongodb_connection_url}
-mongodb.database={your_mongodb_database}
-----
-
-Remember don't add your MongoDB connection configurations in Git commit, :).
-
-Then your testing cases should be running as expected.
-
-=== *Testcontainers* Based Testing
-Simply comment out the above external mongodb config entries
-and https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers approach] will take effect.
+=== #1: https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers Approach] (by default)
 Remember you need to launch docker service beforehand; otherwise testing will fail complaining docker is not started.
 
-There might be some MongoDB monitor related errors during the testing. Simply ignore them for testing doesn't rely on it.
+There might be some MongoDB monitor related error loggings during the testing. Simply ignore them for testing doesn't rely on it.
+
+=== #2: Connect with External MongoDB (e.g. MongoDB Atlas)
+Uncomment the following two lines at *src/test/resources/hibernate
+.properties*:
+----
+#mongodb.connection.url={your_mongodb_connection_url}
+#mongodb.database={your_mongodb_database}
+----
+
+Then substitute your MongoDB connection URL and database name for the placeholders.
+Remember don't add your MongoDB connection configurations in Git commit, of course.

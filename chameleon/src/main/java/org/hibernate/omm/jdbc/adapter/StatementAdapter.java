@@ -1,9 +1,12 @@
 package org.hibernate.omm.jdbc.adapter;
 
-import java.sql.*;
-
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 
 public interface StatementAdapter extends Statement {
 

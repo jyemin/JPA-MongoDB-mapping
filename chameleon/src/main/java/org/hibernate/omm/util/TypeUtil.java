@@ -1,7 +1,5 @@
 package org.hibernate.omm.util;
 
-import java.sql.Types;
-
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -14,6 +12,8 @@ import org.bson.BsonString;
 import org.bson.BsonTimestamp;
 import org.bson.BsonType;
 import org.bson.BsonValue;
+
+import java.sql.Types;
 
 public final class TypeUtil {
     private TypeUtil() {
