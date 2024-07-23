@@ -2297,7 +2297,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         appendSql("{ ");
         lhs.accept(this);
         appendSql(": { ");
-        appendSql(getMongodbOperatorText(operator));
+        appendSql(getMongoOperatorText(operator));
         appendSql(": ");
         rhs.accept(this);
         appendSql(" } }");
@@ -5732,7 +5732,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    private String getMongodbOperatorText(ComparisonOperator operator) {
+    private String getMongoOperatorText(ComparisonOperator operator) {
         return switch (operator) {
             case EQUAL -> "$eq";
             case NOT_EQUAL -> "$ne";
