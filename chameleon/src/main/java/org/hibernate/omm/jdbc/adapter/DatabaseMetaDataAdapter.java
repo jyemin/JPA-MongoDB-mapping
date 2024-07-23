@@ -6,6 +6,10 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public abstract class DatabaseMetaDataAdapter implements DatabaseMetaData {
     @Override
     public boolean allProceduresAreCallable() throws SQLException {

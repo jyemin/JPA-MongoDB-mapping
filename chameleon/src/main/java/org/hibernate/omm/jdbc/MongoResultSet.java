@@ -30,6 +30,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoResultSet implements ResultSetAdapter {
 
     private final Iterator<Document> documentsIterator;
@@ -204,25 +208,25 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public Array getArray(int columnIndex) throws SimulatedSQLException {
+    public Array getArray(int columnIndex) {
         List<BsonValue> bsonValues = currentDocument.getArray(getKey(columnIndex)).getValues();
         return new ArrayAdapter() {
             @Override
-            public int getBaseType() throws SimulatedSQLException {
+            public int getBaseType() {
                 return bsonValues == null || bsonValues.isEmpty() ?
                         Types.NULL :
                         TypeUtil.getJdbcType(bsonValues.get(0).getBsonType());
             }
 
             @Override
-            public Object getArray() throws SimulatedSQLException {
+            public Object getArray() {
                 return bsonValues.stream().map(TypeUtil::unwrap).toArray();
             }
         };
     }
 
     @Override
-    public ResultSetMetaData getMetaData() throws SimulatedSQLException {
+    public ResultSetMetaData getMetaData() {
         return new ResultSetMetaDataAdapter() {
             @Override
             public int getColumnCount() throws SimulatedSQLException {

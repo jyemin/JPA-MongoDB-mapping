@@ -15,6 +15,10 @@ import org.bson.BsonValue;
 
 import java.sql.Types;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public final class TypeUtil {
     private TypeUtil() {
     }

@@ -15,11 +15,14 @@ import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoConnection extends ConnectionAdapter {
 
     private final ClientSession clientSession;
@@ -42,7 +45,7 @@ public class MongoConnection extends ConnectionAdapter {
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
+    public PreparedStatement prepareStatement(String sql) {
         return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
     }
 
@@ -94,7 +97,7 @@ public class MongoConnection extends ConnectionAdapter {
     }
 
     @Override
-    public boolean getAutoCommit() throws SimulatedSQLException {
+    public boolean getAutoCommit() {
         return this.autoCommit;
     }
 
@@ -152,15 +155,15 @@ public class MongoConnection extends ConnectionAdapter {
     }
 
     @Override
-    public Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
+    public Array createArrayOf(String typeName, Object[] elements) {
         return new ArrayAdapter() {
             @Override
-            public int getBaseType() throws SQLException {
+            public int getBaseType() {
                 return 0;
             }
 
             @Override
-            public Object getArray() throws SQLException {
+            public Object getArray() {
                 return elements;
             }
         };

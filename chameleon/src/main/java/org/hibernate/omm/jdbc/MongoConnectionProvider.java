@@ -18,6 +18,10 @@ import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
     public static MongoDatabase mongoDatabase;
     private MongoClient mongoClient;

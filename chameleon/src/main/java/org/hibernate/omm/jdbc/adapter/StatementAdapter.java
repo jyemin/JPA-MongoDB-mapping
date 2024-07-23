@@ -8,6 +8,10 @@ import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public interface StatementAdapter extends Statement {
 
     @Override

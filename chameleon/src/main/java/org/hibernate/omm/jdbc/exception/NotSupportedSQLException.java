@@ -1,5 +1,9 @@
 package org.hibernate.omm.jdbc.exception;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class NotSupportedSQLException extends SimulatedSQLException {
     public NotSupportedSQLException() {
     }

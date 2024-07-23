@@ -7,6 +7,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public abstract class ArrayAdapter implements Array {
     @Override
     public String getBaseTypeName() throws SQLException {

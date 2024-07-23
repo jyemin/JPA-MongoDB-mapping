@@ -26,6 +26,10 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Map;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class CallableStatementAdapter implements CallableStatement {
 
     @Override

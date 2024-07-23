@@ -31,6 +31,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoPreparedStatement extends MongoStatement
         implements PreparedStatementAdapter {
 
@@ -72,78 +76,79 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setNull(int parameterIndex, int sqlType) throws SimulatedSQLException {
+    public void setNull(int parameterIndex, int sqlType) {
         parameters.put(parameterIndex, "null");
     }
 
     @Override
-    public void setBoolean(int parameterIndex, boolean x) throws SimulatedSQLException {
+    public void setBoolean(int parameterIndex, boolean x) {
         parameters.put(parameterIndex, Boolean.toString(x));
     }
 
     @Override
-    public void setByte(int parameterIndex, byte x) throws SimulatedSQLException {
+    public void setByte(int parameterIndex, byte x) {
         parameters.put(parameterIndex, Byte.toString(x));
     }
 
     @Override
-    public void setShort(int parameterIndex, short x) throws SimulatedSQLException {
+    public void setShort(int parameterIndex, short x) {
         parameters.put(parameterIndex, Short.toString(x));
     }
 
     @Override
-    public void setInt(int parameterIndex, int x) throws SimulatedSQLException {
+    public void setInt(int parameterIndex, int x) {
         parameters.put(parameterIndex, "{ \"$numberInt\": \"" + x + "\" }");
     }
 
     @Override
-    public void setLong(int parameterIndex, long x) throws SimulatedSQLException {
+    public void setLong(int parameterIndex, long x) {
         parameters.put(parameterIndex, "{ \"$numberLong\": \"" + x + "\" }");
     }
 
     @Override
-    public void setFloat(int parameterIndex, float x) throws SimulatedSQLException {
+    public void setFloat(int parameterIndex, float x) {
         parameters.put(parameterIndex, Float.toString(x));
     }
 
     @Override
-    public void setDouble(int parameterIndex, double x) throws SimulatedSQLException {
+    public void setDouble(int parameterIndex, double x) {
         parameters.put(parameterIndex, "{ \"$numberDouble\": \"" + x + "\" }");
     }
 
     @Override
-    public void setBigDecimal(int parameterIndex, BigDecimal x) throws SimulatedSQLException {
+    public void setBigDecimal(int parameterIndex, BigDecimal x) {
         parameters.put(parameterIndex, "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
-    public void setString(int parameterIndex, String x) throws SimulatedSQLException {
+    public void setString(int parameterIndex, String x) {
         parameters.put(parameterIndex, StringUtil.writeStringHelper(x));
     }
 
     @Override
-    public void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
+    public void setBytes(int parameterIndex, byte[] x) {
         String base64Text = Base64.getEncoder().encodeToString(x);
         parameters.put(parameterIndex, "\"$binary\": {\"base64\": \"" + base64Text + "\", \"subType\": \"0\"}");
     }
 
     @Override
-    public void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
+    public void setDate(int parameterIndex, Date x) {
         parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTime(int parameterIndex, Time x) throws SimulatedSQLException {
+    public void setTime(int parameterIndex, Time x) {
         parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, Timestamp x) throws SimulatedSQLException {
+    public void setTimestamp(int parameterIndex, Timestamp x) {
         parameters.put(
                 parameterIndex,
                 "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
         );
     }
+
 
     @Override
     public void setBinaryStream(int parameterIndex, InputStream x, int length)

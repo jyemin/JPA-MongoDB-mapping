@@ -12,6 +12,10 @@ import org.hibernate.sql.ast.spi.StandardSqlAstTranslatorFactory;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoDialect extends Dialect {
 
     private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(3);

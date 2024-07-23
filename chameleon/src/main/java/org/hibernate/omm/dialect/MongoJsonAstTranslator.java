@@ -57,7 +57,6 @@ import org.hibernate.query.sqm.UnaryArithmeticOperator;
 import org.hibernate.query.sqm.function.AbstractSqmSelfRenderingFunctionDescriptor;
 import org.hibernate.query.sqm.function.MultipatternSqmFunctionDescriptor;
 import org.hibernate.query.sqm.function.SelfRenderingAggregateFunctionSqlAstExpression;
-import org.hibernate.query.sqm.function.SelfRenderingFunctionSqlAstExpression;
 import org.hibernate.query.sqm.function.SqmFunctionDescriptor;
 import org.hibernate.query.sqm.sql.internal.SqmParameterInterpretation;
 import org.hibernate.query.sqm.sql.internal.SqmPathInterpretation;
@@ -220,6 +219,7 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
 
 /**
  * @author Nathan Xu
+ * @since 1.0.0
  */
 public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
@@ -253,7 +253,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     // and when visiting a query part, compare the current clause depth against the remembered one.
     private QueryPart queryPartForRowNumbering;
     private int queryPartForRowNumberingClauseDepth = -1;
-    private int queryPartForRowNumberingAliasCounter;
     private int queryGroupAliasCounter;
 
     private transient AbstractSqmSelfRenderingFunctionDescriptor castFunction;
@@ -428,10 +427,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         return parameterRenderingMode;
     }
 
-    protected void addAdditionalWherePredicate(Predicate predicate) {
-        additionalWherePredicate = Predicate.combinePredicates(additionalWherePredicate, predicate);
-    }
-
     @Override
     public boolean supportsFilterClause() {
         // By default, we report false because not many dialects support this
@@ -594,34 +589,19 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         return binding.getBindValue();
     }
 
-    protected Expression getLeftHandExpression(Predicate predicate) {
-        if (predicate instanceof NullnessPredicate) {
-            return ((NullnessPredicate) predicate).getExpression();
-        }
-        assert predicate instanceof ComparisonPredicate;
-        return ((ComparisonPredicate) predicate).getLeftHandExpression();
-    }
-
     protected boolean inOverOrWithinGroupClause() {
         return clauseStack.findCurrentFirst(MongoJsonAstTranslator::matchOverOrWithinGroupClauses) != null;
     }
 
     private static Boolean matchOverOrWithinGroupClauses(final Clause clause) {
-        switch (clause) {
-            case OVER:
-            case WITHIN_GROUP:
-                return Boolean.TRUE;
-            default:
-                return null;
-        }
+        return switch (clause) {
+            case OVER, WITHIN_GROUP -> Boolean.TRUE;
+            default -> null;
+        };
     }
 
     protected Stack<Clause> getClauseStack() {
         return clauseStack;
-    }
-
-    protected Stack<Statement> getStatementStack() {
-        return statementStack;
     }
 
     protected Stack<QueryPart> getQueryPartStack() {
@@ -1112,136 +1092,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    private QueryPartTableReference updateSourceAsSubquery(UpdateStatement statement, boolean correlated) {
-        final QuerySpec inlineView = new QuerySpec(!correlated);
-        final SelectClause selectClause = inlineView.getSelectClause();
-        final List<Assignment> assignments = statement.getAssignments();
-        final List<String> columnNames = new ArrayList<>(assignments.size());
-        for (Assignment assignment : assignments) {
-            final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
-            final Expression assignedValue = assignment.getAssignedValue();
-            if (columnReferences.size() == 1) {
-                selectClause.addSqlSelection(new SqlSelectionImpl(assignedValue));
-                columnNames.add("c" + columnNames.size());
-            } else if (assignedValue instanceof SqlTuple) {
-                final List<? extends Expression> expressions = ((SqlTuple) assignedValue).getExpressions();
-                for (int i = 0; i < columnReferences.size(); i++) {
-                    selectClause.addSqlSelection(new SqlSelectionImpl(expressions.get(i)));
-                    columnNames.add("c" + columnNames.size());
-                }
-            } else {
-                throw new IllegalQueryOperationException("Unsupported tuple assignment in update query with joins.");
-            }
-        }
-        if (!correlated) {
-            final String rowIdExpression = dialect.rowId(null);
-            if (rowIdExpression == null) {
-                final TableGroup dmlTargetTableGroup = statement.getFromClause().getRoots().get(0);
-                assert dmlTargetTableGroup.getPrimaryTableReference() == statement.getTargetTable();
-                final EntityIdentifierMapping identifierMapping = dmlTargetTableGroup.getModelPart()
-                        .asEntityMappingType()
-                        .getIdentifierMapping();
-                identifierMapping.forEachSelectable(
-                        0,
-                        (selectionIndex, selectableMapping) -> {
-                            selectClause.addSqlSelection(new SqlSelectionImpl(
-                                    new ColumnReference(statement.getTargetTable(), selectableMapping)
-                            ));
-                            columnNames.add(selectableMapping.getSelectionExpression());
-                        }
-                );
-            } else {
-                selectClause.addSqlSelection(new SqlSelectionImpl(
-                        new ColumnReference(
-                                statement.getTargetTable(),
-                                rowIdExpression,
-                                sessionFactory.getTypeConfiguration().getBasicTypeRegistry()
-                                        .resolve(Object.class, dialect.rowIdSqlType())
-                        )
-                ));
-                columnNames.add("c" + columnNames.size());
-            }
-        }
-
-        if (correlated) {
-            for (TableGroup root : statement.getFromClause().getRoots()) {
-                if (statement.getTargetTable() == root.getPrimaryTableReference()) {
-                    final TableGroup dmlTargetTableGroup = new StandardTableGroup(
-                            true,
-                            new NavigablePath("dual"),
-                            null,
-                            null,
-                            new NamedTableReference(getDual(), "d_"),
-                            null,
-                            sessionFactory
-                    );
-                    inlineView.getFromClause().addRoot(dmlTargetTableGroup);
-                    dmlTargetTableGroup.getTableReferenceJoins().addAll(root.getTableReferenceJoins());
-                    for (TableGroupJoin tableGroupJoin : root.getTableGroupJoins()) {
-                        dmlTargetTableGroup.addTableGroupJoin(tableGroupJoin);
-                    }
-                    for (TableGroupJoin tableGroupJoin : root.getNestedTableGroupJoins()) {
-                        dmlTargetTableGroup.addNestedTableGroupJoin(tableGroupJoin);
-                    }
-                } else {
-                    inlineView.getFromClause().addRoot(root);
-                }
-            }
-        } else {
-            for (TableGroup root : statement.getFromClause().getRoots()) {
-                inlineView.getFromClause().addRoot(root);
-            }
-        }
-        inlineView.applyPredicate(statement.getRestriction());
-
-        return new QueryPartTableReference(
-                new SelectStatement(inlineView),
-                "s",
-                columnNames,
-                false,
-                getSessionFactory()
-        );
-    }
-
-    private QueryPartTableReference updateSourceAsInlineView(UpdateStatement statement) {
-        final QuerySpec inlineView = new QuerySpec(true);
-        final SelectClause selectClause = inlineView.getSelectClause();
-        final List<Assignment> assignments = statement.getAssignments();
-        final List<String> columnNames = new ArrayList<>(assignments.size());
-        for (Assignment assignment : assignments) {
-            final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
-            final Expression assignedValue = assignment.getAssignedValue();
-            if (columnReferences.size() == 1) {
-                selectClause.addSqlSelection(new SqlSelectionImpl(columnReferences.get(0)));
-                selectClause.addSqlSelection(new SqlSelectionImpl(assignedValue));
-                columnNames.add("c" + columnNames.size());
-                columnNames.add("c" + columnNames.size());
-            } else if (assignedValue instanceof SqlTuple) {
-                final List<? extends Expression> expressions = ((SqlTuple) assignedValue).getExpressions();
-                for (int i = 0; i < columnReferences.size(); i++) {
-                    selectClause.addSqlSelection(new SqlSelectionImpl(columnReferences.get(i)));
-                    selectClause.addSqlSelection(new SqlSelectionImpl(expressions.get(i)));
-                    columnNames.add("c" + columnNames.size());
-                    columnNames.add("c" + columnNames.size());
-                }
-            } else {
-                throw new IllegalQueryOperationException("Unsupported tuple assignment in update query with joins.");
-            }
-        }
-        for (TableGroup root : statement.getFromClause().getRoots()) {
-            inlineView.getFromClause().addRoot(root);
-        }
-        inlineView.applyPredicate(statement.getRestriction());
-
-        return new QueryPartTableReference(
-                new SelectStatement(inlineView),
-                "t",
-                columnNames,
-                false,
-                getSessionFactory()
-        );
-    }
-
     protected void visitValuesList(List<Values> valuesList) {
         visitValuesListStandard(valuesList);
     }
@@ -1273,84 +1123,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    protected void visitForUpdateClause(QuerySpec querySpec) {
-        if (querySpec.isRoot()) {
-            if (forUpdate != null) {
-                final Boolean followOnLocking = getLockOptions() == null ?
-                        Boolean.FALSE :
-                        getLockOptions().getFollowOnLocking();
-                if (Boolean.TRUE.equals(followOnLocking)) {
-                    lockOptions = null;
-                } else {
-                    forUpdate.merge(getLockOptions());
-                    forUpdate.applyAliases(dialect.getWriteRowLockStrategy(), querySpec);
-                    if (LockMode.READ.lessThan(forUpdate.getLockMode())) {
-                        final LockStrategy lockStrategy = determineLockingStrategy(
-                                querySpec,
-                                forUpdate,
-                                followOnLocking
-                        );
-                        switch (lockStrategy) {
-                            case CLAUSE:
-                                renderForUpdateClause(querySpec, forUpdate);
-                                break;
-                            case FOLLOW_ON:
-                                lockOptions = null;
-                                break;
-                        }
-                    }
-                }
-                forUpdate = null;
-            } else {
-                // Since we get here, we know that no alias locks were applied.
-                // We only apply locking on the root query though if there is a global lock mode
-                final LockOptions lockOptions = getLockOptions();
-                final Boolean followOnLocking = lockOptions == null ? Boolean.FALSE : lockOptions.getFollowOnLocking();
-                if (Boolean.TRUE.equals(followOnLocking)) {
-                    this.lockOptions = null;
-                } else if (lockOptions != null && lockOptions.getLockMode() != LockMode.NONE) {
-                    final ForUpdateClause forUpdateClause = new ForUpdateClause();
-                    forUpdateClause.merge(getLockOptions());
-                    forUpdateClause.applyAliases(dialect.getWriteRowLockStrategy(), querySpec);
-                    if (LockMode.READ.lessThan(forUpdateClause.getLockMode())) {
-                        final LockStrategy lockStrategy = determineLockingStrategy(
-                                querySpec,
-                                forUpdateClause,
-                                followOnLocking
-                        );
-                        switch (lockStrategy) {
-                            case CLAUSE:
-                                renderForUpdateClause(
-                                        querySpec,
-                                        forUpdateClause
-                                );
-                                break;
-                            case FOLLOW_ON:
-                                if (Boolean.FALSE.equals(followOnLocking)) {
-                                    throw new UnsupportedOperationException("");
-                                }
-                                this.lockOptions = null;
-                                break;
-                        }
-                    }
-                }
-            }
-        } else if (forUpdate != null) {
-            forUpdate.merge(getLockOptions());
-            forUpdate.applyAliases(dialect.getWriteRowLockStrategy(), querySpec);
-            if (LockMode.READ.lessThan(forUpdate.getLockMode())) {
-                final LockStrategy lockStrategy = determineLockingStrategy(querySpec, forUpdate, null);
-                switch (lockStrategy) {
-                    case CLAUSE:
-                        renderForUpdateClause(querySpec, forUpdate);
-                        break;
-                    case FOLLOW_ON:
-                        throw new UnsupportedOperationException("Follow-on locking for subqueries is not supported");
-                }
-            }
-            forUpdate = null;
-        }
-    }
 
     protected void renderForUpdateClause(QuerySpec querySpec, ForUpdateClause forUpdateClause) {
         int timeoutMillis = forUpdateClause.getTimeoutMillis();
@@ -1584,33 +1356,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    private Expression abs(Expression expression) {
-        final AbstractSqmSelfRenderingFunctionDescriptor abs = findSelfRenderingFunction("abs", 2);
-        return new SelfRenderingFunctionSqlAstExpression(
-                "abs",
-                abs,
-                List.of(expression),
-                (ReturnableType<?>) expression.getExpressionType(),
-                expression.getExpressionType()
-        );
-    }
-
-    private Expression lpad(Expression expression, int stringLength, String padString) {
-        final BasicType<String> stringType = getStringType();
-        final AbstractSqmSelfRenderingFunctionDescriptor lpad = findSelfRenderingFunction("lpad", 3);
-        return new SelfRenderingFunctionSqlAstExpression(
-                "lpad",
-                lpad,
-                List.of(
-                        expression,
-                        new QueryLiteral<>(stringLength, getIntegerType()),
-                        new QueryLiteral<>(padString, stringType)
-                ),
-                stringType,
-                stringType
-        );
-    }
-
     private AbstractSqmSelfRenderingFunctionDescriptor findSelfRenderingFunction(
             String functionName,
             int argumentCount) {
@@ -1621,17 +1366,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             return (AbstractSqmSelfRenderingFunctionDescriptor) multiPatternFunction.getFunction(argumentCount);
         }
         return (AbstractSqmSelfRenderingFunctionDescriptor) functionDescriptor;
-    }
-
-    private Expression castToString(SqlAstNode node) {
-        final BasicType<String> stringType = getStringType();
-        return new SelfRenderingFunctionSqlAstExpression(
-                "cast",
-                castFunction(),
-                List.of(node, new CastTarget(stringType)),
-                stringType,
-                stringType
-        );
     }
 
 
@@ -1716,9 +1450,9 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             final List<QueryPart> queryParts = queryGroup.getQueryParts();
             final String setOperatorString = ' ' + queryGroup.getSetOperator().sqlString() + ' ';
             String separator = "";
-            for (int i = 0; i < queryParts.size(); i++) {
+            for (QueryPart queryPart : queryParts) {
                 appendSql(separator);
-                queryParts.get(i).accept(this);
+                queryPart.accept(this);
                 separator = setOperatorString;
             }
 
@@ -1827,8 +1561,8 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     private boolean hasDuplicateSelectItems(QuerySpec querySpec) {
         final List<SqlSelection> sqlSelections = querySpec.getSelectClause().getSqlSelections();
         final Map<Expression, Boolean> map = new IdentityHashMap<>(sqlSelections.size());
-        for (int i = 0; i < sqlSelections.size(); i++) {
-            if (map.put(sqlSelections.get(i).getExpression(), Boolean.TRUE) != null) {
+        for (SqlSelection sqlSelection : sqlSelections) {
+            if (map.put(sqlSelection.getExpression(), Boolean.TRUE) != null) {
                 return true;
             }
         }
@@ -1954,22 +1688,20 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             List<Expression> partitionExpressions,
             SelectItemReferenceStrategy referenceStrategy) {
         final Function<Expression, Expression> resolveAliasExpression;
-        final boolean inlineParametersOfAliasedExpressions;
-        switch (referenceStrategy) {
-            case POSITION:
+        final boolean inlineParametersOfAliasedExpressions = switch (referenceStrategy) {
+            case POSITION -> {
                 resolveAliasExpression = Function.identity();
-                inlineParametersOfAliasedExpressions = false;
-                break;
-            case ALIAS:
+                yield false;
+            }
+            case ALIAS -> {
                 resolveAliasExpression = this::resolveExpressionToAlias;
-                inlineParametersOfAliasedExpressions = false;
-                break;
-            case EXPRESSION:
-            default:
+                yield false;
+            }
+            default -> {
                 resolveAliasExpression = this::resolveAliasedExpression;
-                inlineParametersOfAliasedExpressions = true;
-                break;
-        }
+                yield true;
+            }
+        };
         visitPartitionExpressions(partitionExpressions, resolveAliasExpression, inlineParametersOfAliasedExpressions);
     }
 
@@ -2459,67 +2191,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         fetchExpression.accept(this);
     }
 
-    protected void renderTopStartAtClause(
-            Expression offsetExpression,
-            Expression fetchExpression,
-            FetchClauseType fetchClauseType) {
-        if (fetchExpression != null) {
-            appendSql("top ");
-            final Stack<Clause> clauseStack = getClauseStack();
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            if (offsetExpression != null) {
-                clauseStack.push(Clause.OFFSET);
-                try {
-                    appendSql(" start at ");
-                    renderOffsetExpression(offsetExpression);
-                } finally {
-                    clauseStack.pop();
-                }
-            }
-            appendSql(WHITESPACE);
-            switch (fetchClauseType) {
-                case ROWS_WITH_TIES:
-                    appendSql("with ties ");
-                    break;
-                case PERCENT_ONLY:
-                    appendSql("percent ");
-                    break;
-                case PERCENT_WITH_TIES:
-                    appendSql("percent with ties ");
-                    break;
-            }
-        }
-    }
-
-    protected void renderRowsToClause(Expression offsetClauseExpression, Expression fetchClauseExpression) {
-        if (fetchClauseExpression != null) {
-            appendSql("rows ");
-            final Stack<Clause> clauseStack = getClauseStack();
-            clauseStack.push(Clause.FETCH);
-            try {
-                renderFetchExpression(fetchClauseExpression);
-            } finally {
-                clauseStack.pop();
-            }
-            if (offsetClauseExpression != null) {
-                clauseStack.push(Clause.OFFSET);
-                try {
-                    appendSql(" to ");
-                    // According to RowsLimitHandler this is 1 based so we need to add 1 to the offset
-                    renderFetchPlusOffsetExpression(fetchClauseExpression, offsetClauseExpression, 1);
-                } finally {
-                    clauseStack.pop();
-                }
-            }
-            appendSql(WHITESPACE);
-        }
-    }
-
     protected void renderFetchPlusOffsetExpression(
             Expression fetchClauseExpression,
             Expression offsetClauseExpression,
@@ -2864,10 +2535,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             appendSql("row_number()");
         }
         visitOverClause(Collections.emptyList(), getSortSpecificationsRowNumbering(selectClause, queryPart));
-    }
-
-    protected final boolean isParameter(Expression expression) {
-        return expression instanceof JdbcParameter || expression instanceof SqmParameterInterpretation;
     }
 
     protected List<SortSpecification> getSortSpecificationsRowNumbering(
@@ -5294,16 +4961,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             this.lockMode = lockMode;
         }
 
-        public ForUpdateClause() {
-            this.lockMode = LockMode.NONE;
-        }
-
-        public void applyAliases(RowLockStrategy lockIdentifier, QuerySpec querySpec) {
-            if (lockIdentifier != RowLockStrategy.NONE) {
-                querySpec.getFromClause().visitTableGroups(tableGroup -> applyAliases(lockIdentifier, tableGroup));
-            }
-        }
-
         public void applyAliases(RowLockStrategy lockIdentifier, TableGroup tableGroup) {
             if (aliases != null && lockIdentifier != RowLockStrategy.NONE) {
                 final String tableAlias = tableGroup.getPrimaryTableReference().getIdentificationVariable();
@@ -5408,35 +5065,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                     }
                     appender.appendSql(tableAlias);
                 }
-            }
-        }
-
-        public String getAliases() {
-            if (aliases == null) {
-                return null;
-            }
-            return aliases.toString();
-        }
-
-        public void merge(LockOptions lockOptions) {
-            if (lockOptions != null) {
-                LockMode upgradeType = LockMode.NONE;
-                if (lockOptions.getAliasLockCount() == 0) {
-                    upgradeType = lockOptions.getLockMode();
-                } else {
-                    for (Map.Entry<String, LockMode> entry : lockOptions.getAliasSpecificLocks()) {
-                        final LockMode lockMode = entry.getValue();
-                        if (LockMode.READ.lessThan(lockMode)) {
-                            addAlias(entry.getKey(), null);
-                            if (upgradeType != LockMode.NONE && lockMode != upgradeType) {
-                                throw new QueryException("Mixed LockModes");
-                            }
-                            upgradeType = lockMode;
-                        }
-                    }
-                }
-                lockMode = upgradeType;
-                timeoutMillis = lockOptions.getTimeOut();
             }
         }
     }

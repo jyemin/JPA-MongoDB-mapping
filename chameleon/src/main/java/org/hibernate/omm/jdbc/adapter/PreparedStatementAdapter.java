@@ -23,6 +23,10 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public interface PreparedStatementAdapter extends StatementAdapter, PreparedStatement {
 
     @Override

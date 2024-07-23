@@ -2,6 +2,10 @@ package org.hibernate.omm.util;
 
 import java.util.Collection;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public final class CollectionUtil {
     private CollectionUtil() {
     }

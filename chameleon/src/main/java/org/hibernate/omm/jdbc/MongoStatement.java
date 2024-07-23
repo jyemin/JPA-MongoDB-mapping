@@ -2,7 +2,6 @@ package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
-import org.bson.BsonDocument;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
@@ -17,6 +16,10 @@ import java.util.List;
 
 import static org.hibernate.omm.util.DocumentUtil.getProjectionFieldsIncluded;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class MongoStatement implements StatementAdapter {
 
     private record CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
@@ -51,16 +54,6 @@ public class MongoStatement implements StatementAdapter {
             throw new CommandRunFailSQLException();
         }
         return new MongoResultSet(commandResult, getProjectionFieldsIncluded(command.get("projection", Document.class)));
-    }
-
-    private boolean projectionInclude(Object projectionValue) {
-        if (projectionValue instanceof BsonDocument bsonDocument) {
-            return bsonDocument.isInt32() && bsonDocument.asInt32().getValue() == 1
-                    || bsonDocument.isBoolean() && bsonDocument.asBoolean().getValue();
-        } else {
-            return projectionValue instanceof Integer integer && integer == 1
-                    || projectionValue instanceof Boolean bool && bool;
-        }
     }
 
     @Override

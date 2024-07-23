@@ -22,6 +22,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public class ConnectionAdapter implements Connection {
     @Override
     public Statement createStatement() throws SimulatedSQLException {

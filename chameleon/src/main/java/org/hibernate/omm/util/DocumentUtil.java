@@ -5,6 +5,10 @@ import org.bson.Document;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public final class DocumentUtil {
     private DocumentUtil() {
     }

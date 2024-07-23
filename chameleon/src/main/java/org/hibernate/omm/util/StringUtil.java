@@ -1,5 +1,9 @@
 package org.hibernate.omm.util;
 
+/**
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 public final class StringUtil {
     private StringUtil() {
     }
