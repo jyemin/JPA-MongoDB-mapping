@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import org.bson.Document;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -21,13 +22,14 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
     private final Long id = 21344L;
 
     @BeforeEach
-    void setUp() {
+    void init() {
         String deleteQuery = "{ delete: \"books\", deletes: [ { q: { _id: { $eq: " + id + " } }, limit: 0 } ] }";
         Document response = getMongoDatabase().runCommand(Document.parse(deleteQuery));
         assertThat(response.getDouble("ok")).isEqualTo(1.0);
     }
 
     @Test
+    @DisplayName("when @Id field was not annotated with @Column(name = \"xxx\")")
     void test_implicit_id_column_spec() {
 
        getSessionFactory().inTransaction(session -> {
@@ -46,10 +48,11 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
         List<Document> docs = response.getEmbedded(List.of("cursor", "firstBatch"), List.class);
         assertThat(docs).hasSize(1);
 
-        assertThat(docs.get(0)).doesNotContainKey("id"); // id is the implicit column name per entity
+        assertThat(docs.get(0)).doesNotContainKey("id"); // 'id' is the implicit column name per entity
     }
 
     @Test
+    @DisplayName("when @Id field was annotated with @Column(name = \"xxx\")")
     void test_explicit_id_column_spec() {
         getSessionFactory().inTransaction(session -> {
             var entity = new WithExplicitIdColumnSpec();
@@ -67,7 +70,7 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
         List<Document> docs = response.getEmbedded(List.of("cursor", "firstBatch"), List.class);
         assertThat(docs).hasSize(1);
 
-        assertThat(docs.get(0)).doesNotContainKey("identifier"); // identifier is the implicit column name per entity
+        assertThat(docs.get(0)).doesNotContainKey("identifier"); // 'identifier' is the explicit column name per entity
     }
 
 

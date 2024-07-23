@@ -6,6 +6,7 @@ import jakarta.persistence.Table;
 import org.bson.Document;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
     }
 
     @Test
+    @DisplayName("when collection field was persisted, it should be saved as embedded array in MongoDB")
     void test_persist_into_mongo_embedded_array_field() {
         var insertedMovie = getSessionFactory().fromTransaction(session -> {
             var movie = new Movie();
@@ -51,6 +53,7 @@ public class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
     }
 
     @Test
+    @DisplayName("when collection field was persisted, it should be fetched as expected")
     void test_load_from_mongo_embedded_array_field() {
         var insertedMovie = getSessionFactory().fromTransaction(session -> {
             var movie = new Movie();
