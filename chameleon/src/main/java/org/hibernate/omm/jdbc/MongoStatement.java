@@ -17,7 +17,7 @@ import java.util.List;
 
 import static org.hibernate.omm.util.DocumentUtil.getProjectionFieldsIncluded;
 
-public class MongodbStatement implements StatementAdapter {
+public class MongoStatement implements StatementAdapter {
 
     private record CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
     }
@@ -32,7 +32,7 @@ public class MongodbStatement implements StatementAdapter {
 
     private volatile boolean closed;
 
-    public MongodbStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
+    public MongoStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
         this.mongoDatabase = mongoDatabase;
         this.clientSession = clientSession;
         this.connection = connection;
@@ -50,7 +50,7 @@ public class MongodbStatement implements StatementAdapter {
         if (commandResult.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException();
         }
-        return new MongodbResultSet(commandResult, getProjectionFieldsIncluded(command.get("projection", Document.class)));
+        return new MongoResultSet(commandResult, getProjectionFieldsIncluded(command.get("projection", Document.class)));
     }
 
     private boolean projectionInclude(Object projectionValue) {
@@ -87,7 +87,7 @@ public class MongodbStatement implements StatementAdapter {
         if (cursor != null) {
             long cursorId = cursor.getLong("id");
             ResultSet resultSet =
-                    new MongodbResultSet(cursor.getList("firstBatch", Document.class));
+                    new MongoResultSet(cursor.getList("firstBatch", Document.class));
             currentQueryResult = new CurrentQueryResult(collection, resultSet, cursorId);
             currentUpdateCount = -1;
             return true;
@@ -151,7 +151,7 @@ public class MongodbStatement implements StatementAdapter {
             currentQueryResult =
                     new CurrentQueryResult(
                             currentQueryResult.collection,
-                            new MongodbResultSet(nextBatch),
+                            new MongoResultSet(nextBatch),
                             cursorId
                     );
             return !nextBatch.isEmpty();

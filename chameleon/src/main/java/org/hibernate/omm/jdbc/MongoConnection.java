@@ -39,7 +39,7 @@ public class MongoConnection extends ConnectionAdapter {
 
     @Override
     public Statement createStatement() {
-        return new MongodbStatement(mongoDatabase, clientSession, this);
+        return new MongoStatement(mongoDatabase, clientSession, this);
     }
 
     @Override

@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class MongodbResultSet implements ResultSetAdapter {
+public class MongoResultSet implements ResultSetAdapter {
 
     private final Iterator<Document> documentsIterator;
     private BsonDocument currentDocument;
@@ -38,11 +38,11 @@ public class MongodbResultSet implements ResultSetAdapter {
     private BsonValue lastRead;
     private volatile boolean closed;
 
-    public MongodbResultSet(Document findCommandResult) {
+    public MongoResultSet(Document findCommandResult) {
         this(findCommandResult, null);
     }
 
-    public MongodbResultSet(Document findCommandResult, List<String> columns) {
+    public MongoResultSet(Document findCommandResult, List<String> columns) {
         this.documentsIterator =
                 findCommandResult
                         .get("cursor", Document.class)
@@ -51,7 +51,7 @@ public class MongodbResultSet implements ResultSetAdapter {
         this.currentDocumentKeys = Collections.unmodifiableList(columns);
     }
 
-    public MongodbResultSet(Iterable<Document> documentIterable) {
+    public MongoResultSet(Iterable<Document> documentIterable) {
         this.documentsIterator = documentIterable.iterator();
     }
 

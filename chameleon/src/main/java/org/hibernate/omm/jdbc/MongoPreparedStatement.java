@@ -32,7 +32,7 @@ import org.hibernate.omm.util.StringUtil;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 
-public class MongoPreparedStatement extends MongodbStatement
+public class MongoPreparedStatement extends MongoStatement
         implements PreparedStatementAdapter {
 
     private final String parameterizedCommandJson;
