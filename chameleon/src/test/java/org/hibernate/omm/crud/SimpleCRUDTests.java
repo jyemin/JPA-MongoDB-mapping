@@ -12,12 +12,15 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * @author Nathan Xu
+ */
 class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
 
-    private final Long id = 1234L;
+    final Long id = 1234L;
 
     @BeforeEach
-    void setUp() {
+    void init() {
         deleteBook();
     }
 
@@ -40,7 +43,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
 
     void deleteBook() {
         getSessionFactory().inTransaction(session -> {
-            var query = session.createQuery("delete Book where id = :id");
+            var query = session.createMutationQuery("delete Book where id = :id");
             query.setParameter("id", id);
             query.executeUpdate();
         });
@@ -73,7 +76,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
             session.remove(book);
         });
         getSessionFactory().inTransaction(session -> {
-            var query = session.createQuery("from Book where id = :id");
+            var query = session.createSelectionQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             assertThat(query.getResultList()).isEmpty();
         });

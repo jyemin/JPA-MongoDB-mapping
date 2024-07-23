@@ -13,14 +13,17 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
+/**
+ * @author Nathan Xu
+ */
+class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
 
-    private final Integer id = 22433;
+    final Integer id = 22433;
 
     @BeforeEach
     void setUp() {
         getSessionFactory().inTransaction(session -> {
-            var query = session.createQuery("delete Movie where id = :id");
+            var query = session.createMutationQuery("delete Movie where id = :id");
             query.setParameter("id", id);
             query.executeUpdate();
         });

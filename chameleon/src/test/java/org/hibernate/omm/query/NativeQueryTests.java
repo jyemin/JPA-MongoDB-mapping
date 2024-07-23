@@ -10,7 +10,10 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class NativeQueryTests extends AbstractMongodbIntegrationTests {
+/**
+ * @author Nathan Xu
+ */
+class NativeQueryTests extends AbstractMongodbIntegrationTests {
 
     @Test
     void testNativeQueryWithoutParameter() {

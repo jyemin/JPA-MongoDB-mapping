@@ -11,6 +11,9 @@ import org.testcontainers.containers.MongoDBContainer;
 
 import java.util.List;
 
+/**
+ * @author Nathan Xu
+ */
 public abstract class AbstractMongodbIntegrationTests {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";

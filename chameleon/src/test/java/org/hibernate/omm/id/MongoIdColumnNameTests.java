@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
 
-    private final Long id = 21344L;
+    final Long id = 21344L;
 
     @BeforeEach
     void init() {
@@ -32,7 +32,7 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
     @DisplayName("when @Id field was not annotated with @Column(name = \"xxx\")")
     void test_implicit_id_column_spec() {
 
-       getSessionFactory().inTransaction(session -> {
+        getSessionFactory().inTransaction(session -> {
             var entity = new WithImplicitIdColumnSpec();
             entity.id = id;
             entity.title = "Bible";
@@ -44,8 +44,7 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
         var response = getMongoDatabase().runCommand(Document.parse(findQuery));
         assertThat(response.getDouble("ok")).isEqualTo(1.0);
 
-        @SuppressWarnings("unchecked")
-        List<Document> docs = response.getEmbedded(List.of("cursor", "firstBatch"), List.class);
+        List<Document> docs = response.get("cursor", Document.class).getList("firstBatch", Document.class);
         assertThat(docs).hasSize(1);
 
         assertThat(docs.get(0)).doesNotContainKey("id"); // 'id' is the implicit column name per entity
@@ -66,8 +65,7 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
         var response = getMongoDatabase().runCommand(Document.parse(findQuery));
         assertThat(response.getDouble("ok")).isEqualTo(1.0);
 
-        @SuppressWarnings("unchecked")
-        List<Document> docs = response.getEmbedded(List.of("cursor", "firstBatch"), List.class);
+        List<Document> docs = response.get("cursor", Document.class).getList("firstBatch", Document.class);
         assertThat(docs).hasSize(1);
 
         assertThat(docs.get(0)).doesNotContainKey("identifier"); // 'identifier' is the explicit column name per entity
