@@ -1,5 +1,6 @@
 package org.hibernate.omm.type;
 
+import org.bson.BsonObjectId;
 import org.bson.types.ObjectId;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.type.descriptor.ValueBinder;
@@ -49,13 +50,13 @@ public class ObjectIdJdbcType implements JdbcType {
         return new BasicBinder<>(javaType, this) {
             @Override
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
-                st.setString(index, javaType.unwrap(value, String.class, options));
+                st.setObject(index, value, MongoSqlType.OBJECT_ID);
             }
 
             @Override
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options)
                     throws SQLException {
-                st.setString(name, javaType.unwrap(value, String.class, options));
+                st.setObject(name, value, MongoSqlType.OBJECT_ID);
 
             }
         };
@@ -66,17 +67,17 @@ public class ObjectIdJdbcType implements JdbcType {
         return new BasicExtractor<>(javaType, this) {
             @Override
             protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
-                return javaType.wrap(rs.getString(paramIndex), options);
+                return (X) (rs.getObject(paramIndex, BsonObjectId.class)).getValue();
             }
 
             @Override
             protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
-                return javaType.wrap(statement.getString(index), options);
+                return (X) (statement.getObject(index, BsonObjectId.class)).getValue();
             }
 
             @Override
             protected X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
-                return javaType.wrap(statement.getString(name), options);
+                return (X) statement.getObject(name, ObjectId.class);
             }
         };
     }
@@ -88,7 +89,7 @@ public class ObjectIdJdbcType implements JdbcType {
 
     @Override
     public int getJdbcTypeCode() {
-        return SqlTypes.VARCHAR;
+        return SqlTypes.JAVA_OBJECT;
     }
 
     @Override

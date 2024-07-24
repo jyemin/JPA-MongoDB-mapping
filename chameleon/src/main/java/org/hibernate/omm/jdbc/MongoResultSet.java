@@ -226,6 +226,11 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
+    public <T> T getObject(int columnIndex, Class<T> type) {
+        return type.cast(currentDocument.get(getKey(columnIndex)));
+    }
+
+    @Override
     public ResultSetMetaData getMetaData() {
         return new ResultSetMetaDataAdapter() {
             @Override

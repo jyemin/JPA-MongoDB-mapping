@@ -1,7 +1,6 @@
 package org.hibernate.omm.dialect;
 
 import org.hibernate.boot.model.TypeContributions;
-import org.hibernate.boot.spi.BasicTypeRegistration;
 import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
@@ -16,9 +15,7 @@ import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.sql.ast.spi.StandardSqlAstTranslatorFactory;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.exec.spi.JdbcOperation;
-import org.hibernate.type.internal.BasicTypeImpl;
-
-import java.util.List;
+import org.hibernate.type.spi.TypeConfiguration;
 
 /**
  * @author Nathan Xu
@@ -69,12 +66,9 @@ public class MongoDialect extends Dialect {
 
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
-        typeContributions.getTypeConfiguration().addBasicTypeRegistrationContributions(List.of(
-                new BasicTypeRegistration(
-                        new BasicTypeImpl<>(ObjectIdJavaType.INSTANCE, ObjectIdJdbcType.INSTANCE),
-                        new String[]{"objectid"}
-                )
-        ));
+        final TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
+        typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
+        typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.INSTANCE);
     }
 
 }

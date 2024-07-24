@@ -2,6 +2,7 @@ package org.hibernate.omm.jdbc;
 
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import org.bson.types.ObjectId;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
@@ -32,7 +33,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
+ * Simulate JDBC's {@link java.sql.PreparedStatement} to create a virtual MongoDB JDBC layer
+ * on top of MongoDB Java driver.
  * @author Nathan Xu
+ * @apiNote v2 extended JSON format is observed when generating command JSON string.
+ * @see <a href="https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/">MongoDB Extended JSON (v2)</a>
  * @since 1.0.0
  */
 public class MongoPreparedStatement extends MongoStatement
@@ -159,7 +164,14 @@ public class MongoPreparedStatement extends MongoStatement
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType)
             throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+        switch (targetSqlType) {
+            case 3000:
+                ObjectId objectId = (ObjectId) x;
+                parameters.put(parameterIndex, "{ \"$oid\": \"" + objectId.toHexString() + "\" }");
+                break;
+            default:
+                throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
+        }
     }
 
     @Override

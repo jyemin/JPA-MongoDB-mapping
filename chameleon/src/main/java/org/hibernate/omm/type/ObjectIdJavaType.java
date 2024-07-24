@@ -5,6 +5,8 @@ import org.hibernate.type.descriptor.WrapperOptions;
 import org.hibernate.type.descriptor.java.AbstractClassJavaType;
 import org.hibernate.type.descriptor.java.ImmutableMutabilityPlan;
 import org.hibernate.type.descriptor.java.MutabilityPlan;
+import org.hibernate.type.descriptor.jdbc.JdbcType;
+import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
 
 /**
  * @author Nathan Xu
@@ -30,23 +32,16 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
     @Override
     public <X> X unwrap(final ObjectId value, final Class<X> type, final WrapperOptions options) {
-        if (value == null) {
-            return null;
-        }
-        if (String.class.isAssignableFrom(type)) {
-            return type.cast(value.toHexString());
-        }
-        throw unknownUnwrap(type);
+        return (X) value;
     }
 
     @Override
     public <X> ObjectId wrap(final X value, final WrapperOptions options) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof String string) {
-            return new ObjectId(string);
-        }
-        throw unknownWrap(value.getClass());
+        return ObjectId.class.cast(value);
+    }
+
+    @Override
+    public JdbcType getRecommendedJdbcType(JdbcTypeIndicators context) {
+        return ObjectIdJdbcType.INSTANCE;
     }
 }
