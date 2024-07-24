@@ -57,7 +57,6 @@ public class ObjectIdJdbcType implements JdbcType {
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options)
                     throws SQLException {
                 st.setObject(name, value, MongoSqlType.OBJECT_ID);
-
             }
         };
     }
@@ -67,24 +66,24 @@ public class ObjectIdJdbcType implements JdbcType {
         return new BasicExtractor<>(javaType, this) {
             @Override
             protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
-                return (X) (rs.getObject(paramIndex, BsonObjectId.class)).getValue();
+                return javaType.getJavaTypeClass().cast(rs.getObject(paramIndex, BsonObjectId.class).getValue());
             }
 
             @Override
             protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
-                return (X) (statement.getObject(index, BsonObjectId.class)).getValue();
+                return javaType.getJavaTypeClass().cast(statement.getObject(index, BsonObjectId.class).getValue());
             }
 
             @Override
             protected X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
-                return (X) statement.getObject(name, ObjectId.class);
+                return javaType.getJavaTypeClass().cast(statement.getObject(name, ObjectId.class));
             }
         };
     }
 
     @Override
     public String getFriendlyName() {
-        return "OBJECTID";
+        return "OBJECT_ID";
     }
 
     @Override

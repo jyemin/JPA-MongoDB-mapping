@@ -133,12 +133,6 @@ public interface PreparedStatementAdapter extends StatementAdapter, PreparedStat
     }
 
     @Override
-    default void setObject(int parameterIndex, Object x, int targetSqlType)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
     default void setObject(int parameterIndex, Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }

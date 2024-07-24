@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 /**
  * Simulate JDBC's {@link java.sql.PreparedStatement} to create a virtual MongoDB JDBC layer
  * on top of MongoDB Java driver.
+ *
  * @author Nathan Xu
  * @apiNote v2 extended JSON format is observed when generating command JSON string.
  * @see <a href="https://www.mongodb.com/docs/manual/reference/mongodb-extended-json/">MongoDB Extended JSON (v2)</a>

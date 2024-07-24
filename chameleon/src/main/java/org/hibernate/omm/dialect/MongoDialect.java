@@ -66,7 +66,8 @@ public class MongoDialect extends Dialect {
 
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
-        final TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
+        super.contribute(typeContributions, serviceRegistry);
+        TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
         typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
         typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.INSTANCE);
     }

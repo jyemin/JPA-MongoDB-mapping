@@ -32,12 +32,12 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
     @Override
     public <X> X unwrap(final ObjectId value, final Class<X> type, final WrapperOptions options) {
-        return (X) value;
+        return type.cast(value);
     }
 
     @Override
     public <X> ObjectId wrap(final X value, final WrapperOptions options) {
-        return ObjectId.class.cast(value);
+        return (ObjectId) value;
     }
 
     @Override
