@@ -4953,7 +4953,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     protected static class ForUpdateClause {
         private LockMode lockMode;
-        private int timeoutMillis = LockOptions.WAIT_FOREVER;
+        private final int timeoutMillis = LockOptions.WAIT_FOREVER;
         private Map<String, String[]> keyColumnNames;
         private Map<String, String> aliases;
 
