@@ -1535,6 +1535,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                 visitFromClause(querySpec.getFromClause());
                 appendSql(", filter: ");
                 visitWhereClause(querySpec.getWhereClauseRestrictions());
+
                 if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
                     appendSql(", sort: ");
                     visitOrderBy(querySpec.getSortSpecifications());
@@ -1608,6 +1609,8 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             } finally {
                 clauseStack.pop();
             }
+        } else {
+            appendSql("{ }");
         }
     }
 

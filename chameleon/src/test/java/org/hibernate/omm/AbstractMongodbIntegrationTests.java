@@ -1,6 +1,7 @@
 package org.hibernate.omm;
 
 import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
@@ -17,6 +18,10 @@ import java.util.List;
 public abstract class AbstractMongodbIntegrationTests {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
+
+    // prepend a common collection name prefix to avoid conflict with existing collection
+    // sometimes we still need to eliminate collection completely during testing
+    private static final String TEST_COLLECTION_NAME_PREFIX = "chameleon-test-";
 
     private MongoDBContainer mongoDBContainer;
 
@@ -55,5 +60,14 @@ public abstract class AbstractMongodbIntegrationTests {
 
     protected MongoDatabase getMongoDatabase() {
         return MongoConnectionProvider.mongoDatabase;
+    }
+
+    protected void deleteCollection(String collectionName) {
+        Document command = new Document("delete", collectionName)
+                .append("deletes", List.of(new Document("q", new Document()).append("limit", 0)));
+        Document result = getMongoDatabase().runCommand(command);
+        if (result.getDouble("ok") != 1.0) {
+            throw new IllegalStateException("failed to delete collection: " + collectionName);
+        }
     }
 }
