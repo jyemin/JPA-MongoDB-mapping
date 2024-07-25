@@ -885,7 +885,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             if (statement.getRestriction() != null) {
                 visitWhereClause(statement.getRestriction());
             } else {
-                appendSql("{ $ne: { _id: null} }");
+                appendSql("{ }");
             }
         } else {
             visitWhereClause(determineWhereClauseRestrictionWithJoinEmulation(statement));
