@@ -882,7 +882,11 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         renderDeleteClause(statement);
         appendSql(", deletes: [ { q: ");
         if (supportsJoinsInDelete() || !hasNonTrivialFromClause(statement.getFromClause())) {
-            visitWhereClause(statement.getRestriction());
+            if (statement.getRestriction() != null) {
+                visitWhereClause(statement.getRestriction());
+            } else {
+                appendSql("{ $ne: { _id: null} }");
+            }
         } else {
             visitWhereClause(determineWhereClauseRestrictionWithJoinEmulation(statement));
         }
