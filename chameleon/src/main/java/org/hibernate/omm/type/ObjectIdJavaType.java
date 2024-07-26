@@ -1,5 +1,7 @@
 package org.hibernate.omm.type;
 
+import com.mongodb.assertions.Assertions;
+import com.mongodb.lang.Nullable;
 import org.bson.types.ObjectId;
 import org.hibernate.type.descriptor.WrapperOptions;
 import org.hibernate.type.descriptor.java.AbstractClassJavaType;
@@ -21,7 +23,10 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
     }
 
     @Override
-    public ObjectId fromString(final CharSequence charSequence) {
+    public @Nullable ObjectId fromString(@Nullable final CharSequence charSequence) {
+        if (charSequence == null) {
+            return null;
+        }
         return new ObjectId(charSequence.toString());
     }
 
@@ -31,17 +36,18 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
     }
 
     @Override
-    public <X> X unwrap(final ObjectId value, final Class<X> type, final WrapperOptions options) {
+    public @Nullable <X> X unwrap(@Nullable final ObjectId value, final Class<X> type, @Nullable final WrapperOptions options) {
+        Assertions.notNull("type", type);
         return type.cast(value);
     }
 
     @Override
-    public <X> ObjectId wrap(final X value, final WrapperOptions options) {
+    public @Nullable <X> ObjectId wrap(@Nullable final X value, @Nullable final WrapperOptions options) {
         return (ObjectId) value;
     }
 
     @Override
-    public JdbcType getRecommendedJdbcType(JdbcTypeIndicators context) {
+    public JdbcType getRecommendedJdbcType(@Nullable JdbcTypeIndicators context) {
         return ObjectIdJdbcType.INSTANCE;
     }
 }

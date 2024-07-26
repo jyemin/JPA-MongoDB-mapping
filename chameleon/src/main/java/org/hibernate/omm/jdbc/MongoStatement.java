@@ -1,7 +1,9 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.lang.Nullable;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
@@ -34,6 +36,9 @@ public class MongoStatement implements StatementAdapter {
     private volatile boolean closed;
 
     public MongoStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
+        Assertions.notNull("mongoDatabase", mongoDatabase);
+        Assertions.notNull("clientSession", clientSession);
+        Assertions.notNull("connection", connection);
         this.mongoDatabase = mongoDatabase;
         this.clientSession = clientSession;
         this.connection = connection;
@@ -45,6 +50,7 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     public ResultSet executeQuery(String sql) throws SimulatedSQLException {
+        Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
@@ -56,6 +62,7 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     public int executeUpdate(String sql) throws SimulatedSQLException {
+        Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
@@ -67,6 +74,7 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     public boolean execute(String sql) throws SimulatedSQLException {
+        Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         String collection = (String) command.entrySet().iterator().next().getValue();
@@ -113,7 +121,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public ResultSet getResultSet() {
+    public @Nullable ResultSet getResultSet() {
         return currentQueryResult == null ? null : currentQueryResult.resultSet;
     }
 

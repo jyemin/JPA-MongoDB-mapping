@@ -1,5 +1,7 @@
 package org.hibernate.omm.util;
 
+import com.mongodb.assertions.Assertions;
+import com.mongodb.lang.Nullable;
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -24,6 +26,7 @@ public final class TypeUtil {
     }
 
     public static Integer getJdbcType(BsonType bsonType) {
+        Assertions.notNull("bsonType", bsonType);
         return switch (bsonType) {
             case ARRAY -> Types.ARRAY;
             case BINARY -> Types.BINARY;
@@ -33,31 +36,13 @@ public final class TypeUtil {
             case DOUBLE -> Types.DOUBLE;
             case INT32 -> Types.INTEGER;
             case INT64 -> Types.BIGINT;
-            case NULL -> Types.NULL;
             case STRING -> Types.VARCHAR;
             case TIMESTAMP -> Types.TIMESTAMP;
-            default -> null;
+            default -> Types.NULL;
         };
     }
 
-    public static BsonType getBsonType(int jdbcType) {
-        return switch (jdbcType) {
-            case Types.ARRAY -> BsonType.ARRAY;
-            case Types.BINARY -> BsonType.BINARY;
-            case Types.BOOLEAN -> BsonType.BOOLEAN;
-            case Types.TIME -> BsonType.DATE_TIME;
-            case Types.DECIMAL -> BsonType.DECIMAL128;
-            case Types.DOUBLE -> BsonType.DOUBLE;
-            case Types.INTEGER -> BsonType.INT32;
-            case Types.BIGINT -> BsonType.INT64;
-            case Types.NULL -> BsonType.NULL;
-            case Types.VARCHAR -> BsonType.STRING;
-            case Types.TIMESTAMP -> BsonType.TIMESTAMP;
-            default -> null;
-        };
-    }
-
-    public static Object unwrap(BsonValue bsonValue) {
+    public static @Nullable Object unwrap(@Nullable BsonValue bsonValue) {
         if (bsonValue == null) {
             return null;
         }

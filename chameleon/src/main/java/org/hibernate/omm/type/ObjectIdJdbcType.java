@@ -1,6 +1,8 @@
 package org.hibernate.omm.type;
 
+import com.mongodb.lang.Nullable;
 import org.bson.BsonObjectId;
+import org.bson.assertions.Assertions;
 import org.bson.types.ObjectId;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.type.descriptor.ValueBinder;
@@ -29,24 +31,27 @@ public class ObjectIdJdbcType implements JdbcType {
 
     @Override
     public <T> JavaType<T> getJdbcRecommendedJavaTypeMapping(
-            Integer length,
-            Integer scale,
+            @Nullable Integer length,
+            @Nullable Integer scale,
             TypeConfiguration typeConfiguration) {
+        Assertions.notNull("typeConfiguration", typeConfiguration);
         return typeConfiguration.getJavaTypeRegistry().getDescriptor(ObjectId.class);
     }
 
     @Override
     public <T> JdbcLiteralFormatter<T> getJdbcLiteralFormatter(JavaType<T> javaType) {
+        Assertions.notNull("javaType", javaType);
         return new JdbcLiteralFormatterCharacterData<>(javaType, false);
     }
 
     @Override
-    public Class<?> getPreferredJavaTypeClass(WrapperOptions options) {
+    public Class<?> getPreferredJavaTypeClass(@Nullable WrapperOptions options) {
         return ObjectId.class;
     }
 
     @Override
     public <X> ValueBinder<X> getBinder(final JavaType<X> javaType) {
+        Assertions.notNull("javaType", javaType);
         return new BasicBinder<>(javaType, this) {
             @Override
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
@@ -63,6 +68,7 @@ public class ObjectIdJdbcType implements JdbcType {
 
     @Override
     public <X> ValueExtractor<X> getExtractor(final JavaType<X> javaType) {
+        Assertions.notNull("javaType", javaType);
         return new BasicExtractor<>(javaType, this) {
             @Override
             protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {

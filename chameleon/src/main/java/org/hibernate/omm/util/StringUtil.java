@@ -1,5 +1,7 @@
 package org.hibernate.omm.util;
 
+import com.mongodb.assertions.Assertions;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -16,6 +18,7 @@ public final class StringUtil {
      * @apiNote copied intact from {@code StrictCharacterStreamJsonWriter}'s private method
      */
     public static String writeStringHelper(final String str) {
+        Assertions.notNull("str", str);
         StringBuilder sb = new StringBuilder(str.length() + 2);
         sb.append('"');
         for (int i = 0; i < str.length(); i++) {
