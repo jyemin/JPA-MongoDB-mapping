@@ -7,7 +7,7 @@ image:chameleon-logo.jpg[logo, 180, 120]
 JPA (**J**arkata **P**ersistence **A**PI) is an SQL persistence contract aiming to bridge the gap between Java OOP (**O**bject
 **O**riented **P**rogramming) paradigm and relational database model.
 Hibernate library as the reference implementation of JPA is the de facto ORM (**O**bject **R**elational **M**apping) framework in which
-Java developer could interact with POJOs (**P**lain **O**ld **J**ava **O**bject) whereas ORM library takes care of boilerplate JDBC processing
+Java developer could interact with POJOs whereas ORM library takes care of boilerplate JDBC processing
 automatically.
 
 MongoDB is a document NoSQL database, so seemingly JPA could not be applied directly, though the similar ORM spirit is still
@@ -21,7 +21,7 @@ However, it lacks some basic JPA features (e.g. Criteria and Filter) and ceased 
 v6 release, it is extremely challenging to revive it by integrating with v6's new query model, if possible.
 
 *Spring Data MongoDB* (https://spring.io/projects/spring-data-mongodb) is a good choice for CRUD tasks, but it lacks
-other JPA features, for instance:
+other important JPA features, for instance:
 
 * OOP Inheritance Mapping
 * JP-QL or HQL
@@ -56,20 +56,6 @@ ARRAY type is supported
 
 == Mongodb Integration Unit Testing
 
-Currently there are two ways to go about MongoDB integration testing:
-
-=== #1: https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers Approach] (by default)
+https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers Approach] was chosen to go about MongoDB integration unit testing.
 Remember you need to launch docker service beforehand; otherwise testing will fail complaining docker is not started.
 
-There might be some MongoDB monitor related error loggings during the testing. Simply ignore them for testing doesn't rely on it.
-
-=== #2: Connect with External MongoDB (e.g. MongoDB Atlas)
-Uncomment the following two lines at *src/test/resources/hibernate
-.properties*:
-----
-#mongodb.connection.url={your_mongodb_connection_url}
-#mongodb.database={your_mongodb_database}
-----
-
-Then substitute your MongoDB connection URL and database name for the placeholders.
-Remember don't add your MongoDB connection configurations in Git commit, of course.

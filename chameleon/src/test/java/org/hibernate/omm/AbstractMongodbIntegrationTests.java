@@ -19,10 +19,6 @@ public abstract class AbstractMongodbIntegrationTests {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
 
-    // prepend a common collection name prefix to avoid conflict with existing collection
-    // sometimes we still need to eliminate collection completely during testing
-    private static final String TEST_COLLECTION_NAME_PREFIX = "chameleon-test-";
-
     private MongoDBContainer mongoDBContainer;
 
     private SessionFactory sessionFactory;
@@ -30,16 +26,10 @@ public abstract class AbstractMongodbIntegrationTests {
     @BeforeEach
     void createSessionFactory() {
         Configuration cfg = new Configuration();
-
-        // Testcontainer will only be launched when no mongo connection url is provided
-        // if you prefer connecting with external existing MongoDB (e.g. MongoDB Atlas),
-        // simply config connection url and database in hibernate.properties
-        if (cfg.getProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL) == null) {
-            mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
-            mongoDBContainer.start();
-            cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
-            cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
-        }
+        mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
+        mongoDBContainer.start();
+        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
+        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
         getAnnotatedClasses().forEach(cfg::addAnnotatedClass);
         sessionFactory = cfg.buildSessionFactory();
     }
@@ -47,9 +37,7 @@ public abstract class AbstractMongodbIntegrationTests {
     @AfterEach
     void closeSessionFactory() {
         sessionFactory.close();
-        if (mongoDBContainer != null) {
-            mongoDBContainer.stop();
-        }
+        mongoDBContainer.stop();
     }
 
     public abstract List<Class<?>> getAnnotatedClasses();
