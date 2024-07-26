@@ -5,7 +5,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.bson.Document;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -19,15 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
 
     final Integer id = 22433;
-
-    @BeforeEach
-    void setUp() {
-        getSessionFactory().inTransaction(session -> {
-            var query = session.createMutationQuery("delete Movie where id = :id");
-            query.setParameter("id", id);
-            query.executeUpdate();
-        });
-    }
 
     @Test
     @DisplayName("when collection field was persisted, it should be saved as embedded array in MongoDB")

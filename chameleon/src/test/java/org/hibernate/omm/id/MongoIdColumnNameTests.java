@@ -6,7 +6,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.bson.Document;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,13 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
 
     final Long id = 21344L;
-
-    @BeforeEach
-    void init() {
-        String deleteQuery = "{ delete: \"books\", deletes: [ { q: { _id: { $eq: " + id + " } }, limit: 0 } ] }";
-        Document response = getMongoDatabase().runCommand(Document.parse(deleteQuery));
-        assertThat(response.getDouble("ok")).isEqualTo(1.0);
-    }
 
     @Test
     @DisplayName("when @Id field was not annotated with @Column(name = \"xxx\")")

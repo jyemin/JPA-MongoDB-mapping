@@ -5,7 +5,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -17,11 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @since 1.0.0
  */
 public class DeleteAllTests extends AbstractMongodbIntegrationTests {
-
-    @BeforeEach
-    void init() {
-        deleteCollection("books");
-    }
 
     @Test
     void test_delete_all() {

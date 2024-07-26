@@ -5,8 +5,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.bson.types.ObjectId;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -21,16 +19,6 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
 
     final ObjectId objectId = ObjectId.get();
 
-    @BeforeEach
-    void init() {
-        deleteBook();
-    }
-
-    @AfterEach
-    void tearDown() {
-        deleteBook();
-    }
-
     Book insertBook() {
         return getSessionFactory().fromTransaction(session -> {
             var book = new Book();
@@ -40,14 +28,6 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
             book.publishYear = 1869;
             session.persist(book);
             return book;
-        });
-    }
-
-    void deleteBook() {
-        getSessionFactory().inTransaction(session -> {
-            var query = session.createMutationQuery("delete Book where id = :id");
-            query.setParameter("id", objectId);
-            query.executeUpdate();
         });
     }
 
@@ -90,7 +70,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { find: "books", filter: { _id: { $eq: ? } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
         getSessionFactory().inTransaction(session -> {
             var book = new Book();
             session.load(book, objectId);
@@ -104,7 +84,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { find: "books", filter: { _id: { $eq: ? } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
         getSessionFactory().inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);

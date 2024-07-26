@@ -1,7 +1,6 @@
 package org.hibernate.omm;
 
 import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
@@ -13,6 +12,13 @@ import org.testcontainers.containers.MongoDBContainer;
 import java.util.List;
 
 /**
+ * Abstract parent class to integration testing cases to provide:
+ * <ul>
+ *     <li>{@link SessionFactory} based on abstract {@link #getAnnotatedClasses()} method </li>
+ *     <li>{@link MongoDatabase} instance to interact with Mongo via java driver</li>
+ *     <li>guarantee that each test case will be run in a blank db state</li>
+ * </ul>
+ * @apiNote For current stage, perf is not as important as logic correctness, so a slow-but-safe approach is adopted
  * @author Nathan Xu
  */
 public abstract class AbstractMongodbIntegrationTests {
@@ -50,12 +56,4 @@ public abstract class AbstractMongodbIntegrationTests {
         return MongoConnectionProvider.mongoDatabase;
     }
 
-    protected void deleteCollection(String collectionName) {
-        Document command = new Document("delete", collectionName)
-                .append("deletes", List.of(new Document("q", new Document()).append("limit", 0)));
-        Document result = getMongoDatabase().runCommand(command);
-        if (result.getDouble("ok") != 1.0) {
-            throw new IllegalStateException("failed to delete collection: " + collectionName);
-        }
-    }
 }
