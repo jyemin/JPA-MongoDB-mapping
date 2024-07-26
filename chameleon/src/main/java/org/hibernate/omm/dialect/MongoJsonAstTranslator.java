@@ -1529,18 +1529,17 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             if (queryGroupAlias != null) {
                 throw new NotSupportedRuntimeException("query group not supported");
             }
-            appendSql('{');
+            appendSql("{ aggregate: ");
             {
-                appendSql(" find: ");
                 visitFromClause(querySpec.getFromClause());
-                appendSql(", filter: ");
+                appendSql(" { $match: ");
                 visitWhereClause(querySpec.getWhereClauseRestrictions());
 
                 if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
-                    appendSql(", sort: ");
+                    appendSql(" }, { $sort: ");
                     visitOrderBy(querySpec.getSortSpecifications());
                 }
-                append(", projection: ");
+                append("}, { $project: ");
                 visitSelectClause(querySpec.getSelectClause());
                 //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
                 //visitHavingClause( querySpec );
@@ -1550,7 +1549,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                 //visitForUpdateClause( querySpec );
                 //}
             }
-            appendSql(" }");
+            appendSql(" } ], cursor: {} }");
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
@@ -2731,6 +2730,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                 throw new NotSupportedRuntimeException("Multiple tables not supported");
             }
             dialect.appendLiteral(this, querySpaces[0]);
+            appendSql(", pipeline: [");
         } else {
             throw new NotSupportedRuntimeException("table group's model part is not AbstractEntityPersister!");
         }

@@ -53,7 +53,7 @@ public class MongoConnection extends ConnectionAdapter {
     public DatabaseMetaData getMetaData() throws SimulatedSQLException {
         Document result = mongoDatabase.runCommand(new Document("buildinfo", 1));
         if (result.getDouble("ok") != 1.0) {
-            throw new CommandRunFailSQLException(result.toJson());
+            throw new CommandRunFailSQLException(result);
         }
         String version = result.getString("version");
         List<Integer> versionArray = result.getList("versionArray", Integer.class);

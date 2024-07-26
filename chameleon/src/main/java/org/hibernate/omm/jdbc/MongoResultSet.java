@@ -42,17 +42,16 @@ public class MongoResultSet implements ResultSetAdapter {
     private BsonValue lastRead;
     private volatile boolean closed;
 
-    public MongoResultSet(Document findCommandResult) {
-        this(findCommandResult, null);
-    }
-
-    public MongoResultSet(Document findCommandResult, List<String> columns) {
-        this.documentsIterator =
-                findCommandResult
-                        .get("cursor", Document.class)
-                        .getList("firstBatch", Document.class)
-                        .iterator();
-        this.currentDocumentKeys = Collections.unmodifiableList(columns);
+    public MongoResultSet(Document commandResult) {
+        var firstBatch = commandResult
+                .get("cursor", Document.class)
+                .getList("firstBatch", Document.class);
+        this.documentsIterator = firstBatch.iterator();
+        if (!firstBatch.isEmpty()) {
+            this.currentDocumentKeys = Collections.unmodifiableList(new ArrayList<>(firstBatch.get(0).keySet()));
+        } else {
+            this.currentDocumentKeys = null;
+        }
     }
 
     public MongoResultSet(Iterable<Document> documentIterable) {

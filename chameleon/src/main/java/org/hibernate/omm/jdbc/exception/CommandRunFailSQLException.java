@@ -1,19 +1,27 @@
 package org.hibernate.omm.jdbc.exception;
 
+import org.bson.Document;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public class CommandRunFailSQLException extends SimulatedSQLException {
 
-    public CommandRunFailSQLException() {
+    private final int code;
+    private final String codeName;
+
+    public CommandRunFailSQLException(Document response) {
+        super(response.getString("errmsg"));
+        this.code = response.getInteger("code");
+        this.codeName = response.getString("codeName");
     }
 
-    public CommandRunFailSQLException(String reason) {
-        super(reason);
+    public int getCode() {
+        return code;
     }
 
-    public CommandRunFailSQLException(String reason, Throwable cause) {
-        super(reason, cause);
+    public String getCodeName() {
+        return codeName;
     }
 }

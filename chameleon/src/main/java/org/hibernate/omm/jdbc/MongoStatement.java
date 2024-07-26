@@ -14,8 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.List;
 
-import static org.hibernate.omm.util.DocumentUtil.getProjectionFieldsIncluded;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -51,9 +49,9 @@ public class MongoStatement implements StatementAdapter {
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
         if (commandResult.getDouble("ok") != 1.0) {
-            throw new CommandRunFailSQLException();
+            throw new CommandRunFailSQLException(commandResult);
         }
-        return new MongoResultSet(commandResult, getProjectionFieldsIncluded(command.get("projection", Document.class)));
+        return new MongoResultSet(commandResult);
     }
 
     @Override
@@ -62,7 +60,7 @@ public class MongoStatement implements StatementAdapter {
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
         if (commandResult.getDouble("ok") != 1.0) {
-            throw new CommandRunFailSQLException();
+            throw new CommandRunFailSQLException(commandResult);
         }
         return commandResult.getInteger("n");
     }
@@ -74,7 +72,7 @@ public class MongoStatement implements StatementAdapter {
         String collection = (String) command.entrySet().iterator().next().getValue();
         Document commandResult = runCommand(command);
         if (commandResult.getDouble("ok") != 1.0) {
-            throw new CommandRunFailSQLException();
+            throw new CommandRunFailSQLException(commandResult);
         }
         Document cursor = commandResult.get("cursor", Document.class);
         if (cursor != null) {
@@ -136,7 +134,7 @@ public class MongoStatement implements StatementAdapter {
             }
             Document moreResults = runCommand(moreResultsCommand);
             if (moreResults.getDouble("ok") != 1.0) {
-                throw new CommandRunFailSQLException();
+                throw new CommandRunFailSQLException(moreResults);
             }
             Document cursor = moreResults.get("cursor", Document.class);
             List<Document> nextBatch = cursor.getList("nextBatch", Document.class);
