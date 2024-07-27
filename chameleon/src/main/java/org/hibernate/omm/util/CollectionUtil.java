@@ -9,6 +9,10 @@ import java.util.Collection;
  * @since 1.0.0
  */
 public final class CollectionUtil {
+
+    public static final String ID_FIELD_NAME = "_id";
+    public static final String DB_VERSION_QUERY_FIELD_NAME = "buildinfo";
+
     private CollectionUtil() {
     }
 

@@ -218,7 +218,12 @@ import static org.hibernate.sql.ast.SqlTreePrinter.logSqlAst;
 import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomainResultGraph;
 
 /**
+ * Central class focusing on MongoDB specific BSON/JSON command string as per
+ * <a href='https://www.mongodb.com/docs/manual/reference/command/'>mongodb command references</a>.
+ *
  * @author Nathan Xu
+ * @implNote BSON/JSON command should be in line with the current mongodb version
+ * @implNote mainly copied from {@link org.hibernate.sql.ast.spi.AbstractSqlAstTranslator}
  * @since 1.0.0
  */
 public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {

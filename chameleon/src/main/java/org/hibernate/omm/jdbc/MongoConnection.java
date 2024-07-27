@@ -1,7 +1,9 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.lang.Nullable;
 import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
@@ -19,12 +21,15 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
 
+import static org.hibernate.omm.util.CollectionUtil.DB_VERSION_QUERY_FIELD_NAME;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public class MongoConnection implements ConnectionAdapter {
 
+    @Nullable
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
 
@@ -34,9 +39,14 @@ public class MongoConnection implements ConnectionAdapter {
 
     private SQLWarning sqlWarning;
 
-    public MongoConnection(ClientSession clientSession, MongoDatabase mongoDatabase) {
+    public MongoConnection(MongoDatabase mongoDatabase, @Nullable ClientSession clientSession) {
+        Assertions.notNull("mongoDatabase", mongoDatabase);
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
+    }
+
+    public MongoConnection(MongoDatabase mongoDatabase) {
+        this(mongoDatabase, null);
     }
 
     @Override
@@ -45,13 +55,13 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql) {
-        return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
+    public PreparedStatement prepareStatement(String json) {
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, json);
     }
 
     @Override
     public DatabaseMetaData getMetaData() throws SimulatedSQLException {
-        Document result = mongoDatabase.runCommand(new Document("buildinfo", 1));
+        Document result = mongoDatabase.runCommand(new Document(DB_VERSION_QUERY_FIELD_NAME, 1));
         if (result.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException(result);
         }

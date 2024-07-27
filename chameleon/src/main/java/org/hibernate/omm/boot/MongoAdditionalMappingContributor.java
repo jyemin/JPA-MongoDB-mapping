@@ -7,6 +7,7 @@ import org.hibernate.boot.spi.InFlightMetadataCollector;
 import org.hibernate.boot.spi.MetadataBuildingContext;
 import org.hibernate.mapping.PersistentClass;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.util.CollectionUtil;
 
 /**
  * @author Nathan Xu
@@ -27,8 +28,8 @@ public class MongoAdditionalMappingContributor implements AdditionalMappingContr
     private static void setIdentifierColumnName(PersistentClass persistentClass) {
         var identifier = persistentClass.getIdentifier();
         if (identifier.getColumnSpan() != 1) {
-            throw new NotSupportedRuntimeException("Mongodb collection _id field can't span multiple columns: " + identifier);
+            throw new NotSupportedRuntimeException("Mongodb collection _id field can't span multiple columns for identifier: " + identifier);
         }
-        identifier.getColumns().get(0).setName("_id");
+        identifier.getColumns().get(0).setName(CollectionUtil.ID_FIELD_NAME);
     }
 }

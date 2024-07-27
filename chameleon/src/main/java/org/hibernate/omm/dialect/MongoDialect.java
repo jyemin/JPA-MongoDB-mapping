@@ -23,7 +23,9 @@ import org.hibernate.type.spi.TypeConfiguration;
  */
 public class MongoDialect extends Dialect {
 
-    private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(3);
+    public static final int MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED = 3;
+
+    private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED);
 
     public MongoDialect() {
         this(MINIMUM_VERSION);
@@ -66,7 +68,7 @@ public class MongoDialect extends Dialect {
 
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
-        super.contribute(typeContributions, serviceRegistry);
+        super.contribute(typeContributions, serviceRegistry); // need to call the super method to enable Array support
         TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
         typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
         typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.INSTANCE);
