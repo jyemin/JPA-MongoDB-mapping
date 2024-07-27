@@ -23,7 +23,8 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
     }
 
     @Override
-    public @Nullable ObjectId fromString(@Nullable final CharSequence charSequence) {
+    @Nullable
+    public ObjectId fromString(@Nullable final CharSequence charSequence) {
         if (charSequence == null) {
             return null;
         }
@@ -36,13 +37,15 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
     }
 
     @Override
-    public @Nullable <X> X unwrap(@Nullable final ObjectId value, final Class<X> type, @Nullable final WrapperOptions options) {
+    @Nullable
+    public <X> X unwrap(@Nullable final ObjectId value, final Class<X> type, @Nullable final WrapperOptions options) {
         Assertions.notNull("type", type);
         return type.cast(value);
     }
 
     @Override
-    public @Nullable <X> ObjectId wrap(@Nullable final X value, @Nullable final WrapperOptions options) {
+    @Nullable
+    public <X> ObjectId wrap(@Nullable final X value, @Nullable final WrapperOptions options) {
         return (ObjectId) value;
     }
 

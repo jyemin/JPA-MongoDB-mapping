@@ -48,6 +48,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
             throw new IllegalStateException(
                     "mongoDatabase instance should have been configured during Configurable mechanism ");
         }
+
         ClientSession clientSession = mongoClient.startSession();
         return new MongoConnection(mongoDatabase, clientSession);
     }

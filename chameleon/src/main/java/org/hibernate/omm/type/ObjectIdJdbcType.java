@@ -53,6 +53,7 @@ public class ObjectIdJdbcType implements JdbcType {
     public <X> ValueBinder<X> getBinder(final JavaType<X> javaType) {
         Assertions.notNull("javaType", javaType);
         return new BasicBinder<>(javaType, this) {
+
             @Override
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
                 st.setObject(index, value, MongoSqlType.OBJECT_ID);
@@ -70,6 +71,7 @@ public class ObjectIdJdbcType implements JdbcType {
     public <X> ValueExtractor<X> getExtractor(final JavaType<X> javaType) {
         Assertions.notNull("javaType", javaType);
         return new BasicExtractor<>(javaType, this) {
+
             @Override
             protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
                 return javaType.getJavaTypeClass().cast(rs.getObject(paramIndex, BsonObjectId.class).getValue());

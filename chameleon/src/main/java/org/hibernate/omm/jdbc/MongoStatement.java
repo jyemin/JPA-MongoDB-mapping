@@ -21,6 +21,15 @@ import java.util.List;
  * @since 1.0.0
  */
 public class MongoStatement implements StatementAdapter {
+    private static final String OK_FIELD = "ok";
+    private static final String COUNT_FIELD = "n";
+    private static final String CURSOR_FIELD = "cursor";
+    private static final String FIRST_BATCH_FIELD = "firstBatch";
+    private static final String NEXT_BATCH_FIELD = "nextBatch";
+    private static final String CURSOR_ID_FIELD = "id";
+    private static final String GET_MORE_ID_FIELD = "getMore";
+    private static final String GET_MORE_COLLECTION_FIELD = "collection";
+    private static final String GET_MORE_BATCH_SIZE_FIELD = "batchSize";
 
     private record CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
     }
@@ -54,7 +63,7 @@ public class MongoStatement implements StatementAdapter {
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
-        if (commandResult.getDouble("ok") != 1.0) {
+        if (commandResult.getDouble(OK_FIELD) != 1.0) {
             throw new CommandRunFailSQLException(commandResult);
         }
         return new MongoResultSet(commandResult);
@@ -66,10 +75,10 @@ public class MongoStatement implements StatementAdapter {
         throwExceptionIfClosed();
         Document command = Document.parse(sql);
         Document commandResult = runCommand(command);
-        if (commandResult.getDouble("ok") != 1.0) {
+        if (commandResult.getDouble(OK_FIELD) != 1.0) {
             throw new CommandRunFailSQLException(commandResult);
         }
-        return commandResult.getInteger("n");
+        return commandResult.getInteger(COUNT_FIELD);
     }
 
     @Override
@@ -79,20 +88,20 @@ public class MongoStatement implements StatementAdapter {
         Document command = Document.parse(sql);
         String collection = (String) command.entrySet().iterator().next().getValue();
         Document commandResult = runCommand(command);
-        if (commandResult.getDouble("ok") != 1.0) {
+        if (commandResult.getDouble(OK_FIELD) != 1.0) {
             throw new CommandRunFailSQLException(commandResult);
         }
-        Document cursor = commandResult.get("cursor", Document.class);
+        Document cursor = commandResult.get(CURSOR_FIELD, Document.class);
         if (cursor != null) {
-            long cursorId = cursor.getLong("id");
+            long cursorId = cursor.getLong(CURSOR_ID_FIELD);
             ResultSet resultSet =
-                    new MongoResultSet(cursor.getList("firstBatch", Document.class));
+                    new MongoResultSet(cursor.getList(FIRST_BATCH_FIELD, Document.class));
             currentQueryResult = new CurrentQueryResult(collection, resultSet, cursorId);
             currentUpdateCount = -1;
             return true;
         } else {
             currentQueryResult = null;
-            currentUpdateCount = commandResult.getInteger("n");
+            currentUpdateCount = commandResult.getInteger(COUNT_FIELD);
             return false;
         }
     }
@@ -121,7 +130,8 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public @Nullable ResultSet getResultSet() {
+    @Nullable
+    public ResultSet getResultSet() {
         return currentQueryResult == null ? null : currentQueryResult.resultSet;
     }
 
@@ -135,18 +145,18 @@ public class MongoStatement implements StatementAdapter {
         if (currentQueryResult != null) {
             Document moreResultsCommand =
                     new Document()
-                            .append("getMore", currentQueryResult.cursorId)
-                            .append("collection", currentQueryResult.collection);
+                            .append(GET_MORE_ID_FIELD, currentQueryResult.cursorId)
+                            .append(GET_MORE_COLLECTION_FIELD, currentQueryResult.collection);
             if (fetchSize != 0) {
-                moreResultsCommand.append("batchSize", fetchSize);
+                moreResultsCommand.append(GET_MORE_BATCH_SIZE_FIELD, fetchSize);
             }
             Document moreResults = runCommand(moreResultsCommand);
-            if (moreResults.getDouble("ok") != 1.0) {
+            if (moreResults.getDouble(OK_FIELD) != 1.0) {
                 throw new CommandRunFailSQLException(moreResults);
             }
-            Document cursor = moreResults.get("cursor", Document.class);
-            List<Document> nextBatch = cursor.getList("nextBatch", Document.class);
-            long cursorId = cursor.getLong("id");
+            Document cursor = moreResults.get(CURSOR_FIELD, Document.class);
+            List<Document> nextBatch = cursor.getList(NEXT_BATCH_FIELD, Document.class);
+            long cursorId = cursor.getLong(CURSOR_ID_FIELD);
             currentQueryResult =
                     new CurrentQueryResult(
                             currentQueryResult.collection,

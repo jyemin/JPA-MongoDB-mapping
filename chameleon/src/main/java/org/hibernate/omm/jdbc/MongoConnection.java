@@ -21,15 +21,13 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
 
-import static org.hibernate.omm.util.CollectionUtil.DB_VERSION_QUERY_FIELD_NAME;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public class MongoConnection implements ConnectionAdapter {
+    private static final String DB_VERSION_QUERY_FIELD_NAME = "buildinfo";
 
-    @Nullable
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
 
@@ -37,16 +35,13 @@ public class MongoConnection implements ConnectionAdapter {
     private boolean supportsTransaction;
     private boolean closed;
 
+    @Nullable
     private SQLWarning sqlWarning;
 
-    public MongoConnection(MongoDatabase mongoDatabase, @Nullable ClientSession clientSession) {
+    public MongoConnection(MongoDatabase mongoDatabase, ClientSession clientSession) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
-    }
-
-    public MongoConnection(MongoDatabase mongoDatabase) {
-        this(mongoDatabase, null);
     }
 
     @Override
@@ -55,8 +50,8 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
-    public PreparedStatement prepareStatement(String json) {
-        return new MongoPreparedStatement(mongoDatabase, clientSession, this, json);
+    public PreparedStatement prepareStatement(String sql) {
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
     }
 
     @Override
@@ -156,12 +151,12 @@ public class MongoConnection implements ConnectionAdapter {
 
     @Override
     public String getCatalog() {
-        return "undefined";
+        return "N/A";
     }
 
     @Override
     public String getSchema() {
-        return "undefined";
+        return "N/A";
     }
 
     @Override

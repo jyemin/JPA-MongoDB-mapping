@@ -1,5 +1,6 @@
 package org.hibernate.omm.jdbc;
 
+import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import org.bson.types.ObjectId;
@@ -123,32 +124,38 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) {
+        Assertions.notNull("x", x);
         parameters.put(parameterIndex, "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
     public void setString(int parameterIndex, String x) {
+        Assertions.notNull("x", x);
         parameters.put(parameterIndex, StringUtil.writeStringHelper(x));
     }
 
     @Override
     public void setBytes(int parameterIndex, byte[] x) {
+        Assertions.notNull("x", x);
         String base64Text = Base64.getEncoder().encodeToString(x);
         parameters.put(parameterIndex, "\"$binary\": {\"base64\": \"" + base64Text + "\", \"subType\": \"0\"}");
     }
 
     @Override
     public void setDate(int parameterIndex, Date x) {
+        Assertions.notNull("x", x);
         parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
     public void setTime(int parameterIndex, Time x) {
+        Assertions.notNull("x", x);
         parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) {
+        Assertions.notNull("x", x);
         parameters.put(
                 parameterIndex,
                 "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
@@ -165,8 +172,9 @@ public class MongoPreparedStatement extends MongoStatement
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType)
             throws SimulatedSQLException {
+        Assertions.notNull("x", x);
         switch (targetSqlType) {
-            case 3000:
+            case 3_000:
                 ObjectId objectId = (ObjectId) x;
                 parameters.put(parameterIndex, "{ \"$oid\": \"" + objectId.toHexString() + "\" }");
                 break;
@@ -192,6 +200,7 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setArray(int parameterIndex, Array x) throws SimulatedSQLException {
+        Assertions.notNull("x", x);
         try {
             Object[] array = (Object[]) x.getArray();
             String json;

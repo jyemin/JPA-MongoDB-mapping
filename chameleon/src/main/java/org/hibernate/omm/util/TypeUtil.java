@@ -42,7 +42,8 @@ public final class TypeUtil {
         };
     }
 
-    public static @Nullable Object unwrap(@Nullable BsonValue bsonValue) {
+    @Nullable
+    public static Object unwrap(@Nullable BsonValue bsonValue) {
         if (bsonValue == null) {
             return null;
         }
