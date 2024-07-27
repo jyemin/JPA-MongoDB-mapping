@@ -23,7 +23,7 @@ import java.util.List;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoConnection extends ConnectionAdapter {
+public class MongoConnection implements ConnectionAdapter {
 
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;

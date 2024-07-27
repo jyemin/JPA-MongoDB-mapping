@@ -26,286 +26,287 @@ import java.util.concurrent.Executor;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class ConnectionAdapter implements Connection {
+public interface ConnectionAdapter extends Connection {
+
     @Override
-    public Statement createStatement() throws SimulatedSQLException {
+    default Statement createStatement() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
+    default PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public CallableStatement prepareCall(String sql) throws SimulatedSQLException {
+    default CallableStatement prepareCall(String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public String nativeSQL(String sql) throws SimulatedSQLException {
+    default String nativeSQL(String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setAutoCommit(boolean autoCommit) throws SimulatedSQLException {
+    default void setAutoCommit(boolean autoCommit) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public boolean getAutoCommit() throws SimulatedSQLException {
+    default boolean getAutoCommit() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void commit() throws SimulatedSQLException {
+    default void commit() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void rollback() throws SimulatedSQLException {
+    default void rollback() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void close() throws SimulatedSQLException {
+    default void close() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public boolean isClosed() throws SimulatedSQLException {
+    default boolean isClosed() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public DatabaseMetaData getMetaData() throws SimulatedSQLException {
+    default DatabaseMetaData getMetaData() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setReadOnly(boolean readOnly) throws SimulatedSQLException {
+    default void setReadOnly(boolean readOnly) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public boolean isReadOnly() throws SimulatedSQLException {
+    default boolean isReadOnly() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setCatalog(String catalog) throws SimulatedSQLException {
+    default void setCatalog(String catalog) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public String getCatalog() throws SimulatedSQLException {
+    default String getCatalog() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setTransactionIsolation(int level) throws SimulatedSQLException {
+    default void setTransactionIsolation(int level) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public int getTransactionIsolation() throws SimulatedSQLException {
+    default int getTransactionIsolation() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public SQLWarning getWarnings() throws SimulatedSQLException {
+    default SQLWarning getWarnings() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void clearWarnings() throws SimulatedSQLException {
+    default void clearWarnings() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Statement createStatement(int resultSetType, int resultSetConcurrency)
+    default Statement createStatement(int resultSetType, int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
+    default PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+    default CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Map<String, Class<?>> getTypeMap() throws SimulatedSQLException {
+    default Map<String, Class<?>> getTypeMap() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setTypeMap(Map<String, Class<?>> map) throws SimulatedSQLException {
+    default void setTypeMap(Map<String, Class<?>> map) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setHoldability(int holdability) throws SimulatedSQLException {
+    default void setHoldability(int holdability) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public int getHoldability() throws SimulatedSQLException {
+    default int getHoldability() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Savepoint setSavepoint() throws SimulatedSQLException {
+    default Savepoint setSavepoint() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Savepoint setSavepoint(String name) throws SimulatedSQLException {
+    default Savepoint setSavepoint(String name) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void rollback(Savepoint savepoint) throws SimulatedSQLException {
+    default void rollback(Savepoint savepoint) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void releaseSavepoint(Savepoint savepoint) throws SimulatedSQLException {
+    default void releaseSavepoint(Savepoint savepoint) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Statement createStatement(
+    default Statement createStatement(
             int resultSetType, int resultSetConcurrency, int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(
+    default PreparedStatement prepareStatement(
             String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public CallableStatement prepareCall(
+    default CallableStatement prepareCall(
             String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
+    default PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, int[] columnIndexes)
+    default PreparedStatement prepareStatement(String sql, int[] columnIndexes)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public PreparedStatement prepareStatement(String sql, String[] columnNames)
+    default PreparedStatement prepareStatement(String sql, String[] columnNames)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Clob createClob() throws SimulatedSQLException {
+    default Clob createClob() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Blob createBlob() throws SimulatedSQLException {
+    default Blob createBlob() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public NClob createNClob() throws SimulatedSQLException {
+    default NClob createNClob() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public SQLXML createSQLXML() throws SimulatedSQLException {
+    default SQLXML createSQLXML() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public boolean isValid(int timeout) throws SimulatedSQLException {
+    default boolean isValid(int timeout) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setClientInfo(String name, String value) throws SQLClientInfoException {
+    default void setClientInfo(String name, String value) throws SQLClientInfoException {
         throw new NotSupportedSqlClientInfoSQLException();
     }
 
     @Override
-    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+    default void setClientInfo(Properties properties) throws SQLClientInfoException {
         throw new NotSupportedSqlClientInfoSQLException();
     }
 
     @Override
-    public String getClientInfo(String name) throws SimulatedSQLException {
+    default String getClientInfo(String name) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Properties getClientInfo() throws SimulatedSQLException {
+    default Properties getClientInfo() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
+    default Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public Struct createStruct(String typeName, Object[] attributes) throws SimulatedSQLException {
+    default Struct createStruct(String typeName, Object[] attributes) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setSchema(String schema) throws SimulatedSQLException {
+    default void setSchema(String schema) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public String getSchema() throws SimulatedSQLException {
+    default String getSchema() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void abort(Executor executor) throws SimulatedSQLException {
+    default void abort(Executor executor) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setNetworkTimeout(Executor executor, int milliseconds) throws SimulatedSQLException {
+    default void setNetworkTimeout(Executor executor, int milliseconds) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public int getNetworkTimeout() throws SimulatedSQLException {
+    default int getNetworkTimeout() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
+    default <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
+    default boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 }

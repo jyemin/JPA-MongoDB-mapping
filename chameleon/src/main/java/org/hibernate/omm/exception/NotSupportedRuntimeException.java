@@ -5,6 +5,9 @@ package org.hibernate.omm.exception;
  * @since 1.0.0
  */
 public class NotSupportedRuntimeException extends RuntimeException {
+    public NotSupportedRuntimeException() {
+    }
+
     public NotSupportedRuntimeException(String message) {
         super(message);
     }

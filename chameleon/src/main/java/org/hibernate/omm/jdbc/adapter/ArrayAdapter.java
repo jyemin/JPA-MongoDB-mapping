@@ -1,59 +1,62 @@
 package org.hibernate.omm.jdbc.adapter;
 
-import org.hibernate.omm.exception.NotYetImplementedException;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 import java.sql.Array;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Map;
 
 /**
  * @author Nathan Xu
+ * @see org.hibernate.omm.jdbc.MongoResultSet#getArray(String)
+ * @see org.hibernate.omm.jdbc.MongoConnection#createArrayOf(String, Object[])
  * @since 1.0.0
  */
-public abstract class ArrayAdapter implements Array {
+public interface ArrayAdapter extends Array {
+
     @Override
-    public String getBaseTypeName() throws SQLException {
-        throw new NotYetImplementedException();
+    default String getBaseTypeName() throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public Object getArray(Map<String, Class<?>> map) throws SQLException {
-        throw new NotYetImplementedException();
+    default Object getArray(Map<String, Class<?>> map) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public Object getArray(long index, int count) throws SQLException {
-        throw new NotYetImplementedException();
+    default Object getArray(long index, int count) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public Object getArray(long index, int count, Map<String, Class<?>> map) throws SQLException {
-        throw new NotYetImplementedException();
+    default Object getArray(long index, int count, Map<String, Class<?>> map) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public ResultSet getResultSet() throws SQLException {
-        throw new NotYetImplementedException();
+    default ResultSet getResultSet() throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public ResultSet getResultSet(Map<String, Class<?>> map) throws SQLException {
-        throw new NotYetImplementedException();
+    default ResultSet getResultSet(Map<String, Class<?>> map) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public ResultSet getResultSet(long index, int count) throws SQLException {
-        throw new NotYetImplementedException();
+    default ResultSet getResultSet(long index, int count) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SQLException {
-        throw new NotYetImplementedException();
+    default ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 
     @Override
-    public void free() throws SQLException {
-        throw new NotYetImplementedException();
+    default void free() throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
     }
 }

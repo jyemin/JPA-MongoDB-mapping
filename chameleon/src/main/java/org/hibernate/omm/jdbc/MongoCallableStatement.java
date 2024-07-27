@@ -6,5 +6,5 @@ import org.hibernate.omm.jdbc.adapter.CallableStatementAdapter;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoCallableStatement extends CallableStatementAdapter {
+public class MongoCallableStatement implements CallableStatementAdapter {
 }
