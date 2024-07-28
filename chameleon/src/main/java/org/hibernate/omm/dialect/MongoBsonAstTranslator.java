@@ -1,12 +1,12 @@
 package org.hibernate.omm.dialect;
 
 import com.mongodb.lang.Nullable;
-import org.bson.assertions.Assertions;
 import org.hibernate.LockOptions;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.util.collections.Stack;
 import org.hibernate.internal.util.collections.StandardStack;
+import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
 import org.hibernate.query.spi.Limit;
 import org.hibernate.query.spi.QueryOptions;
@@ -14,6 +14,7 @@ import org.hibernate.query.sqm.tree.expression.Conversion;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.SqlAstNodeRenderingMode;
 import org.hibernate.sql.ast.SqlAstTranslator;
+import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.sql.ast.spi.SqlSelection;
 import org.hibernate.sql.ast.tree.SqlAstNode;
 import org.hibernate.sql.ast.tree.Statement;
@@ -42,6 +43,7 @@ import org.hibernate.sql.ast.tree.expression.QueryLiteral;
 import org.hibernate.sql.ast.tree.expression.SelfRenderingExpression;
 import org.hibernate.sql.ast.tree.expression.SqlSelectionExpression;
 import org.hibernate.sql.ast.tree.expression.SqlTuple;
+import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.expression.Star;
 import org.hibernate.sql.ast.tree.expression.Summarization;
 import org.hibernate.sql.ast.tree.expression.TrimSpecification;
@@ -70,6 +72,7 @@ import org.hibernate.sql.ast.tree.predicate.Junction;
 import org.hibernate.sql.ast.tree.predicate.LikePredicate;
 import org.hibernate.sql.ast.tree.predicate.NegatedPredicate;
 import org.hibernate.sql.ast.tree.predicate.NullnessPredicate;
+import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.ast.tree.predicate.SelfRenderingPredicate;
 import org.hibernate.sql.ast.tree.predicate.ThruthnessPredicate;
 import org.hibernate.sql.ast.tree.select.QueryGroup;
@@ -90,7 +93,9 @@ import org.hibernate.sql.exec.spi.JdbcOperationQueryUpdate;
 import org.hibernate.sql.exec.spi.JdbcParameterBinder;
 import org.hibernate.sql.exec.spi.JdbcParameterBinding;
 import org.hibernate.sql.exec.spi.JdbcParameterBindings;
+import org.hibernate.sql.model.MutationOperation;
 import org.hibernate.sql.model.ast.ColumnWriteFragment;
+import org.hibernate.sql.model.ast.RestrictedTableMutation;
 import org.hibernate.sql.model.ast.TableMutation;
 import org.hibernate.sql.model.internal.OptionalTableUpdate;
 import org.hibernate.sql.model.internal.TableDeleteCustomSql;
@@ -120,13 +125,13 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T> {
+public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     private final SessionFactoryImplementor sessionFactory;
     private final Statement statement;
     private final Dialect dialect;
 
-    private final Stack<StringBuilder> bsonStringBuilderStack = new StandardStack<>(StringBuilder.class);
+    private final StringBuilder sqlBuffer = new StringBuilder();
     private final Stack<Clause> clauseStack = new StandardStack<>(Clause.class);
     private final Stack<QueryPart> queryPartStack = new StandardStack<>(QueryPart.class);
     private final Stack<Statement> statementStack = new StandardStack<>(Statement.class);
@@ -136,6 +141,9 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     private final Map<JdbcParameter, JdbcParameterBinding> appliedParameterBindings = new IdentityHashMap<>();
 
     private SqlAstNodeRenderingMode parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
+
+    @Nullable
+    private Predicate additionalWherePredicate;
     @Nullable
     private JdbcParameterBindings jdbcParameterBindings;
     @Nullable
@@ -173,7 +181,7 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public boolean supportsFilterClause() {
-        return true;
+        return false;
     }
 
     @Override
@@ -302,12 +310,10 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         this.limit = null;
         this.offsetParameter = null;
         this.limitParameter = null;
-        this.bsonStringBuilderStack.pop();
     }
 
     private String getSql() {
-        Assertions.isTrue("bsonStringBuilderStack's depth should be 1", bsonStringBuilderStack.depth() == 1);
-        return bsonStringBuilderStack.getCurrent().toString();
+        return sqlBuffer.toString();
     }
 
     @Override
@@ -317,43 +323,166 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitDeleteStatement(DeleteStatement statement) {
+        try {
+            statementStack.push(statement);
+            //visitCteContainer( statement ); TODO render with aggregate
+            visitDeleteStatementOnly(statement);
+        } finally {
+            statementStack.pop();
+        }
+    }
 
+    private void visitDeleteStatementOnly(DeleteStatement statement) {
+        if (statement.getReturningColumns() != null) {
+            throw new NotSupportedRuntimeException("delete statement with returning columns not supported");
+        }
+        if (statement.getFromClause().getRoots().size() > 1) {
+            throw new NotSupportedRuntimeException("delete statement with multiple roots not supported");
+        }
+        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
+            throw new NotSupportedRuntimeException("delete statement with root having real joins not supported");
+        }
+        renderDeleteClause(statement);
+        appendSql(", deletes: [ { q: ");
+        if (statement.getRestriction() != null) {
+            visitWhereClause(statement.getRestriction());
+        } else {
+            appendSql("{ }");
+        }
+        appendSql(", limit: 0 } ] }");
+    }
+
+    private void renderDeleteClause(DeleteStatement statement) {
+        appendSql("{ delete: ");
+        try {
+            clauseStack.push(Clause.DELETE);
+            renderDmlTargetTableExpression(statement.getTargetTable());
+        } finally {
+            clauseStack.pop();
+        }
+    }
+
+    private void renderDmlTargetTableExpression(NamedTableReference tableReference) {
+        appendSql(writeStringHelper(tableReference.getTableExpression()));
+        registerAffectedTable(tableReference);
+    }
+
+    private void visitWhereClause(Predicate whereClauseRestrictions) {
+        final Predicate additionalWherePredicate = this.additionalWherePredicate;
+        boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
+        boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
+        boolean requiredAndPredicate = existsWhereClauseRestrictions && existsAdditionalWherePredicate;
+        if (existsWhereClauseRestrictions || existsAdditionalWherePredicate) {
+            if (requiredAndPredicate) {
+                appendSql("{ $and: [ ");
+            }
+            clauseStack.push(Clause.WHERE);
+            try {
+                if (existsWhereClauseRestrictions) {
+                    whereClauseRestrictions.accept(this);
+                }
+                if (requiredAndPredicate) {
+                    appendSql(", ");
+                }
+                if (existsAdditionalWherePredicate) {
+                    this.additionalWherePredicate = null;
+                    additionalWherePredicate.accept(this);
+                }
+                if (requiredAndPredicate) {
+                    appendSql(" ] }");
+                }
+            } finally {
+                clauseStack.pop();
+            }
+        } else {
+            appendSql("{ }");
+        }
     }
 
     @Override
     public void visitUpdateStatement(UpdateStatement statement) {
+        try {
+            statementStack.push(statement);
+            //visitCteContainer( statement ); // TODO implement using aggregate
+            visitUpdateStatementOnly(statement);
+        } finally {
+            statementStack.pop();
+        }
+    }
 
+    private void visitUpdateStatementOnly(UpdateStatement statement) {
+        if (statement.getFromClause().getRoots().size() > 1) {
+            throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
+        }
+        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
+            throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
+        }
+        appendSql("{ ");
+        renderUpdateClause(statement);
+        appendSql(", updates: [ ");
+        visitWhereClause(statement.getRestriction());
+        renderSetClause(statement.getAssignments());
+        appendSql(" ] }");
+    }
+
+    private void renderSetClause(List<Assignment> assignments) {
+        appendSql(" , u: { ");
+        var separator = " ";
+        try {
+            clauseStack.push(Clause.SET);
+            for (Assignment assignment : assignments) {
+                appendSql(separator);
+                separator = ", ";
+                visitSetAssignment(assignment);
+            }
+        } finally {
+            appendSql(" }");
+            clauseStack.pop();
+        }
+    }
+
+    private void visitSetAssignment(Assignment assignment) {
+        var columnReferences = assignment.getAssignable().getColumnReferences();
+        if (columnReferences.size() == 1) {
+            columnReferences.get(0).appendColumnForWrite(this, null);
+            appendSql(": ");
+            var assignedValue = assignment.getAssignedValue();
+            var sqlTuple = SqlTupleContainer.getSqlTuple(assignedValue);
+            if (sqlTuple != null) {
+                assert sqlTuple.getExpressions().size() == 1;
+                sqlTuple.getExpressions().get(0).accept(this);
+            } else {
+                assignedValue.accept(this);
+            }
+        } else {
+            throw new NotSupportedRuntimeException("multiple column assignment not supported");
+        }
+    }
+
+    private void renderUpdateClause(UpdateStatement updateStatement) {
+        appendSql("update: ");
+        try {
+            clauseStack.push(Clause.UPDATE);
+            renderDmlTargetTableExpression(updateStatement.getTargetTable());
+        } finally {
+            clauseStack.pop();
+        }
     }
 
     @Override
     public void visitInsertStatement(InsertSelectStatement statement) {
         try {
             statementStack.push(statement);
-
-            //visitCteContainer( statement ); // TODO investigate
+            //visitCteContainer( statement ); // TODO implement with aggregate
             visitInsertStatementOnly(statement);
         } finally {
             statementStack.pop();
         }
     }
 
-    private MongoBsonAstTranslator appendBson(String bson) {
-        bsonStringBuilderStack.getCurrent().append(bson);
-        return this;
-    }
-
-    private MongoBsonAstTranslator pushNewBson(String bson) {
-        bsonStringBuilderStack.push(new StringBuilder(bson));
-        return this;
-    }
-
-    private String popBson() {
-        return bsonStringBuilderStack.pop().toString();
-    }
-
     private void visitInsertStatementOnly(InsertSelectStatement statement) {
         clauseStack.push(Clause.INSERT);
-        pushNewBson("{ ");
+        appendSql("{ ");
 
         registerAffectedTable(statement.getTargetTable());
 
@@ -363,30 +492,34 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             if (statement.getSourceSelectStatement() != null) {
                 // TODO implement using aggregate command
             } else {
-                pushNewBson("insert: ")
-                        .appendBson(writeStringHelper(statement.getTargetTable().getTableExpression()))
-                        .appendBson(", documents: [");
+                appendSql("insert: ");
+                appendSql(writeStringHelper(statement.getTargetTable().getTableExpression()));
+                appendSql(", documents: [");
                 List<ColumnReference> targetColumnReferences = statement.getTargetColumns();
 
                 if (targetColumnReferences != null) {
                     List<Values> targetColumnValuesList = statement.getValuesList();
-                    for (int i = 0; i < statement.getValuesList().size(); i++) {
-                        appendBson(i == 0 ? " {" : ", {");
-                        for (int j = 0; j < targetColumnReferences.size(); j++) {
-                            appendBson(j == 0 ? " " : ", ")
-                                    .appendBson(targetColumnReferences.get(j).getColumnExpression())
-                                    .appendBson(": ");
-                            targetColumnValuesList.get(i).getExpressions().get(j).accept(this);
+                    for (int valuesIndex = 0; valuesIndex < statement.getValuesList().size(); valuesIndex++) {
+                        appendSql(valuesIndex == 0 ? " {" : ", {");
+                        for (int columnIndex = 0; columnIndex < targetColumnReferences.size(); columnIndex++) {
+                            if (columnIndex == 0) {
+                                appendSql(' ');
+                            } else {
+                                appendSql(", ");
+                            }
+                            appendSql(targetColumnReferences.get(columnIndex).getColumnExpression());
+                            appendSql(": ");
+                            targetColumnValuesList.get(valuesIndex).getExpressions().get(columnIndex).accept(this);
                         }
-                        appendBson(" }");
+                        appendSql(" }");
                     }
                 }
-                appendBson(" ]");
+                appendSql(" ]");
             }
             clauseStack.pop();
         }
 
-        appendBson(" }");
+        appendSql(" }");
         clauseStack.pop();
     }
 
@@ -710,7 +843,50 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitStandardTableInsert(TableInsertStandard tableInsert) {
+        clauseStack.push(Clause.INSERT);
+        try {
+            renderInsertInto(tableInsert);
 
+            if (tableInsert.getNumberOfReturningColumns() > 0) {
+                throw new NotSupportedRuntimeException("table insert with returning columns not supported");
+            }
+        } finally {
+            clauseStack.pop();
+        }
+    }
+
+    private void renderInsertInto(TableInsertStandard tableInsert) {
+        if (tableInsert.getNumberOfValueBindings() == 0) {
+            throw new NotSupportedRuntimeException("no column info");
+        }
+
+        sqlBuffer.append("{ insert: }");
+
+        appendSql(writeStringHelper(tableInsert.getMutatingTable().getTableName()));
+        registerAffectedTable(tableInsert.getMutatingTable().getTableName());
+
+        sqlBuffer.append(", documents: [ {");
+
+        clauseStack.push(Clause.VALUES);
+        {
+            tableInsert.forEachValueBinding((position, columnValueBinding) -> {
+                if (position == 0) {
+                    appendSql(' ');
+                } else {
+                    appendSql(", ");
+                }
+                sqlBuffer.append(columnValueBinding.getColumnReference());
+                sqlBuffer.append(": ");
+                sqlBuffer.append(columnValueBinding.getValueExpression());
+            });
+        }
+        sqlBuffer.append(" } ]");
+        clauseStack.pop();
+        if (tableInsert.getMutationComment() != null) {
+            appendSql(", comment: ");
+            appendSql(writeStringHelper(tableInsert.getMutationComment()));
+        }
+        sqlBuffer.append(" }");
     }
 
     @Override
@@ -720,7 +896,63 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitStandardTableDelete(TableDeleteStandard tableDelete) {
+        clauseStack.push(Clause.DELETE);
+        try {
+            appendSql("{ delete: ");
+            appendSql(writeStringHelper(tableDelete.getMutatingTable().getTableName()));
+            registerAffectedTable(tableDelete.getMutatingTable().getTableName());
 
+            clauseStack.push(Clause.WHERE);
+            try {
+                appendSql(", deletes: [");
+
+                tableDelete.forEachKeyBinding((columnPosition, columnValueBinding) -> {
+                    if (columnPosition == 0) {
+                        appendSql(' ');
+                    } else {
+                        appendSql(", ");
+                    }
+                    appendSql(" { q: { ");
+                    appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                    appendSql(": { $eq: ");
+                    columnValueBinding.getValueExpression().accept(this);
+                    appendSql(" } }, limit: 0 }");
+                });
+
+                if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
+                    appendSql(", ");
+
+                    tableDelete.forEachOptimisticLockBinding((columnPosition, columnValueBinding) -> {
+                        if (columnPosition == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        appendSql(" { q: { ");
+                        appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                        appendSql(": { $eq: ");
+                        columnValueBinding.getValueExpression().accept(this);
+                        appendSql(" } }, limit: 0 }");
+                    });
+                }
+
+                if (tableDelete.getWhereFragment() != null) {
+                    appendSql(", { q: ");
+                    appendSql(tableDelete.getWhereFragment());
+                    appendSql(" }");
+                }
+            } finally {
+                appendSql(" ]");
+                if (tableDelete.getMutationComment() != null) {
+                    appendSql(", comment: ");
+                    appendSql(writeStringHelper(tableDelete.getMutationComment()));
+                }
+                clauseStack.pop();
+            }
+        } finally {
+            appendSql(" }");
+            clauseStack.pop();
+        }
     }
 
     @Override
@@ -730,7 +962,96 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitStandardTableUpdate(TableUpdateStandard tableUpdate) {
+        clauseStack.push(Clause.UPDATE);
+        try {
+            visitTableUpdate(tableUpdate);
+        } finally {
+            clauseStack.pop();
+        }
+    }
 
+    private void visitTableUpdate(RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
+        appendSql("{ update: ");
+        appendSql(writeStringHelper(tableUpdate.getMutatingTable().getTableName()));
+        registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
+
+        appendSql(", updates: [ {");
+        {
+            clauseStack.push(Clause.WHERE);
+            try {
+                appendSql(" q:");
+                int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
+                boolean hasWhereFragment =
+                        tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
+                if (hasWhereFragment) {
+                    predicates++;
+                }
+                if (predicates == 0) {
+                    appendSql("{ }");
+                } else {
+                    if (predicates > 1) {
+                        appendSql(" { $and: [");
+                    }
+                    tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
+                        if (position == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        appendSql("{ ");
+                        appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                        appendSql(": { $eq: ");
+                        columnValueBinding.getValueExpression().accept(this);
+                        appendSql(" } }");
+                    });
+
+                    if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+                        tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
+                            appendSql(", { ");
+                            appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                            appendSql(": { $eq: ");
+                            if (columnValueBinding.getValueExpression() == null) {
+                                appendSql("null");
+                            } else {
+                                columnValueBinding.getValueExpression().accept(this);
+                            }
+                            appendSql(" } }");
+                        });
+                    }
+
+                    if (hasWhereFragment) {
+                        appendSql(", ");
+                        appendSql(((TableUpdateStandard) tableUpdate).getWhereFragment());
+                    }
+                    if (predicates > 1) {
+                        appendSql(" ] }");
+                    }
+                }
+            } finally {
+                clauseStack.pop();
+            }
+
+            appendSql(", u: { $set: {");
+            {
+                clauseStack.push(Clause.SET);
+                try {
+                    tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
+                        if (columnPosition == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        sqlBuffer.append(columnValueBinding.getColumnReference().getColumnExpression());
+                        sqlBuffer.append(": ");
+                        columnValueBinding.getValueExpression().accept(this);
+                    });
+                } finally {
+                    clauseStack.pop();
+                }
+                appendSql(" } }");
+            }
+        }
+        appendSql(" } ] }");
     }
 
     @Override
@@ -746,5 +1067,48 @@ public class MongoBsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     @Override
     public void visitColumnWriteFragment(ColumnWriteFragment columnWriteFragment) {
 
+    }
+
+    @Override
+    public void appendSql(String fragment) {
+        sqlBuffer.append(fragment);
+    }
+
+    @Override
+    public void appendSql(char fragment) {
+        sqlBuffer.append(fragment);
+    }
+
+    @Override
+    public void appendSql(int value) {
+        sqlBuffer.append(value);
+    }
+
+    @Override
+    public void appendSql(long value) {
+        sqlBuffer.append(value);
+    }
+
+    @Override
+    public void appendSql(boolean value) {
+        sqlBuffer.append(value);
+    }
+
+    @Override
+    public Appendable append(CharSequence csq) {
+        sqlBuffer.append(csq);
+        return this;
+    }
+
+    @Override
+    public Appendable append(CharSequence csq, int start, int end) {
+        sqlBuffer.append(csq, start, end);
+        return this;
+    }
+
+    @Override
+    public Appendable append(char c) {
+        sqlBuffer.append(c);
+        return this;
     }
 }
