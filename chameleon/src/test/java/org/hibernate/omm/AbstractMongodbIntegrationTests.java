@@ -18,8 +18,9 @@ import java.util.List;
  *     <li>{@link MongoDatabase} instance to interact with Mongo via java driver</li>
  *     <li>guarantee that each test case will be run in a blank db state</li>
  * </ul>
- * @apiNote For current stage, perf is not as important as logic correctness, so a slow-but-safe approach is adopted
+ *
  * @author Nathan Xu
+ * @apiNote For current stage, perf is not as important as logic correctness, so a slow-but-safe approach is adopted
  */
 public abstract class AbstractMongodbIntegrationTests {
 
@@ -42,8 +43,20 @@ public abstract class AbstractMongodbIntegrationTests {
 
     @AfterEach
     void closeSessionFactory() {
-        sessionFactory.close();
-        mongoDBContainer.stop();
+        if (sessionFactory != null) {
+            try {
+                sessionFactory.close();
+            } finally {
+                sessionFactory = null;
+            }
+        }
+        if (mongoDBContainer != null) {
+            try {
+                mongoDBContainer.stop();
+            } finally {
+                mongoDBContainer = null;
+            }
+        }
     }
 
     public abstract List<Class<?>> getAnnotatedClasses();
