@@ -277,6 +277,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     private String aggregateAlias;
     private String rootAlias;
+    private boolean inAggregateExpressionScope;
 
     public MongoJsonAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
         this.sessionFactory = sessionFactory;
@@ -2044,13 +2045,23 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     }
 
     protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
-        appendSql("{ ");
-        lhs.accept(this);
-        appendSql(": { ");
-        appendSql(getMongoOperatorText(operator));
-        appendSql(": ");
-        rhs.accept(this);
-        appendSql(" } }");
+        if (inAggregateExpressionScope) {
+            appendSql("{ ");
+            appendSql(getMongoOperatorText(operator));
+            appendSql(": [ ");
+            lhs.accept(this);
+            appendSql(", ");
+            rhs.accept(this);
+            appendSql(" ] }");
+        } else {
+            appendSql("{ ");
+            lhs.accept(this);
+            appendSql(": { ");
+            appendSql(getMongoOperatorText(operator));
+            appendSql(": ");
+            rhs.accept(this);
+            appendSql(" } }");
+        }
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2327,8 +2338,22 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                 } else {
                     parameterRenderingMode = defaultRenderingMode;
                 }
-                visitSqlSelection(sqlSelection);
-                appendSql(": 1");
+                if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
+                    if (!columnReference.getQualifier().equals(rootAlias)) {
+                        appendSql(columnReference.getQualifier() + "_" + columnReference.getColumnExpression());
+                        appendSql(": \"$");
+                        appendSql(columnReference.getQualifier() + "." + columnReference.getColumnExpression());
+                        appendSql('"');
+                    } else {
+                        appendSql(columnReference.getColumnExpression());
+                        appendSql(": \"$");
+                        appendSql(columnReference.getColumnExpression());
+                        appendSql('"');
+                    }
+                } else {
+                    visitSqlSelection(sqlSelection);
+                    appendSql(": 1");
+                }
                 parameterRenderingMode = original;
                 separator = ", ";
             }
@@ -2735,55 +2760,51 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitFromClause(FromClause fromClause) {
-        if ( fromClause == null || fromClause.getRoots().isEmpty() ) {
+        if (fromClause == null || fromClause.getRoots().isEmpty()) {
             throw new NotSupportedRuntimeException("null fromClause or empty root not supported");
-        }
-        else {
-            renderFromClauseSpaces( fromClause );
+        } else {
+            renderFromClauseSpaces(fromClause);
         }
     }
 
     private void renderFromClauseSpaces(FromClause fromClause) {
         try {
-            clauseStack.push( Clause.FROM );
+            clauseStack.push(Clause.FROM);
             if (fromClause.getRoots().size() > 1) {
                 throw new NotYetImplementedException();
             }
-            renderFromClauseRoot( fromClause.getRoots().get(0) );
+            renderFromClauseRoot(fromClause.getRoots().get(0));
             rootAlias = fromClause.getRoots().get(0).getPrimaryTableReference().getIdentificationVariable();
-        }
-        finally {
+        } finally {
             clauseStack.pop();
         }
     }
 
     private void renderFromClauseRoot(TableGroup root) {
-        if ( root.isVirtual() ) {
+        if (root.isVirtual()) {
             throw new NotYetImplementedException();
-        }
-        else if ( root.isInitialized() ) {
-            renderRootTableGroup( root, null );
+        } else if (root.isInitialized()) {
+            renderRootTableGroup(root, null);
         }
     }
 
     private void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
 
-        renderTableReferenceJoins( tableGroup );
-        processNestedTableGroupJoins( tableGroup, tableGroupJoinCollector );
-        if ( tableGroupJoinCollector != null ) {
-            tableGroupJoinCollector.addAll( tableGroup.getTableGroupJoins() );
-        }
-        else {
+        renderTableReferenceJoins(tableGroup);
+        processNestedTableGroupJoins(tableGroup, tableGroupJoinCollector);
+        if (tableGroupJoinCollector != null) {
+            tableGroupJoinCollector.addAll(tableGroup.getTableGroupJoins());
+        } else {
             tableGroup.getPrimaryTableReference().accept(this);
             appendSql(", pipeline: [");
 
-            processTableGroupJoins( tableGroup );
+            processTableGroupJoins(tableGroup);
         }
         ModelPartContainer modelPart = tableGroup.getModelPart();
-        if ( modelPart instanceof AbstractEntityPersister ) {
-            String[] querySpaces = (String[]) ( (AbstractEntityPersister) modelPart ).getQuerySpaces();
-            for ( int i = 0; i < querySpaces.length; i++ ) {
-                registerAffectedTable( querySpaces[i] );
+        if (modelPart instanceof AbstractEntityPersister) {
+            String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
+            for (int i = 0; i < querySpaces.length; i++) {
+                registerAffectedTable(querySpaces[i]);
             }
         }
     }
@@ -2885,7 +2906,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                         appendSql(", ");
                     }
                     String sourceColumn = sourceColumnsInPredicate.get(i);
-                    appendSql(String.format("\"%s_%s\": \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
+                    appendSql(String.format("%s_%s: \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
                 }
                 appendSql(" }");
             }
@@ -2898,8 +2919,10 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         if (predicate != null) {
             try {
                 aggregateAlias = alias;
+                inAggregateExpressionScope = true;
                 predicate.accept(this);
             } finally {
+                inAggregateExpressionScope = false;
                 aggregateAlias = null;
             }
         } else {
