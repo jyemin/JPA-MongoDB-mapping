@@ -70,7 +70,6 @@ import org.hibernate.sql.ast.SqlAstNodeRenderingMode;
 import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.SqlTreeCreationException;
 import org.hibernate.sql.ast.internal.ParameterMarkerStrategyStandard;
-import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
 import org.hibernate.sql.ast.spi.AggregateFunctionChecker;
 import org.hibernate.sql.ast.spi.ParameterMarkerStrategy;
 import org.hibernate.sql.ast.spi.SqlAppender;
