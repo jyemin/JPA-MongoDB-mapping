@@ -36,7 +36,9 @@ import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.util.CollectionUtil;
+import org.hibernate.omm.util.StringUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -68,6 +70,7 @@ import org.hibernate.sql.ast.SqlAstNodeRenderingMode;
 import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.SqlTreeCreationException;
 import org.hibernate.sql.ast.internal.ParameterMarkerStrategyStandard;
+import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
 import org.hibernate.sql.ast.spi.AggregateFunctionChecker;
 import org.hibernate.sql.ast.spi.ParameterMarkerStrategy;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -271,6 +274,9 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     private JdbcParameter offsetParameter;
     private JdbcParameter limitParameter;
     private ForUpdateClause forUpdate;
+
+    private String aggregateAlias;
+    private String rootAlias;
 
     public MongoJsonAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
         this.sessionFactory = sessionFactory;
@@ -1537,14 +1543,14 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             appendSql("{ aggregate: ");
             {
                 visitFromClause(querySpec.getFromClause());
-                appendSql(" { $match: ");
+                appendSql(", { $match: ");
                 visitWhereClause(querySpec.getWhereClauseRestrictions());
 
                 if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
                     appendSql(" }, { $sort: ");
                     visitOrderBy(querySpec.getSortSpecifications());
                 }
-                append("}, { $project: ");
+                append(" }, { $project: ");
                 visitSelectClause(querySpec.getSelectClause());
                 //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
                 //visitHavingClause( querySpec );
@@ -1556,6 +1562,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             }
             appendSql(" } ], cursor: {} }");
         } finally {
+            rootAlias = null;
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
             this.queryPartForRowNumberingClauseDepth = queryPartForRowNumberingClauseDepth;
@@ -2728,31 +2735,57 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitFromClause(FromClause fromClause) {
-        ModelPartContainer modelPart = getModelPartContainer(fromClause);
-        if (modelPart instanceof AbstractEntityPersister abstractEntityPersister) {
-            String[] querySpaces = (String[]) abstractEntityPersister.getQuerySpaces();
-            if (querySpaces.length > 1) {
-                throw new NotSupportedRuntimeException("Multiple tables not supported");
-            }
-            dialect.appendLiteral(this, querySpaces[0]);
-            appendSql(", pipeline: [");
-        } else {
-            throw new NotSupportedRuntimeException("table group's model part is not AbstractEntityPersister!");
+        if ( fromClause == null || fromClause.getRoots().isEmpty() ) {
+            throw new NotSupportedRuntimeException("null fromClause or empty root not supported");
+        }
+        else {
+            renderFromClauseSpaces( fromClause );
         }
     }
 
-    private ModelPartContainer getModelPartContainer(FromClause fromClause) {
-        if (fromClause == null || fromClause.getRoots().size() != 1) {
-            throw new NotSupportedRuntimeException("empty or multiple roots in from clause not supported");
+    private void renderFromClauseSpaces(FromClause fromClause) {
+        try {
+            clauseStack.push( Clause.FROM );
+            if (fromClause.getRoots().size() > 1) {
+                throw new NotYetImplementedException();
+            }
+            renderFromClauseRoot( fromClause.getRoots().get(0) );
+            rootAlias = fromClause.getRoots().get(0).getPrimaryTableReference().getIdentificationVariable();
         }
-        TableGroup tableGroup = fromClause.getRoots().get(0);
-        if (tableGroup.isVirtual()) {
-            throw new NotSupportedRuntimeException("virtual table group not supported");
+        finally {
+            clauseStack.pop();
         }
-        if (!tableGroup.getTableGroupJoins().isEmpty() || !tableGroup.getTableReferenceJoins().isEmpty()) {
-            throw new NotSupportedRuntimeException("Table Joining not supported");
+    }
+
+    private void renderFromClauseRoot(TableGroup root) {
+        if ( root.isVirtual() ) {
+            throw new NotYetImplementedException();
         }
-        return tableGroup.getModelPart();
+        else if ( root.isInitialized() ) {
+            renderRootTableGroup( root, null );
+        }
+    }
+
+    private void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
+
+        renderTableReferenceJoins( tableGroup );
+        processNestedTableGroupJoins( tableGroup, tableGroupJoinCollector );
+        if ( tableGroupJoinCollector != null ) {
+            tableGroupJoinCollector.addAll( tableGroup.getTableGroupJoins() );
+        }
+        else {
+            tableGroup.getPrimaryTableReference().accept(this);
+            appendSql(", pipeline: [");
+
+            processTableGroupJoins( tableGroup );
+        }
+        ModelPartContainer modelPart = tableGroup.getModelPart();
+        if ( modelPart instanceof AbstractEntityPersister ) {
+            String[] querySpaces = (String[]) ( (AbstractEntityPersister) modelPart ).getQuerySpaces();
+            for ( int i = 0; i < querySpaces.length; i++ ) {
+                registerAffectedTable( querySpaces[i] );
+            }
+        }
     }
 
     protected Predicate createRowMatchingPredicate(TableGroup dmlTargetTableGroup, String lhsAlias, String rhsAlias) {
@@ -2801,16 +2834,21 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    protected void renderTableGroup(
+    private void renderTableGroup(
+            TableGroup source,
             TableGroup tableGroup,
             Predicate predicate,
             List<TableGroupJoin> tableGroupJoinCollector) {
+
+        appendSql("{ $lookup: { from: ");
+
+
         // Without reference joins or nested join groups, even a real table group does not need parenthesis
         final boolean realTableGroup = tableGroup.isRealTableGroup()
                 && (CollectionHelper.isNotEmpty(tableGroup.getTableReferenceJoins())
                 || hasNestedTableGroupsToRender(tableGroup.getNestedTableGroupJoins()));
         if (realTableGroup) {
-            appendSql(OPEN_PARENTHESIS);
+            //appendSql(OPEN_PARENTHESIS);
         }
 
         final LockMode effectiveLockMode = getEffectiveLockMode(tableGroup.getSourceAlias());
@@ -2829,15 +2867,49 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                 tableGroupJoins = null;
                 processNestedTableGroupJoins(tableGroup, tableGroupJoinCollector);
             }
-            appendSql(CLOSE_PARENTHESIS);
+            //appendSql(CLOSE_PARENTHESIS);
         } else {
             tableGroupJoins = null;
         }
 
-        if (predicate != null) {
-            appendSql(" on ");
-            predicate.accept(this);
+
+        if (predicate instanceof ComparisonPredicate comparisonPredicate) {
+            String sourceAlias = source.getPrimaryTableReference().getIdentificationVariable();
+            List<String> sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceAlias);
+            if (!sourceColumnsInPredicate.isEmpty()) {
+                appendSql(", let: {");
+                for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
+                    if (i == 0) {
+                        appendSql(' ');
+                    } else {
+                        appendSql(", ");
+                    }
+                    String sourceColumn = sourceColumnsInPredicate.get(i);
+                    appendSql(String.format("\"%s_%s\": \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
+                }
+                appendSql(" }");
+            }
         }
+
+        appendSql(", pipeline: [ { $match: { $expr: ");
+
+        String alias = tableGroup.getPrimaryTableReference().getIdentificationVariable();
+
+        if (predicate != null) {
+            try {
+                aggregateAlias = alias;
+                predicate.accept(this);
+            } finally {
+                aggregateAlias = null;
+            }
+        } else {
+            appendSql("{ }");
+        }
+        appendSql(" } } ], as: ");
+
+        appendSql(StringUtil.writeStringHelper(alias));
+
+        appendSql(" } }, { $unwind: " + StringUtil.writeStringHelper("$" + alias) + " }");
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
             final Predicate lateralEmulationPredicate = determineLateralEmulationPredicate(tableGroup);
             if (lateralEmulationPredicate != null) {
@@ -2859,7 +2931,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         } else {
             if (tableGroupJoins != null) {
                 for (TableGroupJoin tableGroupJoin : tableGroupJoins) {
-                    processTableGroupJoin(tableGroupJoin, null);
+                    processTableGroupJoin(source, tableGroupJoin, null);
                 }
             }
             processTableGroupJoins(tableGroup);
@@ -2880,6 +2952,24 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             }
             forUpdate.applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
         }
+    }
+
+    private List<String> getSourceColumnsInPredicate(ComparisonPredicate comparisonPredicate, String sourceAlias) {
+        List<String> sourceColumns = new ArrayList<>();
+        List<ColumnReference> columnReferences = new ArrayList<>();
+        if (comparisonPredicate.getLeftHandExpression() instanceof ColumnReference columnReference) {
+            columnReferences.add(columnReference);
+        }
+        if (comparisonPredicate.getRightHandExpression() instanceof ColumnReference columnReference) {
+            columnReferences.add(columnReference);
+        }
+
+        for (ColumnReference columnReference : columnReferences) {
+            if (columnReference.getQualifier().equals(sourceAlias) && !columnReference.isColumnExpressionFormula()) {
+                sourceColumns.add(columnReference.getColumnExpression());
+            }
+        }
+        return sourceColumns;
     }
 
     protected boolean hasNestedTableGroupsToRender(List<TableGroupJoin> nestedTableGroupJoins) {
@@ -2953,9 +3043,9 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     }
 
     protected boolean renderNamedTableReference(NamedTableReference tableReference, LockMode lockMode) {
-        appendSql(tableReference.getTableExpression());
+        appendSql(StringUtil.writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
-        renderTableReferenceIdentificationVariable(tableReference);
+        //renderTableReferenceIdentificationVariable(tableReference);
         return false;
     }
 
@@ -3001,14 +3091,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    protected void renderTableReferenceIdentificationVariable(TableReference tableReference) {
-        final String identificationVariable = tableReference.getIdentificationVariable();
-        if (identificationVariable != null) {
-            append(WHITESPACE);
-            append(tableReference.getIdentificationVariable());
-        }
-    }
-
     protected void registerAffectedTable(NamedTableReference tableReference) {
         tableReference.applyAffectedTableNames(this::registerAffectedTable);
     }
@@ -3017,38 +3099,59 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         affectedTableNames.add(tableExpression);
     }
 
-    protected void renderTableReferenceJoins(TableGroup tableGroup) {
+    private void renderTableReferenceJoins(TableGroup tableGroup) {
         final List<TableReferenceJoin> joins = tableGroup.getTableReferenceJoins();
-        if (joins == null || joins.isEmpty()) {
-            return;
-        }
 
-        for (TableReferenceJoin tableJoin : joins) {
-            appendSql(WHITESPACE);
-            appendSql(tableJoin.getJoinType().getText());
-            appendSql("join ");
+        if (CollectionUtil.isNotEmpty(joins)) {
+            appendSql(", pipeline: [");
+            for (int i = 0; i < joins.size(); i++) {
+                var tableJoin = joins.get(i);
+                if (i == 0) {
+                    appendSql(' ');
+                } else {
+                    appendSql(", ");
+                }
+                appendSql("{ $lookup: { from: ");
+                //appendSql(tableJoin.getJoinType().getText());
 
-            renderNamedTableReference(tableJoin.getJoinedTableReference(), LockMode.NONE);
+                renderNamedTableReference(tableJoin.getJoinedTableReference(), LockMode.NONE);
 
-            if (tableJoin.getPredicate() != null && !tableJoin.getPredicate().isEmpty()) {
-                appendSql(" on ");
-                tableJoin.getPredicate().accept(this);
+                appendSql(", pipeline: [ { $match: { $expr: ");
+                if (tableJoin.getPredicate() != null && !tableJoin.getPredicate().isEmpty()) {
+                    tableJoin.getPredicate().accept(this);
+                } else {
+                    appendSql("{ }");
+                }
+                appendSql(" } } ], as: ");
+                appendSql(StringUtil.writeStringHelper(tableJoin.getJoinedTableReference().getIdentificationVariable()));
+                appendSql(" }, { $unwind: \"$");
+                appendSql(tableJoin.getJoinedTableReference().getIdentificationVariable());
+                appendSql("\"");
             }
+            appendSql(" ]");
         }
     }
 
-    protected void processTableGroupJoins(TableGroup source) {
-        source.visitTableGroupJoins(tableGroupJoin -> processTableGroupJoin(tableGroupJoin, null));
+    private void processTableGroupJoins(TableGroup source) {
+        for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
+            if (i == 0) {
+                appendSql(' ');
+            } else {
+                appendSql(", ");
+            }
+            processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
+        }
     }
 
     protected void processNestedTableGroupJoins(TableGroup source, List<TableGroupJoin> tableGroupJoinCollector) {
         source.visitNestedTableGroupJoins(tableGroupJoin -> processTableGroupJoin(
+                source,
                 tableGroupJoin,
                 tableGroupJoinCollector
         ));
     }
 
-    protected void processTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+    private void processTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
         final TableGroup joinedGroup = tableGroupJoin.getJoinedGroup();
 
         if (joinedGroup.isVirtual()) {
@@ -3060,6 +3163,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             }
         } else if (joinedGroup.isInitialized()) {
             renderTableGroupJoin(
+                    source,
                     tableGroupJoin,
                     tableGroupJoinCollector
             );
@@ -3075,10 +3179,8 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-    protected void renderTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
-        appendSql(WHITESPACE);
-        appendSql(tableGroupJoin.getJoinType().getText());
-        appendSql("join ");
+    private void renderTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+        //appendSql(tableGroupJoin.getJoinType().getText());
 
         final Predicate predicate;
         if (tableGroupJoin.getPredicate() == null) {
@@ -3091,9 +3193,9 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             predicate = tableGroupJoin.getPredicate();
         }
         if (predicate != null && !predicate.isEmpty()) {
-            renderTableGroup(tableGroupJoin.getJoinedGroup(), predicate, tableGroupJoinCollector);
+            renderTableGroup(source, tableGroupJoin.getJoinedGroup(), predicate, tableGroupJoinCollector);
         } else {
-            renderTableGroup(tableGroupJoin.getJoinedGroup(), null, tableGroupJoinCollector);
+            renderTableGroup(source, tableGroupJoin.getJoinedGroup(), null, tableGroupJoinCollector);
         }
     }
 
@@ -3507,7 +3609,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitNamedTableReference(NamedTableReference tableReference) {
-        // nothing to do... handled via TableGroup#render
+        appendSql(StringUtil.writeStringHelper(tableReference.getTableExpression()));
     }
 
     @Override
@@ -3521,7 +3623,22 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitColumnReference(ColumnReference columnReference) {
-        columnReference.appendReadExpression(this, null);
+        if (aggregateAlias != null && !columnReference.isColumnExpressionFormula()) {
+            appendSql('"');
+            appendSql(aggregateAlias.equals(columnReference.getQualifier()) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
+            appendSql(columnReference.getColumnExpression());
+            appendSql('"');
+        } else if (queryPartStack.getCurrent() instanceof QuerySpec) {
+            if (!columnReference.getQualifier().equals(rootAlias)) {
+                appendSql('"');
+                appendSql(columnReference.getQualifier() + "." + columnReference.getColumnExpression());
+                appendSql('"');
+            } else {
+                appendSql(columnReference.getColumnExpression());
+            }
+        } else {
+            columnReference.appendReadExpression(this, null);
+        }
     }
 
     @Override
