@@ -10,6 +10,8 @@ import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -44,6 +46,8 @@ import java.util.stream.Collectors;
  */
 public class MongoPreparedStatement extends MongoStatement
         implements PreparedStatementAdapter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoPreparedStatement.class);
 
     private final String parameterizedCommandJson;
     private final Map<Integer, String> parameters;
@@ -307,6 +311,10 @@ public class MongoPreparedStatement extends MongoStatement
             lastIndex = index;
         }
         sb.append(parameterizedCommandJson.substring(lastIndex + 1));
-        return sb.toString();
+        var command = sb.toString();
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("BSON command generated: {}", command);
+        }
+        return command;
     }
 }

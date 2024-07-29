@@ -20,7 +20,7 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     api libs.hibernate.orm.core
-    implementation libs.mongodb.java.driver
+    implementation libs.mongodb.java.driver, libs.sl4j.api
 }
 
 java {
