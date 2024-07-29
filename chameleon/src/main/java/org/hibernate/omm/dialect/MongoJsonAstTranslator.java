@@ -30,7 +30,6 @@ import org.hibernate.metamodel.mapping.BasicValuedMapping;
 import org.hibernate.metamodel.mapping.EntityAssociationMapping;
 import org.hibernate.metamodel.mapping.EntityIdentifierMapping;
 import org.hibernate.metamodel.mapping.JdbcMapping;
-import org.hibernate.metamodel.mapping.MappingModelExpressible;
 import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
@@ -128,7 +127,6 @@ import org.hibernate.sql.ast.tree.from.TableGroupProducer;
 import org.hibernate.sql.ast.tree.from.TableReference;
 import org.hibernate.sql.ast.tree.from.TableReferenceJoin;
 import org.hibernate.sql.ast.tree.from.ValuesTableReference;
-import org.hibernate.sql.ast.tree.from.VirtualTableGroup;
 import org.hibernate.sql.ast.tree.insert.ConflictClause;
 import org.hibernate.sql.ast.tree.insert.InsertSelectStatement;
 import org.hibernate.sql.ast.tree.insert.Values;
@@ -215,6 +213,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 import static org.hibernate.query.sqm.TemporalUnit.NANOSECOND;
 import static org.hibernate.sql.ast.SqlTreePrinter.logSqlAst;
 import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomainResultGraph;
@@ -265,7 +264,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     private transient AbstractSqmSelfRenderingFunctionDescriptor castFunction;
     private transient LazySessionWrapperOptions lazySessionWrapperOptions;
     private transient BasicType<Integer> integerType;
-    private transient BasicType<String> stringType;
     private transient BasicType<Boolean> booleanType;
 
     private LockOptions lockOptions;
@@ -312,15 +310,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                     .resolve(StandardBasicTypes.INTEGER);
         }
         return integerType;
-    }
-
-    public BasicType<String> getStringType() {
-        if (stringType == null) {
-            stringType = sessionFactory.getTypeConfiguration()
-                    .getBasicTypeRegistry()
-                    .resolve(StandardBasicTypes.STRING);
-        }
-        return stringType;
     }
 
     public BasicType<Boolean> getBooleanType() {
@@ -941,7 +930,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     }
 
     protected void renderDmlTargetTableExpression(NamedTableReference tableReference) {
-        dialect.appendLiteral(this, tableReference.getTableExpression());
+        appendSql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
     }
 
@@ -1138,94 +1127,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
     }
 
-
-    protected void renderForUpdateClause(QuerySpec querySpec, ForUpdateClause forUpdateClause) {
-        int timeoutMillis = forUpdateClause.getTimeoutMillis();
-        LockKind lockKind = LockKind.NONE;
-        switch (forUpdateClause.getLockMode()) {
-            case PESSIMISTIC_WRITE:
-                lockKind = LockKind.UPDATE;
-                break;
-            case PESSIMISTIC_READ:
-                lockKind = LockKind.SHARE;
-                break;
-            case UPGRADE_NOWAIT:
-            case PESSIMISTIC_FORCE_INCREMENT:
-                timeoutMillis = LockOptions.NO_WAIT;
-                lockKind = LockKind.UPDATE;
-                break;
-            case UPGRADE_SKIPLOCKED:
-                timeoutMillis = LockOptions.SKIP_LOCKED;
-                lockKind = LockKind.UPDATE;
-                break;
-            default:
-                break;
-        }
-        if (lockKind != LockKind.NONE) {
-            if (lockKind == LockKind.SHARE) {
-                appendSql(getForShare(timeoutMillis));
-                if (forUpdateClause.hasAliases() && dialect.getReadRowLockStrategy() != RowLockStrategy.NONE) {
-                    appendSql(" of ");
-                    forUpdateClause.appendAliases(this);
-                }
-            } else {
-                appendSql(getForUpdate());
-                if (forUpdateClause.hasAliases() && dialect.getWriteRowLockStrategy() != RowLockStrategy.NONE) {
-                    appendSql(" of ");
-                    forUpdateClause.appendAliases(this);
-                }
-            }
-            appendSql(getForUpdateWithClause());
-            switch (timeoutMillis) {
-                case LockOptions.NO_WAIT:
-                    if (dialect.supportsNoWait()) {
-                        appendSql(getNoWait());
-                    }
-                    break;
-                case LockOptions.SKIP_LOCKED:
-                    if (dialect.supportsSkipLocked()) {
-                        appendSql(getSkipLocked());
-                    }
-                    break;
-                case LockOptions.WAIT_FOREVER:
-                    break;
-                default:
-                    if (dialect.supportsWait()) {
-                        appendSql(" wait ");
-                        appendSql(Math.round(timeoutMillis / 1e3f));
-                    }
-                    break;
-            }
-        }
-    }
-
-    private enum LockKind {
-        NONE,
-        SHARE,
-        UPDATE
-    }
-
-    protected String getForUpdate() {
-        return " for update";
-    }
-
-    protected String getForShare(int timeoutMillis) {
-        return " for update";
-    }
-
-    protected String getForUpdateWithClause() {
-        // This is a clause to specify the lock isolation for e.g. Derby
-        return "";
-    }
-
-    protected String getNoWait() {
-        return " nowait";
-    }
-
-    protected String getSkipLocked() {
-        return " skip locked";
-    }
-
     protected LockMode getEffectiveLockMode(String alias) {
         final QueryPart currentQueryPart = getQueryPartStack().getCurrent();
         return currentQueryPart == null
@@ -1242,108 +1143,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             lockMode = getLockOptions().getLockMode();
         }
         return lockMode == null ? LockMode.NONE : lockMode;
-    }
-
-    protected boolean hasAggregateFunctions(QuerySpec querySpec) {
-        return AggregateFunctionChecker.hasAggregateFunctions(querySpec);
-    }
-
-    protected LockStrategy determineLockingStrategy(
-            QuerySpec querySpec,
-            ForUpdateClause forUpdateClause,
-            Boolean followOnLocking) {
-        LockStrategy strategy = LockStrategy.CLAUSE;
-        if (!querySpec.getGroupByClauseExpressions().isEmpty()) {
-            if (Boolean.FALSE.equals(followOnLocking)) {
-                throw new IllegalQueryOperationException("Locking with GROUP BY is not supported");
-            }
-            strategy = LockStrategy.FOLLOW_ON;
-        }
-        if (querySpec.getHavingClauseRestrictions() != null) {
-            if (Boolean.FALSE.equals(followOnLocking)) {
-                throw new IllegalQueryOperationException("Locking with HAVING is not supported");
-            }
-            strategy = LockStrategy.FOLLOW_ON;
-        }
-        if (querySpec.getSelectClause().isDistinct()) {
-            if (Boolean.FALSE.equals(followOnLocking)) {
-                throw new IllegalQueryOperationException("Locking with DISTINCT is not supported");
-            }
-            strategy = LockStrategy.FOLLOW_ON;
-        }
-        if (!dialect.supportsOuterJoinForUpdate()) {
-            if (forUpdateClause.hasAliases()) {
-                // Only need to visit the TableGroupJoins for which the alias is registered
-                if (querySpec.getFromClause().queryTableGroupJoins(
-                        tableGroupJoin -> {
-                            final TableGroup group = tableGroupJoin.getJoinedGroup();
-                            if (forUpdateClause.hasAlias(group.getSourceAlias())) {
-                                if (tableGroupJoin.isInitialized() && tableGroupJoin.getJoinType() != SqlAstJoinType.INNER && !group.isVirtual()) {
-                                    if (Boolean.FALSE.equals(followOnLocking)) {
-                                        throw new IllegalQueryOperationException(
-                                                "Locking with OUTER joins is not supported");
-                                    }
-                                    return Boolean.TRUE;
-                                }
-                            }
-                            return null;
-                        }
-                ) != null) {
-                    strategy = LockStrategy.FOLLOW_ON;
-                }
-            } else {
-                // Visit TableReferenceJoin and TableGroupJoin to see if all use INNER
-                if (querySpec.getFromClause().queryTableJoins(
-                        tableJoin -> {
-                            if (tableJoin.isInitialized() && tableJoin.getJoinType() != SqlAstJoinType.INNER && !(tableJoin.getJoinedNode() instanceof VirtualTableGroup)) {
-                                if (Boolean.FALSE.equals(followOnLocking)) {
-                                    throw new IllegalQueryOperationException(
-                                            "Locking with OUTER joins is not supported");
-                                }
-                                return Boolean.TRUE;
-                            }
-                            return null;
-                        }
-                ) != null) {
-                    strategy = LockStrategy.FOLLOW_ON;
-                }
-            }
-        }
-        if (hasAggregateFunctions(querySpec)) {
-            if (Boolean.FALSE.equals(followOnLocking)) {
-                throw new IllegalQueryOperationException("Locking with aggregate functions is not supported");
-            }
-            strategy = LockStrategy.FOLLOW_ON;
-        }
-        return strategy;
-    }
-
-    private void renderPredicatedSetAssignments(List<Assignment> assignments, Predicate predicate) {
-        char separator = ' ';
-        try {
-            clauseStack.push(Clause.SET);
-            for (Assignment assignment : assignments) {
-                appendSql(separator);
-                separator = COMMA_SEPARATOR_CHAR;
-                if (predicate == null) {
-                    visitSetAssignment(assignment);
-                } else {
-                    assert assignment.getAssignable().getColumnReferences().size() == 1;
-                    final Expression expression = new CaseSearchedExpression(
-                            (MappingModelExpressible) assignment.getAssignedValue().getExpressionType(),
-                            List.of(
-                                    new CaseSearchedExpression.WhenFragment(
-                                            predicate, assignment.getAssignedValue()
-                                    )
-                            ),
-                            assignment.getAssignable().getColumnReferences().get(0)
-                    );
-                    visitSetAssignment(new Assignment(assignment.getAssignable(), expression));
-                }
-            }
-        } finally {
-            clauseStack.pop();
-        }
     }
 
     protected void visitReturningColumns(Supplier<List<ColumnReference>> returningColumnsAccess) {
@@ -2929,9 +2728,9 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         }
         appendSql(" } } ], as: ");
 
-        appendSql(StringUtil.writeStringHelper(alias));
+        appendSql(writeStringHelper(alias));
 
-        appendSql(" } }, { $unwind: " + StringUtil.writeStringHelper("$" + alias) + " }");
+        appendSql(" } }, { $unwind: " + writeStringHelper("$" + alias) + " }");
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
             final Predicate lateralEmulationPredicate = determineLateralEmulationPredicate(tableGroup);
             if (lateralEmulationPredicate != null) {
@@ -3065,7 +2864,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
     }
 
     protected boolean renderNamedTableReference(NamedTableReference tableReference, LockMode lockMode) {
-        appendSql(StringUtil.writeStringHelper(tableReference.getTableExpression()));
+        appendSql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
         //renderTableReferenceIdentificationVariable(tableReference);
         return false;
@@ -3145,7 +2944,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                     appendSql("{ }");
                 }
                 appendSql(" } } ], as: ");
-                appendSql(StringUtil.writeStringHelper(tableJoin.getJoinedTableReference().getIdentificationVariable()));
+                appendSql(writeStringHelper(tableJoin.getJoinedTableReference().getIdentificationVariable()));
                 appendSql(" }, { $unwind: \"$");
                 appendSql(tableJoin.getJoinedTableReference().getIdentificationVariable());
                 appendSql("\"");
@@ -3631,7 +3430,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     @Override
     public void visitNamedTableReference(NamedTableReference tableReference) {
-        appendSql(StringUtil.writeStringHelper(tableReference.getTableExpression()));
+        appendSql(writeStringHelper(tableReference.getTableExpression()));
     }
 
     @Override
@@ -5096,15 +4895,8 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         return "";
     }
 
-    protected enum LockStrategy {
-        CLAUSE,
-        FOLLOW_ON,
-        NONE
-    }
-
     protected static class ForUpdateClause {
         private LockMode lockMode;
-        private final int timeoutMillis = LockOptions.WAIT_FOREVER;
         private Map<String, String[]> keyColumnNames;
         private Map<String, String> aliases;
 
@@ -5122,10 +4914,6 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
                     }
                 }
             }
-        }
-
-        public LockMode getLockMode() {
-            return lockMode;
         }
 
         public void setLockMode(LockMode lockMode) {
@@ -5165,58 +4953,11 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
             this.keyColumnNames.put(tableAlias, keyColumnNames);
         }
 
-        public boolean hasAlias(String alias) {
-            return aliases != null && aliases.containsKey(alias);
-        }
-
         private void addAlias(String alias, String tableAlias) {
             if (aliases == null) {
                 aliases = new HashMap<>();
             }
             aliases.put(alias, tableAlias);
-        }
-
-        public int getTimeoutMillis() {
-            return timeoutMillis;
-        }
-
-        public boolean hasAliases() {
-            return aliases != null;
-        }
-
-        public void appendAliases(SqlAppender appender) {
-            if (aliases == null) {
-                return;
-            }
-            if (keyColumnNames != null) {
-                boolean first = true;
-                for (String tableAlias : aliases.values()) {
-                    final String[] keyColumns = keyColumnNames.get(tableAlias); //use the id column alias
-                    if (keyColumns == null) {
-                        throw new IllegalArgumentException("alias not found: " + tableAlias);
-                    }
-                    for (String keyColumn : keyColumns) {
-                        if (first) {
-                            first = false;
-                        } else {
-                            appender.appendSql(',');
-                        }
-                        appender.appendSql(tableAlias);
-                        appender.appendSql('.');
-                        appender.appendSql(keyColumn);
-                    }
-                }
-            } else {
-                boolean first = true;
-                for (String tableAlias : aliases.values()) {
-                    if (first) {
-                        first = false;
-                    } else {
-                        appender.appendSql(',');
-                    }
-                    appender.appendSql(tableAlias);
-                }
-            }
         }
     }
 
@@ -5266,7 +5007,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
      * Renders the {@code insert into <table name>} portion of an insert
      */
     protected void renderIntoIntoAndTable(TableInsertStandard tableInsert) {
-        dialect.appendLiteral(this, tableInsert.getMutatingTable().getTableName());
+        appendSql(writeStringHelper(tableInsert.getMutatingTable().getTableName()));
         registerAffectedTable(tableInsert.getMutatingTable().getTableName());
     }
 
@@ -5312,7 +5053,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
 
     private void visitTableUpdate(RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
         appendSql(" update: ");
-        dialect.appendLiteral(this, tableUpdate.getMutatingTable().getTableName());
+        appendSql(writeStringHelper(tableUpdate.getMutatingTable().getTableName()));
         registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
 
         appendSql(", updates: [ {");
@@ -5407,7 +5148,7 @@ public class MongoJsonAstTranslator<T extends JdbcOperation> implements SqlAstTr
         getCurrentClauseStack().push(Clause.DELETE);
         try {
             appendSql("{ delete: ");
-            dialect.appendLiteral(this, tableDelete.getMutatingTable().getTableName());
+            appendSql(writeStringHelper(tableDelete.getMutatingTable().getTableName()));
             registerAffectedTable(tableDelete.getMutatingTable().getTableName());
 
             getCurrentClauseStack().push(Clause.WHERE);
