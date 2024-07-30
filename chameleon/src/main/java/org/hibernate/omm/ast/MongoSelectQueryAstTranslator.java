@@ -459,18 +459,18 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private void simulateTableJoining(TableGroup source, TableGroup tableGroup, Predicate predicate) {
-        var sourceAlias = source.getPrimaryTableReference().getIdentificationVariable();
+    private void simulateTableJoining(TableGroup sourceTableGroup, TableGroup targetTableGroup, Predicate predicate) {
+        var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
 
         if (predicate instanceof ComparisonPredicate comparisonPredicate) {
-            var targetAlias = tableGroup.getPrimaryTableReference().getIdentificationVariable();
+            var targetQualifier = targetTableGroup.getPrimaryTableReference().getIdentificationVariable();
             ColumnReference sourceColumnReference = null, targetColumnReference = null;
-            if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(targetAlias)
-                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(sourceAlias)) {
+            if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(targetQualifier)
+                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(sourceQualifier)) {
                 targetColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
                 sourceColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
-            } else if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(sourceAlias)
-                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(targetAlias)) {
+            } else if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(sourceQualifier)
+                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(targetQualifier)) {
                 sourceColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
                 targetColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
             }
@@ -480,7 +480,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 appendSql(", foreignField: ");
                 appendSql(writeStringHelper(targetColumnReference.getColumnExpression()));
             } else {
-                var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceAlias);
+                var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceQualifier);
                 if (!sourceColumnsInPredicate.isEmpty()) {
                     appendSql(", let: {");
                     for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
@@ -490,13 +490,13 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                             appendSql(", ");
                         }
                         var sourceColumn = sourceColumnsInPredicate.get(i);
-                        appendSql(String.format("%s_%s: \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
+                        appendSql(String.format("%s_%s: \"$%s\"", sourceQualifier, sourceColumn, sourceColumn));
                     }
                     appendSql(" }");
                 }
                 appendSql(", pipeline: [ { $match: { $expr: ");
                 try {
-                    aggregateAlias = sourceAlias;
+                    aggregateAlias = sourceQualifier;
                     inAggregateExpressionScope = true;
                     predicate.accept(this);
                 } finally {
@@ -505,8 +505,10 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 }
             }
             appendSql(", as: ");
-            appendSql(writeStringHelper(targetAlias));
-            appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetAlias) + " }");
+            appendSql(writeStringHelper(targetQualifier));
+            appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetQualifier) + " }");
+        } else {
+            throw new NotYetImplementedException("currently only comparison predicate supported for table joining");
         }
     }
 
