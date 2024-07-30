@@ -6,6 +6,7 @@
  */
 package org.hibernate.omm.ast;
 
+import com.mongodb.lang.Nullable;
 import org.hibernate.Internal;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
@@ -235,6 +236,7 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
 /**
  * @author Steve Ebersole
  */
+@SuppressWarnings("removal")
 public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     /**
@@ -307,6 +309,8 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     protected boolean needsSelectAliases;
     // Column aliases that need to be injected
     protected List<String> columnAliases;
+
+    @Nullable
     protected Predicate additionalWherePredicate;
     // We must reset the queryPartForRowNumbering fields to null if a query part is visited that does not
     // contribute to the row numbering i.e. if the query part is a sub-query in the where clause.

@@ -7,6 +7,7 @@
 
 plugins {
     id 'java-library'
+    id 'org.checkerframework' version '0.6.42'
 }
 
 repositories {
@@ -31,4 +32,15 @@ java {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+checkerFramework {
+    skipCheckerFramework = true // set 'true' to skip it!
+    excludeTests = true
+    checkers = [
+            'org.checkerframework.checker.nullness.NullnessChecker'
+    ]
+    /*extraJavacArgs = [
+            "-AskipUses=AbstractMongoSqlAstTranslator"
+    ]*/
 }
