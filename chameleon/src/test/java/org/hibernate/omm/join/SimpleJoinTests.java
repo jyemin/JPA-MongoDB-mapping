@@ -30,11 +30,12 @@ public class SimpleJoinTests extends AbstractMongodbIntegrationTests {
         });
 
         City city = new City();
-        getSessionFactory().inTransaction(session -> {
-            session.load(city, 2);
-        });
 
-        assertThat(city.country).usingRecursiveComparison().isEqualTo(country); // outside of session so lazy loading proxy would fail
+        // the following Bson command will be issued:
+        // { aggregate: "cities", pipeline: [ { $lookup: { from: "countries", localField: "country_id", foreignField: "_id", as: "c2_0" } }, { $unwind: "$c2_0" }, { $match: { _id: { $eq: ? } } }, { $project: { _id: "$_id", c2_0__id: "$c2_0._id", c2_0_name: "$c2_0.name", name: "$name" } } ], cursor: {} }
+        getSessionFactory().inTransaction(session -> session.load(city, 2));
+
+        assertThat(city.country).usingRecursiveComparison().isEqualTo(country);
     }
 
     @Override

@@ -413,45 +413,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             tableGroupJoins = null;
         }
 
-        if (predicate instanceof ComparisonPredicate comparisonPredicate) {
-            String sourceAlias = source.getPrimaryTableReference().getIdentificationVariable();
-            List<String> sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceAlias);
-            if (!sourceColumnsInPredicate.isEmpty()) {
-                appendSql(", let: {");
-                for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
-                    if (i == 0) {
-                        appendSql(' ');
-                    } else {
-                        appendSql(", ");
-                    }
-                    String sourceColumn = sourceColumnsInPredicate.get(i);
-                    appendSql(String.format("%s_%s: \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
-                }
-                appendSql(" }");
-            }
-        }
+        simulateTableJoining(source, tableGroup, predicate);
 
-        appendSql(", pipeline: [ { $match: { $expr: ");
-
-        String alias = tableGroup.getPrimaryTableReference().getIdentificationVariable();
-
-        if (predicate != null) {
-            try {
-                aggregateAlias = alias;
-                inAggregateExpressionScope = true;
-                predicate.accept(this);
-            } finally {
-                inAggregateExpressionScope = false;
-                aggregateAlias = null;
-            }
-        } else {
-            appendSql("{ }");
-        }
-        appendSql(" } } ], as: ");
-
-        appendSql(writeStringHelper(alias));
-
-        appendSql(" } }, { $unwind: " + writeStringHelper("$" + alias) + " }");
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
             final Predicate lateralEmulationPredicate = determineLateralEmulationPredicate(tableGroup);
             if (lateralEmulationPredicate != null) {
@@ -493,6 +456,57 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 forUpdate.setLockMode(effectiveLockMode);
             }
             forUpdate.applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
+        }
+    }
+
+    private void simulateTableJoining(TableGroup source, TableGroup tableGroup, Predicate predicate) {
+        var sourceAlias = source.getPrimaryTableReference().getIdentificationVariable();
+
+        if (predicate instanceof ComparisonPredicate comparisonPredicate) {
+            var targetAlias = tableGroup.getPrimaryTableReference().getIdentificationVariable();
+            ColumnReference sourceColumnReference = null, targetColumnReference = null;
+            if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(targetAlias)
+                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(sourceAlias)) {
+                targetColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
+                sourceColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
+            } else if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(sourceAlias)
+                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(targetAlias)) {
+                sourceColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
+                targetColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
+            }
+            if (sourceColumnReference != null && targetColumnReference != null) {
+                appendSql(", localField: ");
+                appendSql(writeStringHelper(sourceColumnReference.getColumnExpression()));
+                appendSql(", foreignField: ");
+                appendSql(writeStringHelper(targetColumnReference.getColumnExpression()));
+            } else {
+                var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceAlias);
+                if (!sourceColumnsInPredicate.isEmpty()) {
+                    appendSql(", let: {");
+                    for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
+                        if (i == 0) {
+                            appendSql(' ');
+                        } else {
+                            appendSql(", ");
+                        }
+                        var sourceColumn = sourceColumnsInPredicate.get(i);
+                        appendSql(String.format("%s_%s: \"$%s\"", sourceAlias, sourceColumn, sourceColumn));
+                    }
+                    appendSql(" }");
+                }
+                appendSql(", pipeline: [ { $match: { $expr: ");
+                try {
+                    aggregateAlias = sourceAlias;
+                    inAggregateExpressionScope = true;
+                    predicate.accept(this);
+                } finally {
+                    inAggregateExpressionScope = false;
+                    aggregateAlias = null;
+                }
+            }
+            appendSql(", as: ");
+            appendSql(writeStringHelper(targetAlias));
+            appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetAlias) + " }");
         }
     }
 
