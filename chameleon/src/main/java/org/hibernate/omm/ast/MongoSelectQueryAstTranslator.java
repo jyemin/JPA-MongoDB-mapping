@@ -465,16 +465,18 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         if (predicate instanceof ComparisonPredicate comparisonPredicate) {
             var targetQualifier = targetTableGroup.getPrimaryTableReference().getIdentificationVariable();
             ColumnReference sourceColumnReference = null, targetColumnReference = null;
-            if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(targetQualifier)
-                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(sourceQualifier)) {
-                targetColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
-                sourceColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
-            } else if (comparisonPredicate.getLeftHandExpression().getColumnReference().getQualifier().equals(sourceQualifier)
-                    && comparisonPredicate.getRightHandExpression().getColumnReference().getQualifier().equals(targetQualifier)) {
-                sourceColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
-                targetColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
+            var leftHandColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
+            var rightHandColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
+            if (leftHandColumnReference.getQualifier().equals(targetQualifier)
+                    && rightHandColumnReference.getQualifier().equals(sourceQualifier)) {
+                targetColumnReference = leftHandColumnReference;
+                sourceColumnReference = rightHandColumnReference;
+            } else if (leftHandColumnReference.getQualifier().equals(sourceQualifier)
+                    && rightHandColumnReference.getQualifier().equals(targetQualifier)) {
+                sourceColumnReference = leftHandColumnReference;
+                targetColumnReference = rightHandColumnReference;
             }
-            if (sourceColumnReference != null && targetColumnReference != null) {
+            if (sourceColumnReference != null) {
                 appendSql(", localField: ");
                 appendSql(writeStringHelper(sourceColumnReference.getColumnExpression()));
                 appendSql(", foreignField: ");
