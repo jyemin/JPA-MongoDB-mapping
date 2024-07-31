@@ -74,17 +74,20 @@ public class ObjectIdJdbcType implements JdbcType {
 
             @Override
             protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
-                return javaType.getJavaTypeClass().cast(rs.getObject(paramIndex, BsonObjectId.class).getValue());
+                var value = rs.getObject(paramIndex, BsonObjectId.class).getValue();
+                return value == null ? null : javaType.getJavaTypeClass().cast(value);
             }
 
             @Override
             protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
-                return javaType.getJavaTypeClass().cast(statement.getObject(index, BsonObjectId.class).getValue());
+                var value = statement.getObject(index, BsonObjectId.class).getValue();
+                return value == null ? null : javaType.getJavaTypeClass().cast(value);
             }
 
             @Override
             protected X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
-                return javaType.getJavaTypeClass().cast(statement.getObject(name, ObjectId.class));
+                var value = statement.getObject(name, ObjectId.class);
+                return value == null ? null : javaType.getJavaTypeClass().cast(value);
             }
         };
     }

@@ -1,5 +1,7 @@
 package org.hibernate.omm.jdbc.exception;
 
+import com.mongodb.lang.Nullable;
+
 import java.sql.SQLException;
 
 /**
@@ -11,11 +13,11 @@ public class SimulatedSQLException extends SQLException {
     public SimulatedSQLException() {
     }
 
-    public SimulatedSQLException(String reason) {
-        super(reason);
+    public SimulatedSQLException(@Nullable String reason) {
+        super(reason == null ? "" : reason);
     }
 
-    public SimulatedSQLException(String reason, Throwable cause) {
-        super(reason, cause);
+    public SimulatedSQLException(@Nullable String reason, Throwable cause) {
+        super(reason == null ? "" : reason, cause);
     }
 }

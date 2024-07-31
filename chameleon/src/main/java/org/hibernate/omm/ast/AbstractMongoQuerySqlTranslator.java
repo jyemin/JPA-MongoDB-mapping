@@ -52,7 +52,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
                 if (requiredAndPredicate) {
                     appendSql(", ");
                 }
-                if (existsAdditionalWherePredicate) {
+                if (additionalWherePredicate != null) {
                     this.additionalWherePredicate = null;
                     additionalWherePredicate.accept(this);
                 }

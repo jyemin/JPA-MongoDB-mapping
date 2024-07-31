@@ -145,6 +145,7 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
+    @Nullable
     public SQLWarning getWarnings() {
         return sqlWarning;
     }

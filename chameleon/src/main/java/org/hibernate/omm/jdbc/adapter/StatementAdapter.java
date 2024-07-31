@@ -1,5 +1,6 @@
 package org.hibernate.omm.jdbc.adapter;
 
+import com.mongodb.lang.Nullable;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
@@ -89,6 +90,7 @@ public interface StatementAdapter extends Statement {
     }
 
     @Override
+    @Nullable
     default ResultSet getResultSet() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }

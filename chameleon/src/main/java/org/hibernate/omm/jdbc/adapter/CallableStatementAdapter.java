@@ -1,5 +1,6 @@
 package org.hibernate.omm.jdbc.adapter;
 
+import com.mongodb.lang.Nullable;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
@@ -150,17 +151,17 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default Date getDate(int parameterIndex, Calendar cal) throws SimulatedSQLException {
+    default Date getDate(int parameterIndex, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default Time getTime(int parameterIndex, Calendar cal) throws SimulatedSQLException {
+    default Time getTime(int parameterIndex, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SimulatedSQLException {
+    default Timestamp getTimestamp(int parameterIndex, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -193,7 +194,7 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setURL(String parameterName, URL val) throws SimulatedSQLException {
+    default void setURL(String parameterName, @Nullable URL val) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -238,82 +239,82 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setBigDecimal(String parameterName, BigDecimal x) throws SimulatedSQLException {
+    default void setBigDecimal(String parameterName, @Nullable BigDecimal x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setString(String parameterName, String x) throws SimulatedSQLException {
+    default void setString(String parameterName, @Nullable String x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBytes(String parameterName, byte[] x) throws SimulatedSQLException {
+    default void setBytes(String parameterName, @Nullable byte[] x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setDate(String parameterName, Date x) throws SimulatedSQLException {
+    default void setDate(String parameterName, @Nullable Date x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTime(String parameterName, Time x) throws SimulatedSQLException {
+    default void setTime(String parameterName, @Nullable Time x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTimestamp(String parameterName, Timestamp x) throws SimulatedSQLException {
+    default void setTimestamp(String parameterName, @Nullable Timestamp x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(String parameterName, InputStream x, int length)
+    default void setAsciiStream(String parameterName, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(String parameterName, InputStream x, int length)
+    default void setBinaryStream(String parameterName, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setObject(String parameterName, Object x, int targetSqlType, int scale)
+    default void setObject(String parameterName, @Nullable Object x, int targetSqlType, int scale)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setObject(String parameterName, Object x, int targetSqlType)
+    default void setObject(String parameterName, @Nullable Object x, int targetSqlType)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setObject(String parameterName, Object x) throws SimulatedSQLException {
+    default void setObject(String parameterName, @Nullable Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setCharacterStream(String parameterName, Reader reader, int length)
+    default void setCharacterStream(String parameterName, @Nullable Reader reader, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setDate(String parameterName, Date x, Calendar cal) throws SimulatedSQLException {
+    default void setDate(String parameterName, @Nullable Date x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTime(String parameterName, Time x, Calendar cal) throws SimulatedSQLException {
+    default void setTime(String parameterName, @Nullable Time x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTimestamp(String parameterName, Timestamp x, Calendar cal)
+    default void setTimestamp(String parameterName, @Nullable Timestamp x, @Nullable Calendar cal)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -421,17 +422,17 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default Date getDate(String parameterName, Calendar cal) throws SimulatedSQLException {
+    default Date getDate(String parameterName, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default Time getTime(String parameterName, Calendar cal) throws SimulatedSQLException {
+    default Time getTime(String parameterName, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default Timestamp getTimestamp(String parameterName, Calendar cal) throws SimulatedSQLException {
+    default Timestamp getTimestamp(String parameterName, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -451,40 +452,40 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setRowId(String parameterName, RowId x) throws SimulatedSQLException {
+    default void setRowId(String parameterName, @Nullable RowId x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNString(String parameterName, String value) throws SimulatedSQLException {
+    default void setNString(String parameterName, @Nullable String value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNCharacterStream(String parameterName, Reader value, long length)
+    default void setNCharacterStream(String parameterName, @Nullable Reader value, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(String parameterName, NClob value) throws SimulatedSQLException {
+    default void setNClob(String parameterName, @Nullable NClob value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(String parameterName, Reader reader, long length)
+    default void setClob(String parameterName, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBlob(String parameterName, InputStream inputStream, long length)
+    default void setBlob(String parameterName, @Nullable InputStream inputStream, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(String parameterName, Reader reader, long length)
+    default void setNClob(String parameterName, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -500,7 +501,7 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setSQLXML(String parameterName, SQLXML xmlObject) throws SimulatedSQLException {
+    default void setSQLXML(String parameterName, @Nullable SQLXML xmlObject) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -545,65 +546,65 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setBlob(String parameterName, Blob x) throws SimulatedSQLException {
+    default void setBlob(String parameterName, @Nullable Blob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(String parameterName, Clob x) throws SimulatedSQLException {
+    default void setClob(String parameterName, @Nullable Clob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(String parameterName, InputStream x, long length)
+    default void setAsciiStream(String parameterName, @Nullable InputStream x, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(String parameterName, InputStream x, long length)
+    default void setBinaryStream(String parameterName, @Nullable InputStream x, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setCharacterStream(String parameterName, Reader reader, long length)
+    default void setCharacterStream(String parameterName, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(String parameterName, InputStream x) throws SimulatedSQLException {
+    default void setAsciiStream(String parameterName, @Nullable InputStream x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(String parameterName, InputStream x) throws SimulatedSQLException {
+    default void setBinaryStream(String parameterName, @Nullable InputStream x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setCharacterStream(String parameterName, Reader reader) throws SimulatedSQLException {
+    default void setCharacterStream(String parameterName, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNCharacterStream(String parameterName, Reader value) throws SimulatedSQLException {
+    default void setNCharacterStream(String parameterName, @Nullable Reader value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(String parameterName, Reader reader) throws SimulatedSQLException {
+    default void setClob(String parameterName, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBlob(String parameterName, InputStream inputStream) throws SimulatedSQLException {
+    default void setBlob(String parameterName, @Nullable InputStream inputStream) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(String parameterName, Reader reader) throws SimulatedSQLException {
+    default void setNClob(String parameterName, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -668,49 +669,49 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setBigDecimal(int parameterIndex, BigDecimal x) throws SimulatedSQLException {
+    default void setBigDecimal(int parameterIndex, @Nullable BigDecimal x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setString(int parameterIndex, String x) throws SimulatedSQLException {
+    default void setString(int parameterIndex, @Nullable String x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBytes(int parameterIndex, byte[] x) throws SimulatedSQLException {
+    default void setBytes(int parameterIndex, @Nullable byte[] x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setDate(int parameterIndex, Date x) throws SimulatedSQLException {
+    default void setDate(int parameterIndex, @Nullable Date x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTime(int parameterIndex, Time x) throws SimulatedSQLException {
+    default void setTime(int parameterIndex, @Nullable Time x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTimestamp(int parameterIndex, Timestamp x) throws SimulatedSQLException {
+    default void setTimestamp(int parameterIndex, @Nullable Timestamp x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(int parameterIndex, InputStream x, int length)
+    default void setAsciiStream(int parameterIndex, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setUnicodeStream(int parameterIndex, InputStream x, int length)
+    default void setUnicodeStream(int parameterIndex, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(int parameterIndex, InputStream x, int length)
+    default void setBinaryStream(int parameterIndex, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -721,13 +722,13 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setObject(int parameterIndex, Object x, int targetSqlType)
+    default void setObject(int parameterIndex, @Nullable Object x, int targetSqlType)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setObject(int parameterIndex, Object x) throws SimulatedSQLException {
+    default void setObject(int parameterIndex, @Nullable Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -742,7 +743,7 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setCharacterStream(int parameterIndex, Reader reader, int length)
+    default void setCharacterStream(int parameterIndex, @Nullable Reader reader, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -753,12 +754,12 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setBlob(int parameterIndex, Blob x) throws SimulatedSQLException {
+    default void setBlob(int parameterIndex, @Nullable Blob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(int parameterIndex, Clob x) throws SimulatedSQLException {
+    default void setClob(int parameterIndex, @Nullable Clob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -773,17 +774,17 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setDate(int parameterIndex, Date x, Calendar cal) throws SimulatedSQLException {
+    default void setDate(int parameterIndex, @Nullable Date x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTime(int parameterIndex, Time x, Calendar cal) throws SimulatedSQLException {
+    default void setTime(int parameterIndex, @Nullable Time x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
+    default void setTimestamp(int parameterIndex, @Nullable Timestamp x, @Nullable Calendar cal)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -795,7 +796,7 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setURL(int parameterIndex, URL x) throws SimulatedSQLException {
+    default void setURL(int parameterIndex, @Nullable URL x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -810,34 +811,34 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setNString(int parameterIndex, String value) throws SimulatedSQLException {
+    default void setNString(int parameterIndex, @Nullable String value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNCharacterStream(int parameterIndex, Reader value, long length)
+    default void setNCharacterStream(int parameterIndex, @Nullable Reader value, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(int parameterIndex, NClob value) throws SimulatedSQLException {
+    default void setNClob(int parameterIndex, @Nullable NClob value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(int parameterIndex, Reader reader, long length) throws SimulatedSQLException {
+    default void setClob(int parameterIndex, @Nullable Reader reader, long length) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBlob(int parameterIndex, InputStream inputStream, long length)
+    default void setBlob(int parameterIndex, @Nullable InputStream inputStream, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(int parameterIndex, Reader reader, long length)
+    default void setNClob(int parameterIndex, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -848,61 +849,61 @@ public interface CallableStatementAdapter extends CallableStatement {
     }
 
     @Override
-    default void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength)
+    default void setObject(int parameterIndex, @Nullable Object x, int targetSqlType, int scaleOrLength)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(int parameterIndex, InputStream x, long length)
+    default void setAsciiStream(int parameterIndex, @Nullable InputStream x, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(int parameterIndex, InputStream x, long length)
+    default void setBinaryStream(int parameterIndex, @Nullable InputStream x, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setCharacterStream(int parameterIndex, Reader reader, long length)
+    default void setCharacterStream(int parameterIndex, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAsciiStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
+    default void setAsciiStream(int parameterIndex, @Nullable InputStream x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBinaryStream(int parameterIndex, InputStream x) throws SimulatedSQLException {
+    default void setBinaryStream(int parameterIndex, @Nullable InputStream x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setCharacterStream(int parameterIndex, Reader reader) throws SimulatedSQLException {
+    default void setCharacterStream(int parameterIndex, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNCharacterStream(int parameterIndex, Reader value) throws SimulatedSQLException {
+    default void setNCharacterStream(int parameterIndex, @Nullable Reader value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
+    default void setClob(int parameterIndex, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setBlob(int parameterIndex, InputStream inputStream) throws SimulatedSQLException {
+    default void setBlob(int parameterIndex, @Nullable InputStream inputStream) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNClob(int parameterIndex, Reader reader) throws SimulatedSQLException {
+    default void setNClob(int parameterIndex, @Nullable Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 

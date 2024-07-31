@@ -35,12 +35,12 @@ tasks.named('test') {
 }
 
 checkerFramework {
-    skipCheckerFramework = true // set 'true' to skip it!
+    skipCheckerFramework = false // set 'true' to skip it!
     excludeTests = true
     checkers = [
             'org.checkerframework.checker.nullness.NullnessChecker'
     ]
-    /*extraJavacArgs = [
-            "-AskipUses=AbstractMongoSqlAstTranslator"
-    ]*/
+    extraJavacArgs = [
+            '-AskipUses=^org\\.hibernate\\.omm\\.ast\\.AbstractMongoSqlAstTranslator$'
+    ]
 }

@@ -3,6 +3,7 @@ package org.hibernate.omm.jdbc;
 import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.lang.Nullable;
 import org.bson.types.ObjectId;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
@@ -64,17 +65,17 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public ResultSet executeQuery() throws SimulatedSQLException {
-        return executeQuery(getFinalCommandJson());
+        return executeQuery(getDeParameterizedBsonCommand());
     }
 
     @Override
     public int executeUpdate() throws SimulatedSQLException {
-        return executeUpdate(getFinalCommandJson());
+        return executeUpdate(getDeParameterizedBsonCommand());
     }
 
     @Override
     public boolean execute() throws SimulatedSQLException {
-        return execute(getFinalCommandJson());
+        return execute(getDeParameterizedBsonCommand());
     }
 
     /**
@@ -127,56 +128,51 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setBigDecimal(int parameterIndex, BigDecimal x) {
-        Assertions.notNull("x", x);
-        parameters.put(parameterIndex, "{ \"$numberDecimal\": \"" + x + "\" }");
+    public void setBigDecimal(int parameterIndex, @Nullable BigDecimal x) {
+        parameters.put(parameterIndex, x == null ? "null": "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
-    public void setString(int parameterIndex, String x) {
-        Assertions.notNull("x", x);
-        parameters.put(parameterIndex, StringUtil.writeStringHelper(x));
+    public void setString(int parameterIndex, @Nullable String x) {
+        parameters.put(parameterIndex, x == null ? "null" : StringUtil.writeStringHelper(x));
     }
 
     @Override
-    public void setBytes(int parameterIndex, byte[] x) {
-        Assertions.notNull("x", x);
-        String base64Text = Base64.getEncoder().encodeToString(x);
-        parameters.put(parameterIndex, "\"$binary\": {\"base64\": \"" + base64Text + "\", \"subType\": \"0\"}");
+    public void setBytes(int parameterIndex, @Nullable byte[] x) {
+        parameters.put(parameterIndex, x == null ? "null": "\"$binary\": {\"base64\": \"" + Base64.getEncoder().encodeToString(x) + "\", \"subType\": \"0\"}");
     }
 
     @Override
-    public void setDate(int parameterIndex, Date x) {
-        Assertions.notNull("x", x);
-        parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
+    public void setDate(int parameterIndex, @Nullable Date x) {
+        parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTime(int parameterIndex, Time x) {
-        Assertions.notNull("x", x);
-        parameters.put(parameterIndex, "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
+    public void setTime(int parameterIndex, @Nullable Time x) {
+        parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, Timestamp x) {
-        Assertions.notNull("x", x);
+    public void setTimestamp(int parameterIndex, @Nullable Timestamp x) {
         parameters.put(
                 parameterIndex,
-                "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
+                x == null ? "null" : "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
         );
     }
 
 
     @Override
-    public void setBinaryStream(int parameterIndex, InputStream x, int length)
+    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setObject(int parameterIndex, Object x, int targetSqlType)
+    public void setObject(int parameterIndex, @Nullable Object x, int targetSqlType)
             throws SimulatedSQLException {
-        Assertions.notNull("x", x);
+        if (x == null) {
+            parameters.put(parameterIndex, "null");
+        } else {
         switch (targetSqlType) {
             case 3_000:
                 ObjectId objectId = (ObjectId) x;
@@ -185,20 +181,21 @@ public class MongoPreparedStatement extends MongoStatement
             default:
                 throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
         }
+        }
     }
 
     @Override
-    public void setObject(int parameterIndex, Object x) throws SimulatedSQLException {
+    public void setObject(int parameterIndex, @Nullable Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setBlob(int parameterIndex, Blob x) throws SimulatedSQLException {
+    public void setBlob(int parameterIndex, @Nullable Blob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setClob(int parameterIndex, Clob x) throws SimulatedSQLException {
+    public void setClob(int parameterIndex, @Nullable Clob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -222,17 +219,17 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setDate(int parameterIndex, Date x, Calendar cal) throws SimulatedSQLException {
+    public void setDate(int parameterIndex, @Nullable Date x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setTime(int parameterIndex, Time x, Calendar cal) throws SimulatedSQLException {
+    public void setTime(int parameterIndex, @Nullable Time x, @Nullable Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal)
+    public void setTimestamp(int parameterIndex, @Nullable Timestamp x, @Nullable Calendar cal)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -244,65 +241,65 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setRowId(int parameterIndex, RowId x) throws SimulatedSQLException {
+    public void setRowId(int parameterIndex, @Nullable RowId x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setNString(int parameterIndex, String value) throws SimulatedSQLException {
+    public void setNString(int parameterIndex, @Nullable String value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setNCharacterStream(int parameterIndex, Reader value, long length)
+    public void setNCharacterStream(int parameterIndex, @Nullable Reader value, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setNClob(int parameterIndex, NClob value) throws SimulatedSQLException {
+    public void setNClob(int parameterIndex, @Nullable NClob value) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setClob(int parameterIndex, Reader reader, long length) throws SimulatedSQLException {
+    public void setClob(int parameterIndex, @Nullable Reader reader, long length) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setBlob(int parameterIndex, InputStream inputStream, long length)
+    public void setBlob(int parameterIndex, @Nullable InputStream inputStream, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setNClob(int parameterIndex, Reader reader, long length)
+    public void setNClob(int parameterIndex, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SimulatedSQLException {
+    public void setSQLXML(int parameterIndex, @Nullable SQLXML xmlObject) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setBinaryStream(int parameterIndex, InputStream x, long length)
+    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    public void setCharacterStream(int parameterIndex, Reader reader, long length)
+    public void setCharacterStream(int parameterIndex, @Nullable Reader reader, long length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
-    private String getFinalCommandJson() {
+    private String getDeParameterizedBsonCommand() {
         int parameterIndex = 1;
         int lastIndex = -1;
         int index;
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
 
         while ((index = parameterizedCommandJson.indexOf('?', lastIndex + 1)) != -1) {
             sb.append(parameterizedCommandJson, lastIndex + 1, index);

@@ -1,5 +1,6 @@
 package org.hibernate.omm.jdbc.adapter;
 
+import com.mongodb.lang.Nullable;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -606,22 +607,23 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getProcedures(String catalog, String schemaPattern, String procedureNamePattern)
+    default ResultSet getProcedures(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String procedureNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getProcedureColumns(
-            String catalog,
-            String schemaPattern,
-            String procedureNamePattern,
-            String columnNamePattern) throws SimulatedSQLException {
+            @Nullable String catalog,
+            @Nullable String schemaPattern,
+            @Nullable String procedureNamePattern,
+            @Nullable String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types)
+    default ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern,
+            @Nullable String[] types)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -642,56 +644,57 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
+    default ResultSet getColumns(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern,
+            @Nullable String columnNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getColumnPrivileges(String catalog, String schema, String table, String columnNamePattern)
+    default ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema, String table, @Nullable String columnNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getTablePrivileges(String catalog, String schemaPattern, String tableNamePattern)
+    default ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope, boolean nullable)
+    default ResultSet getBestRowIdentifier(@Nullable String catalog, @Nullable String schema, String table, int scope, boolean nullable)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getVersionColumns(String catalog, String schema, String table) throws SimulatedSQLException {
+    default ResultSet getVersionColumns(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SimulatedSQLException {
+    default ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getImportedKeys(String catalog, String schema, String table) throws SimulatedSQLException {
+    default ResultSet getImportedKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getExportedKeys(String catalog, String schema, String table) throws SimulatedSQLException {
+    default ResultSet getExportedKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getCrossReference(
-            String parentCatalog,
-            String parentSchema,
+            @Nullable String parentCatalog,
+            @Nullable String parentSchema,
             String parentTable,
-            String foreignCatalog,
-            String foreignSchema,
+            @Nullable String foreignCatalog,
+            @Nullable String foreignSchema,
             String foreignTable) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -702,7 +705,7 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate)
+    default ResultSet getIndexInfo(@Nullable String catalog, @Nullable String schema, String table, boolean unique, boolean approximate)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -768,7 +771,7 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern, int[] types)
+    default ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String typeNamePattern, @Nullable int[] types)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -799,21 +802,21 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) throws SimulatedSQLException {
+    default ResultSet getSuperTypes(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String typeNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getSuperTables(String catalog, String schemaPattern, String tableNamePattern) throws SimulatedSQLException {
+    default ResultSet getSuperTables(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getAttributes(
-            String catalog,
-            String schemaPattern,
-            String typeNamePattern,
-            String attributeNamePattern) throws SimulatedSQLException {
+            @Nullable String catalog,
+            @Nullable String schemaPattern,
+            @Nullable String typeNamePattern,
+            @Nullable String attributeNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -868,7 +871,7 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getSchemas(String catalog, String schemaPattern) throws SimulatedSQLException {
+    default ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -888,26 +891,26 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern)
+    default ResultSet getFunctions(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String functionNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getFunctionColumns(
-            String catalog,
-            String schemaPattern,
-            String functionNamePattern,
-            String columnNamePattern) throws SimulatedSQLException {
+            @Nullable String catalog,
+            @Nullable String schemaPattern,
+            @Nullable String functionNamePattern,
+            @Nullable String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getPseudoColumns(
-            String catalog,
-            String schemaPattern,
-            String tableNamePattern,
-            String columnNamePattern) throws SimulatedSQLException {
+            @Nullable String catalog,
+            @Nullable String schemaPattern,
+            @Nullable String tableNamePattern,
+            @Nullable String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 

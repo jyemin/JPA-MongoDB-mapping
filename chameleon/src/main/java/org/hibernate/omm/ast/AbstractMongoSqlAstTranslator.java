@@ -234,7 +234,18 @@ import static org.hibernate.sql.ast.SqlTreePrinter.logSqlAst;
 import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomainResultGraph;
 
 /**
+ * Copied from {@link org.hibernate.sql.ast.spi.AbstractSqlAstTranslator} with the following differences:
+ * <ul>
+ *     <li>some private fields or methods changed to protected</li>
+ *     <li>some final methods are changed to be non-final</li>
+ * </ul>
+ * @apiNote The reason is we don't want to dump all logic into one single gigantic class (this class has almost 10k LOCs),
+ * so we maintain two separate child classes focusing on select query and mutation query respectively.
+ * This common ancestor class needs to be more open to allow both to access it, but that should be
+ * the only kind of change to it after copying the class from Hibernate and putting it here
  * @author Steve Ebersole
+ * @see MongoSelectQueryAstTranslator
+ * @see MongoMutationQuerySqlAstTranslator
  */
 @SuppressWarnings("removal")
 public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {

@@ -7,8 +7,10 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
+import org.hibernate.service.UnknownUnwrapTypeException;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.Stoppable;
 
@@ -23,13 +25,23 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
  * @since 1.0.0
  */
 public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
-    public static MongoDatabase mongoDatabase;
-    private MongoClient mongoClient;
+
+    public static @MonotonicNonNull MongoDatabase mongoDatabase;
+
+    private @MonotonicNonNull MongoClient mongoClient;
 
     @Override
     public void configure(Map<String, Object> configurationValues) {
-        String mongodbConnectionURL = (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL);
-        String mongodbDatabaseName = (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE);
+        String mongodbConnectionURL =
+                (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL);
+        if (mongodbConnectionURL == null) {
+            throw new IllegalStateException(MongoAvailableSettings.MONGODB_CONNECTION_URL + " must be configured");
+        }
+        String mongodbDatabaseName =
+                (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE);
+        if (mongodbDatabaseName == null) {
+            throw new IllegalStateException(MongoAvailableSettings.MONGODB_DATABASE + " must be configured");
+        }
         ConnectionString connectionString = new ConnectionString(mongodbConnectionURL);
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
@@ -46,9 +58,12 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
     public Connection getConnection() {
         if (mongoDatabase == null) {
             throw new IllegalStateException(
-                    "mongoDatabase instance should have been configured during Configurable mechanism ");
+                    "mongoDatabase instance should have been configured during Configurable mechanism");
         }
-
+        if (mongoClient == null) {
+            throw new IllegalStateException(
+                    "mongoClient instance should have been configured during Configurable mechanism");
+        }
         ClientSession clientSession = mongoClient.startSession();
         return new MongoConnection(mongoDatabase, clientSession);
     }
@@ -70,9 +85,8 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
 
     @Override
     public <T> T unwrap(Class<T> unwrapType) {
-        return null;
+        throw new UnknownUnwrapTypeException(unwrapType);
     }
-
 
     @Override
     public void stop() {

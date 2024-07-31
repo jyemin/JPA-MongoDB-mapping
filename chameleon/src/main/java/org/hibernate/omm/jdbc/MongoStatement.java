@@ -38,7 +38,10 @@ public class MongoStatement implements StatementAdapter {
     protected final ClientSession clientSession;
 
     protected final Connection connection;
+
+    @Nullable
     private CurrentQueryResult currentQueryResult;
+
     private int currentUpdateCount;
     private int fetchSize;
 
