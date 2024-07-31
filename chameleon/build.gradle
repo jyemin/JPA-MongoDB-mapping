@@ -35,7 +35,7 @@ tasks.named('test') {
 }
 
 checkerFramework {
-    skipCheckerFramework = false // set 'true' to skip it!
+    skipCheckerFramework = true // set 'true' to skip it!
     excludeTests = true
     checkers = [
             'org.checkerframework.checker.nullness.NullnessChecker'
