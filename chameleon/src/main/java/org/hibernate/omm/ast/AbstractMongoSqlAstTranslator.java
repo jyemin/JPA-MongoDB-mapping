@@ -238,16 +238,18 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
  * <ul>
  *     <li>some private fields or methods changed to protected</li>
  *     <li>some final methods are changed to be non-final</li>
+ *     <li>some nullness annotations are added</li>
  * </ul>
+ *
+ * @author Steve Ebersole
  * @apiNote The reason is we don't want to dump all logic into one single gigantic class (this class has almost 10k LOCs),
  * so we maintain two separate child classes focusing on select query and mutation query respectively.
  * This common ancestor class needs to be more open to allow both to access it, but that should be
  * the only kind of change to it after copying the class from Hibernate and putting it here
- * @author Steve Ebersole
  * @see MongoSelectQueryAstTranslator
  * @see MongoMutationQuerySqlAstTranslator
  */
-@SuppressWarnings("removal")
+@SuppressWarnings({"nullness", "removal"})
 public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     /**
@@ -327,7 +329,9 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     // contribute to the row numbering i.e. if the query part is a sub-query in the where clause.
     // To determine whether a query part contributes to row numbering, we remember the clause depth
     // and when visiting a query part, compare the current clause depth against the remembered one.
+    @Nullable
     protected QueryPart queryPartForRowNumbering;
+
     protected int queryPartForRowNumberingClauseDepth = -1;
     protected int queryPartForRowNumberingAliasCounter;
     protected int queryGroupAliasCounter;
@@ -347,6 +351,8 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     protected Limit limit;
     private JdbcParameter offsetParameter;
     private JdbcParameter limitParameter;
+
+    @Nullable
     protected ForUpdateClause forUpdate;
 
     protected AbstractMongoSqlAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
@@ -5815,7 +5821,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         return separator;
     }
 
-    protected void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderRootTableGroup(TableGroup tableGroup, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         final LockMode effectiveLockMode = getEffectiveLockMode(tableGroup.getSourceAlias());
         final boolean usesLockHint = renderPrimaryTableReference(tableGroup, effectiveLockMode);
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
@@ -5846,7 +5852,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderTableGroup(TableGroup tableGroup, Predicate predicate, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderTableGroup(TableGroup tableGroup, @Nullable Predicate predicate, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         // Without reference joins or nested join groups, even a real table group does not need parenthesis
         final boolean realTableGroup = tableGroup.isRealTableGroup()
                 && (CollectionHelper.isNotEmpty(tableGroup.getTableReferenceJoins())
@@ -6186,11 +6192,11 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         source.visitTableGroupJoins(tableGroupJoin -> processTableGroupJoin(tableGroupJoin, null));
     }
 
-    protected void processNestedTableGroupJoins(TableGroup source, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void processNestedTableGroupJoins(TableGroup source, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         source.visitNestedTableGroupJoins(tableGroupJoin -> processTableGroupJoin(tableGroupJoin, tableGroupJoinCollector));
     }
 
-    protected void processTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void processTableGroupJoin(TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         final TableGroup joinedGroup = tableGroupJoin.getJoinedGroup();
 
         if (joinedGroup.isVirtual()) {
@@ -6217,7 +6223,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderTableGroupJoin(TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         appendSql(WHITESPACE);
         appendSql(tableGroupJoin.getJoinType().getText());
         appendSql("join ");

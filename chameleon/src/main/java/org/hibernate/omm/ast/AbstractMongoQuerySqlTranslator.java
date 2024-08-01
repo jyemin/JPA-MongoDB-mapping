@@ -37,9 +37,9 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     @Override
     protected void visitWhereClause(Predicate whereClauseRestrictions) {
         final Predicate additionalWherePredicate = this.additionalWherePredicate;
-        boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
-        boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
-        boolean requiredAndPredicate = existsWhereClauseRestrictions && existsAdditionalWherePredicate;
+        final boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
+        final boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
+        final boolean requiredAndPredicate = existsWhereClauseRestrictions && existsAdditionalWherePredicate;
         if (existsWhereClauseRestrictions || existsAdditionalWherePredicate) {
             if (requiredAndPredicate) {
                 appendSql("{ $and: [ ");

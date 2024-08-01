@@ -116,6 +116,7 @@ public interface ConnectionAdapter extends Connection {
 
     @Override
     @Nullable
+    @SuppressWarnings("nullness")
     default SQLWarning getWarnings() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }

@@ -40,7 +40,4 @@ checkerFramework {
     checkers = [
             'org.checkerframework.checker.nullness.NullnessChecker'
     ]
-    extraJavacArgs = [
-            '-AskipUses=^org\\.hibernate\\.omm\\.ast\\.AbstractMongoSqlAstTranslator$'
-    ]
 }

@@ -1,8 +1,10 @@
 package org.hibernate.omm.ast;
 
+import com.mongodb.lang.Nullable;
 import org.hibernate.LockMode;
 import org.hibernate.dialect.SelectItemReferenceStrategy;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.internal.util.NullnessUtil;
 import org.hibernate.internal.util.collections.CollectionHelper;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
@@ -42,8 +44,12 @@ import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 
 public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslator<JdbcOperationQuerySelect> {
 
+    @Nullable
     private String aggregateAlias;
+
+    @Nullable
     private String rootAlias;
+
     private boolean inAggregateExpressionScope;
 
     public MongoSelectQueryAstTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
@@ -132,7 +138,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    public void visitFromClause(FromClause fromClause) {
+    public void visitFromClause(@Nullable FromClause fromClause) {
         if (fromClause == null || fromClause.getRoots().isEmpty()) {
             throw new NotSupportedRuntimeException("null fromClause or empty root not supported");
         } else {
@@ -163,7 +169,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderRootTableGroup(TableGroup tableGroup, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
 
         renderTableReferenceJoins(tableGroup);
         processNestedTableGroupJoins(tableGroup, tableGroupJoinCollector);
@@ -327,7 +333,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         return false;
     }
 
-    private void processTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+    private void processTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         final TableGroup joinedGroup = tableGroupJoin.getJoinedGroup();
 
         if (joinedGroup.isVirtual()) {
@@ -355,7 +361,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private void renderTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
+    private void renderTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
         //appendSql(tableGroupJoin.getJoinType().getText());
 
         final Predicate predicate;
@@ -378,8 +384,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     private void renderTableGroup(
             TableGroup source,
             TableGroup tableGroup,
-            Predicate predicate,
-            List<TableGroupJoin> tableGroupJoinCollector) {
+            @Nullable Predicate predicate,
+            @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
 
         appendSql("{ $lookup: { from: ");
 
@@ -455,11 +461,11 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             } else {
                 forUpdate.setLockMode(effectiveLockMode);
             }
-            forUpdate.applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
+            NullnessUtil.castNonNull(forUpdate).applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
         }
     }
 
-    private void simulateTableJoining(TableGroup sourceTableGroup, TableGroup targetTableGroup, Predicate predicate) {
+    private void simulateTableJoining(TableGroup sourceTableGroup, TableGroup targetTableGroup, @Nullable Predicate predicate) {
         var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
 
         if (predicate instanceof ComparisonPredicate comparisonPredicate) {
@@ -476,7 +482,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 sourceColumnReference = leftHandColumnReference;
                 targetColumnReference = rightHandColumnReference;
             }
-            if (sourceColumnReference != null) {
+            if (sourceColumnReference != null && targetColumnReference != null) {
                 appendSql(", localField: ");
                 appendSql(writeStringHelper(sourceColumnReference.getColumnExpression()));
                 appendSql(", foreignField: ");
@@ -536,7 +542,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     public void visitColumnReference(ColumnReference columnReference) {
         if (aggregateAlias != null && !columnReference.isColumnExpressionFormula()) {
             appendSql('"');
-            appendSql(aggregateAlias.equals(columnReference.getQualifier()) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
+            appendSql(columnReference.getQualifier().equals(aggregateAlias) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
             appendSql(columnReference.getColumnExpression());
             appendSql('"');
         } else if (queryPartStack.getCurrent() instanceof QuerySpec) {
@@ -548,8 +554,13 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 appendSql(columnReference.getColumnExpression());
             }
         } else {
-            columnReference.appendReadExpression(this, null);
+            columnReferenceAppendReadExpression(columnReference);
         }
+    }
+
+    @SuppressWarnings("nullness")
+    private void columnReferenceAppendReadExpression(ColumnReference columnReference) {
+        columnReference.appendReadExpression(this, null);
     }
 
     @Override

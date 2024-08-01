@@ -129,7 +129,7 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setBigDecimal(int parameterIndex, @Nullable BigDecimal x) {
-        parameters.put(parameterIndex, x == null ? "null": "{ \"$numberDecimal\": \"" + x + "\" }");
+        parameters.put(parameterIndex, x == null ? "null" : "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
@@ -139,7 +139,7 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setBytes(int parameterIndex, @Nullable byte[] x) {
-        parameters.put(parameterIndex, x == null ? "null": "\"$binary\": {\"base64\": \"" + Base64.getEncoder().encodeToString(x) + "\", \"subType\": \"0\"}");
+        parameters.put(parameterIndex, x == null ? "null" : "\"$binary\": {\"base64\": \"" + Base64.getEncoder().encodeToString(x) + "\", \"subType\": \"0\"}");
     }
 
     @Override
@@ -173,14 +173,14 @@ public class MongoPreparedStatement extends MongoStatement
         if (x == null) {
             parameters.put(parameterIndex, "null");
         } else {
-        switch (targetSqlType) {
-            case 3_000:
-                ObjectId objectId = (ObjectId) x;
-                parameters.put(parameterIndex, "{ \"$oid\": \"" + objectId.toHexString() + "\" }");
-                break;
-            default:
-                throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
-        }
+            switch (targetSqlType) {
+                case 3_000:
+                    ObjectId objectId = (ObjectId) x;
+                    parameters.put(parameterIndex, "{ \"$oid\": \"" + objectId.toHexString() + "\" }");
+                    break;
+                default:
+                    throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
+            }
         }
     }
 

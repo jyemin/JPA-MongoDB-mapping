@@ -134,6 +134,7 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     @Nullable
+    @SuppressWarnings("nullness")
     public ResultSet getResultSet() {
         return currentQueryResult == null ? null : currentQueryResult.resultSet;
     }
@@ -144,6 +145,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
+    @SuppressWarnings("nullness")
     public boolean getMoreResults() throws SimulatedSQLException {
         if (currentQueryResult != null) {
             Document moreResultsCommand =
