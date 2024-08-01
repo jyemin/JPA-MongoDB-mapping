@@ -332,7 +332,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                     parameterRenderingMode = defaultRenderingMode;
                 }
                 if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
-                    appendSql("f" + i);
+                    appendSql("f" + i); // field name doesn't matter for Hibernate ResultSet retrieval only relies on order since v6
                     appendSql(": \"$");
                     appendSql(pathTracker.renderColumnReference(columnReference));
                     appendSql('"');
@@ -472,6 +472,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             }
         }
 
+        appendSql(" } }, { $unwind: " + writeStringHelper("$" + tableGroup.getPrimaryTableReference().getIdentificationVariable()) + " }");
+
         ModelPartContainer modelPart = tableGroup.getModelPart();
         if (modelPart instanceof AbstractEntityPersister) {
             String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
@@ -536,14 +538,12 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 }
                 appendSql(", as: ");
                 appendSql(writeStringHelper(targetQualifier));
-                appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetQualifier) + " }");
             } else {
                 throw new NotYetImplementedException("currently only comparison predicate supported for table joining");
             }
         } else {
             throw new NotYetImplementedException("currently only NamedTableReference supported for table joining");
         }
-
     }
 
     private List<String> getSourceColumnsInPredicate(ComparisonPredicate comparisonPredicate, String sourceAlias) {

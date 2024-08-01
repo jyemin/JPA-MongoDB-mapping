@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class DeleteAllTests extends AbstractMongodbIntegrationTests {
+class DeleteAllTests extends AbstractMongodbIntegrationTests {
 
     @Test
     void test_delete_all() {
