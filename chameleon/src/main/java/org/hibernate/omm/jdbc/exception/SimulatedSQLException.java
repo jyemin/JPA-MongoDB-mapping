@@ -14,10 +14,10 @@ public class SimulatedSQLException extends SQLException {
     }
 
     public SimulatedSQLException(@Nullable String reason) {
-        super(reason == null ? "" : reason);
+        super(reason);
     }
 
     public SimulatedSQLException(@Nullable String reason, Throwable cause) {
-        super(reason == null ? "" : reason, cause);
+        super(reason, cause);
     }
 }

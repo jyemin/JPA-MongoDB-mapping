@@ -1,10 +1,8 @@
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
-import org.hibernate.LockMode;
 import org.hibernate.dialect.SelectItemReferenceStrategy;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.hibernate.internal.util.NullnessUtil;
 import org.hibernate.internal.util.collections.CollectionHelper;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
@@ -24,6 +22,7 @@ import org.hibernate.sql.ast.tree.expression.SqlTuple;
 import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.from.FromClause;
 import org.hibernate.sql.ast.tree.from.LazyTableGroup;
+import org.hibernate.sql.ast.tree.from.NamedTableReference;
 import org.hibernate.sql.ast.tree.from.TableGroup;
 import org.hibernate.sql.ast.tree.from.TableGroupJoin;
 import org.hibernate.sql.ast.tree.insert.InsertSelectStatement;
@@ -38,18 +37,51 @@ import org.hibernate.sql.exec.spi.JdbcOperationQuerySelect;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 
 public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslator<JdbcOperationQuerySelect> {
 
-    @Nullable
-    private String aggregateAlias;
+    private static class PathTracker {
+        private final Map<String, String> pathByQualifier = new HashMap<>();
+        @Nullable
+        private String rootQualifier;
+
+        public void setRootQualifier(String rootQualifier) {
+            this.rootQualifier = rootQualifier;
+            pathByQualifier.put(rootQualifier, null);
+        }
+
+        public @Nullable String getRootQualifier() {
+            return rootQualifier;
+        }
+
+        public void trackPath(String sourceQualifier, String targetQualifier) {
+            var sourcePath = pathByQualifier.get(sourceQualifier);
+            if (sourcePath != null) {
+                pathByQualifier.put(targetQualifier, sourcePath + "." + targetQualifier);
+            } else {
+                pathByQualifier.put(targetQualifier, targetQualifier);
+            }
+        }
+
+        public String renderColumnReference(ColumnReference columnReference) {
+            var path = pathByQualifier.get(columnReference.getQualifier());
+            if (path == null) {
+                return columnReference.getColumnExpression();
+            } else {
+                return path + "." + columnReference.getColumnExpression();
+            }
+        }
+    }
+
+    private final PathTracker pathTracker = new PathTracker();
 
     @Nullable
-    private String rootAlias;
-
+    private String targetQualifier;
     private boolean inAggregateExpressionScope;
 
     public MongoSelectQueryAstTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
@@ -104,28 +136,25 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 throw new NotSupportedRuntimeException("query group not supported");
             }
             appendSql("{ aggregate: ");
-            {
-                visitFromClause(querySpec.getFromClause());
-                appendSql(", { $match: ");
-                visitWhereClause(querySpec.getWhereClauseRestrictions());
+            visitFromClause(querySpec.getFromClause());
+            appendSql(", { $match: ");
+            visitWhereClause(querySpec.getWhereClauseRestrictions());
 
-                if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
-                    appendSql(" }, { $sort: ");
-                    visitOrderBy(querySpec.getSortSpecifications());
-                }
-                append(" }, { $project: ");
-                visitSelectClause(querySpec.getSelectClause());
-                //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
-                //visitHavingClause( querySpec );
-                visitOffsetFetchClause(querySpec);
-                // We render the FOR UPDATE clause in the parent query
-                //if ( queryPartForRowNumbering == null ) {
-                //visitForUpdateClause( querySpec );
-                //}
+            if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
+                appendSql(" }, { $sort: ");
+                visitOrderBy(querySpec.getSortSpecifications());
             }
+            append(" }, { $project: ");
+            visitSelectClause(querySpec.getSelectClause());
+            //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
+            //visitHavingClause( querySpec );
+            visitOffsetFetchClause(querySpec);
+            // We render the FOR UPDATE clause in the parent query
+            //if ( queryPartForRowNumbering == null ) {
+            //visitForUpdateClause( querySpec );
+            //}
             appendSql(" } ], cursor: {} }");
         } finally {
-            rootAlias = null;
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
             this.queryPartForRowNumberingClauseDepth = queryPartForRowNumberingClauseDepth;
@@ -153,8 +182,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             if (fromClause.getRoots().size() > 1) {
                 throw new NotYetImplementedException();
             }
+            pathTracker.setRootQualifier(fromClause.getRoots().get(0).getPrimaryTableReference().getIdentificationVariable());
             renderFromClauseRoot(fromClause.getRoots().get(0));
-            rootAlias = fromClause.getRoots().get(0).getPrimaryTableReference().getIdentificationVariable();
         } finally {
             clauseStack.pop();
         }
@@ -178,27 +207,28 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         } else {
             tableGroup.getPrimaryTableReference().accept(this);
             appendSql(", pipeline: [");
-
             processTableGroupJoins(tableGroup);
         }
         ModelPartContainer modelPart = tableGroup.getModelPart();
         if (modelPart instanceof AbstractEntityPersister) {
             String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
-            for (int i = 0; i < querySpaces.length; i++) {
-                registerAffectedTable(querySpaces[i]);
+            for (String querySpace : querySpaces) {
+                registerAffectedTable(querySpace);
             }
         }
     }
 
     @Override
     protected void processTableGroupJoins(TableGroup source) {
-        for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
-            if (i == 0) {
-                appendSql(' ');
-            } else {
-                appendSql(", ");
+        if (!source.getTableGroupJoins().isEmpty()) {
+            for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
+                if (i == 0) {
+                    appendSql(' ');
+                } else {
+                    appendSql(", ");
+                }
+                processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
             }
-            processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
         }
     }
 
@@ -302,17 +332,10 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                     parameterRenderingMode = defaultRenderingMode;
                 }
                 if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
-                    if (!columnReference.getQualifier().equals(rootAlias)) {
-                        appendSql(columnReference.getQualifier() + "_" + columnReference.getColumnExpression());
-                        appendSql(": \"$");
-                        appendSql(columnReference.getQualifier() + "." + columnReference.getColumnExpression());
-                        appendSql('"');
-                    } else {
-                        appendSql(columnReference.getColumnExpression());
-                        appendSql(": \"$");
-                        appendSql(columnReference.getColumnExpression());
-                        appendSql('"');
-                    }
+                    appendSql("f" + i);
+                    appendSql(": \"$");
+                    appendSql(pathTracker.renderColumnReference(columnReference));
+                    appendSql('"');
                 } else {
                     visitSqlSelection(sqlSelection);
                     appendSql(": 1");
@@ -320,6 +343,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 parameterRenderingMode = original;
                 separator = ", ";
             }
+            appendSql(", _id: 0");
         }
     }
 
@@ -387,9 +411,6 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             @Nullable Predicate predicate,
             @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
 
-        appendSql("{ $lookup: { from: ");
-
-
         // Without reference joins or nested join groups, even a real table group does not need parenthesis
         final boolean realTableGroup = tableGroup.isRealTableGroup()
                 && (CollectionHelper.isNotEmpty(tableGroup.getTableReferenceJoins())
@@ -398,8 +419,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             //appendSql(OPEN_PARENTHESIS);
         }
 
-        final LockMode effectiveLockMode = getEffectiveLockMode(tableGroup.getSourceAlias());
-        final boolean usesLockHint = renderPrimaryTableReference(tableGroup, effectiveLockMode);
+        //final boolean usesLockHint = renderPrimaryTableReference(tableGroup, effectiveLockMode);
         final List<TableGroupJoin> tableGroupJoins;
 
         if (realTableGroup) {
@@ -445,79 +465,85 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                     processTableGroupJoin(source, tableGroupJoin, null);
                 }
             }
-            processTableGroupJoins(tableGroup);
+            if (!tableGroup.getTableGroupJoins().isEmpty()) {
+                appendSql(", pipeline: [");
+                processTableGroupJoins(tableGroup);
+                appendSql(" ]");
+            }
         }
 
         ModelPartContainer modelPart = tableGroup.getModelPart();
         if (modelPart instanceof AbstractEntityPersister) {
             String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
-            for (int i = 0; i < querySpaces.length; i++) {
-                registerAffectedTable(querySpaces[i]);
+            for (String querySpace : querySpaces) {
+                registerAffectedTable(querySpace);
             }
-        }
-        if (!usesLockHint && tableGroup.getSourceAlias() != null && LockMode.READ.lessThan(effectiveLockMode)) {
-            if (forUpdate == null) {
-                forUpdate = new ForUpdateClause(effectiveLockMode);
-            } else {
-                forUpdate.setLockMode(effectiveLockMode);
-            }
-            NullnessUtil.castNonNull(forUpdate).applyAliases(dialect.getLockRowIdentifier(effectiveLockMode), tableGroup);
         }
     }
 
     private void simulateTableJoining(TableGroup sourceTableGroup, TableGroup targetTableGroup, @Nullable Predicate predicate) {
-        var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
+        if (targetTableGroup.getPrimaryTableReference() instanceof NamedTableReference namedTargetTableReference) {
+            var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
+            appendSql("{ $lookup: { from: ");
+            appendSql(writeStringHelper(namedTargetTableReference.getTableExpression()));
 
-        if (predicate instanceof ComparisonPredicate comparisonPredicate) {
-            var targetQualifier = targetTableGroup.getPrimaryTableReference().getIdentificationVariable();
-            ColumnReference sourceColumnReference = null, targetColumnReference = null;
-            var leftHandColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
-            var rightHandColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
-            if (leftHandColumnReference.getQualifier().equals(targetQualifier)
-                    && rightHandColumnReference.getQualifier().equals(sourceQualifier)) {
-                targetColumnReference = leftHandColumnReference;
-                sourceColumnReference = rightHandColumnReference;
-            } else if (leftHandColumnReference.getQualifier().equals(sourceQualifier)
-                    && rightHandColumnReference.getQualifier().equals(targetQualifier)) {
-                sourceColumnReference = leftHandColumnReference;
-                targetColumnReference = rightHandColumnReference;
-            }
-            if (sourceColumnReference != null && targetColumnReference != null) {
-                appendSql(", localField: ");
-                appendSql(writeStringHelper(sourceColumnReference.getColumnExpression()));
-                appendSql(", foreignField: ");
-                appendSql(writeStringHelper(targetColumnReference.getColumnExpression()));
-            } else {
-                var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceQualifier);
-                if (!sourceColumnsInPredicate.isEmpty()) {
-                    appendSql(", let: {");
-                    for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
-                        if (i == 0) {
-                            appendSql(' ');
-                        } else {
-                            appendSql(", ");
+            if (predicate instanceof ComparisonPredicate comparisonPredicate) {
+                var targetQualifier = targetTableGroup.getPrimaryTableReference().getIdentificationVariable();
+
+                pathTracker.trackPath(sourceQualifier, targetQualifier);
+
+                ColumnReference sourceColumnReference = null, targetColumnReference = null;
+                var leftHandColumnReference = comparisonPredicate.getLeftHandExpression().getColumnReference();
+                var rightHandColumnReference = comparisonPredicate.getRightHandExpression().getColumnReference();
+                if (leftHandColumnReference.getQualifier().equals(targetQualifier)
+                        && rightHandColumnReference.getQualifier().equals(sourceQualifier)) {
+                    targetColumnReference = leftHandColumnReference;
+                    sourceColumnReference = rightHandColumnReference;
+                } else if (leftHandColumnReference.getQualifier().equals(sourceQualifier)
+                        && rightHandColumnReference.getQualifier().equals(targetQualifier)) {
+                    sourceColumnReference = leftHandColumnReference;
+                    targetColumnReference = rightHandColumnReference;
+                }
+                if (sourceColumnReference != null && targetColumnReference != null) {
+                    appendSql(", localField: ");
+                    appendSql(writeStringHelper(sourceColumnReference.getColumnExpression()));
+                    appendSql(", foreignField: ");
+                    appendSql(writeStringHelper(targetColumnReference.getColumnExpression()));
+                } else {
+                    var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceQualifier);
+                    if (!sourceColumnsInPredicate.isEmpty()) {
+                        appendSql(", let: {");
+                        for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
+                            if (i == 0) {
+                                appendSql(' ');
+                            } else {
+                                appendSql(", ");
+                            }
+                            var sourceColumn = sourceColumnsInPredicate.get(i);
+                            appendSql(String.format("%s_%s: \"$%s\"", sourceQualifier, sourceColumn, sourceColumn));
                         }
-                        var sourceColumn = sourceColumnsInPredicate.get(i);
-                        appendSql(String.format("%s_%s: \"$%s\"", sourceQualifier, sourceColumn, sourceColumn));
+                        appendSql(" }");
                     }
-                    appendSql(" }");
+                    appendSql(", pipeline: [ { $match: { $expr: ");
+                    try {
+                        this.targetQualifier = sourceQualifier;
+                        inAggregateExpressionScope = true;
+                        predicate.accept(this);
+                    } finally {
+                        inAggregateExpressionScope = false;
+                        this.targetQualifier = null;
+                    }
                 }
-                appendSql(", pipeline: [ { $match: { $expr: ");
-                try {
-                    aggregateAlias = sourceQualifier;
-                    inAggregateExpressionScope = true;
-                    predicate.accept(this);
-                } finally {
-                    inAggregateExpressionScope = false;
-                    aggregateAlias = null;
-                }
+                appendSql(", as: ");
+                appendSql(writeStringHelper(targetQualifier));
+                appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetQualifier) + " }");
+            } else {
+                throw new NotYetImplementedException("currently only comparison predicate supported for table joining");
             }
-            appendSql(", as: ");
-            appendSql(writeStringHelper(targetQualifier));
-            appendSql(" } }, { $unwind: " + writeStringHelper("$" + targetQualifier) + " }");
         } else {
-            throw new NotYetImplementedException("currently only comparison predicate supported for table joining");
+            throw new NotYetImplementedException("currently only NamedTableReference supported for table joining");
         }
+
     }
 
     private List<String> getSourceColumnsInPredicate(ComparisonPredicate comparisonPredicate, String sourceAlias) {
@@ -540,13 +566,13 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
     @Override
     public void visitColumnReference(ColumnReference columnReference) {
-        if (aggregateAlias != null && !columnReference.isColumnExpressionFormula()) {
+        if (targetQualifier != null && !columnReference.isColumnExpressionFormula()) {
             appendSql('"');
-            appendSql(columnReference.getQualifier().equals(aggregateAlias) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
+            appendSql(columnReference.getQualifier().equals(targetQualifier) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
             appendSql(columnReference.getColumnExpression());
             appendSql('"');
         } else if (queryPartStack.getCurrent() instanceof QuerySpec) {
-            if (!columnReference.getQualifier().equals(rootAlias)) {
+            if (!columnReference.getQualifier().equals(pathTracker.getRootQualifier())) {
                 appendSql('"');
                 appendSql(columnReference.getQualifier() + "." + columnReference.getColumnExpression());
                 appendSql('"');
