@@ -52,7 +52,6 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
         public void setRootQualifier(String rootQualifier) {
             this.rootQualifier = rootQualifier;
-            pathByQualifier.put(rootQualifier, null);
         }
 
         public @Nullable String getRootQualifier() {
@@ -580,13 +579,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 appendSql(columnReference.getColumnExpression());
             }
         } else {
-            columnReferenceAppendReadExpression(columnReference);
+            columnReference.appendReadExpression(this, null);
         }
-    }
-
-    @SuppressWarnings("nullness")
-    private void columnReferenceAppendReadExpression(ColumnReference columnReference) {
-        columnReference.appendReadExpression(this, null);
     }
 
     @Override
