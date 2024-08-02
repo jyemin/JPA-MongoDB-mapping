@@ -42,6 +42,6 @@ checkerFramework {
     ]
     extraJavacArgs = [
             '-AskipUses=^org\\.hibernate\\.omm\\.ast\\.AbstractMongoSqlAstTranslator$',
-            "-Astubs=$projectDir/src/main/resources/stubs/hibernate-orm.astub"
+            "-Astubs=$projectDir/src/main/resources/stubs"
     ]
 }

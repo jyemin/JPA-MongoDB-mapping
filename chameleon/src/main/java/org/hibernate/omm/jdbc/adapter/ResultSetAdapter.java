@@ -178,7 +178,6 @@ public interface ResultSetAdapter extends ResultSet {
 
     @Override
     @Nullable
-    @SuppressWarnings("nullness")
     default BigDecimal getBigDecimal(String columnLabel, int scale) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -644,7 +643,6 @@ public interface ResultSetAdapter extends ResultSet {
 
     @Override
     @Nullable
-    @SuppressWarnings("nullness")
     default Blob getBlob(int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
