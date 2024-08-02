@@ -4,6 +4,8 @@ import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
+import org.hibernate.sql.ast.tree.expression.EmbeddableTypeLiteral;
+import org.hibernate.sql.ast.tree.expression.NestedColumnReference;
 import org.hibernate.sql.ast.tree.from.NamedTableReference;
 import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
@@ -32,6 +34,16 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     @Override
     public void visitNamedTableReference(NamedTableReference tableReference) {
         appendSql(writeStringHelper(tableReference.getTableExpression()));
+    }
+
+    @Override
+    public void visitNestedColumnReference(final NestedColumnReference nestedColumnReference) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void visitEmbeddableTypeLiteral(final EmbeddableTypeLiteral expression) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
