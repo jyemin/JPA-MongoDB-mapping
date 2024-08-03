@@ -240,11 +240,15 @@ public class MongoPreparedStatement extends MongoStatement
 
         Codec codec = null;
         for (Object obj : iterable) {
-            if (codec == null) {
-                codec = pojoCodecProvider.get(obj.getClass(), mongoDatabase.getCodecRegistry());
-                Assertions.assertNotNull(codec);
+            if (obj == null) {
+                jsonWriter.writeNull();
+            } else {
+                if (codec == null) {
+                    codec = pojoCodecProvider.get(obj.getClass(), mongoDatabase.getCodecRegistry());
+                    Assertions.assertNotNull(codec);
+                }
+                codec.encode(jsonWriter, obj, EncoderContext.builder().build());
             }
-            codec.encode(jsonWriter, obj, EncoderContext.builder().build());
         }
         jsonWriter.writeEndArray();
         jsonWriter.writeEndDocument();
@@ -265,7 +269,7 @@ public class MongoPreparedStatement extends MongoStatement
             }
             stringWriter.write(obj instanceof String aStr ?
                     StringUtil.writeStringHelper(aStr) :
-                    obj.toString());
+                    obj == null ? "null" : obj.toString());
         }
         stringWriter.write(" ]");
         return stringWriter.toString();
