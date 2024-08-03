@@ -16,6 +16,8 @@ import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.List;
 
+import static org.hibernate.internal.util.NullnessUtil.castNonNull;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -144,13 +146,12 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    @SuppressWarnings("nullness")
     public boolean getMoreResults() throws SimulatedSQLException {
         if (currentQueryResult != null) {
             Document moreResultsCommand =
                     new Document()
-                            .append(GET_MORE_ID_FIELD, currentQueryResult.cursorId)
-                            .append(GET_MORE_COLLECTION_FIELD, currentQueryResult.collection);
+                            .append(GET_MORE_ID_FIELD, castNonNull(currentQueryResult).cursorId)
+                            .append(GET_MORE_COLLECTION_FIELD, castNonNull(currentQueryResult).collection);
             if (fetchSize != 0) {
                 moreResultsCommand.append(GET_MORE_BATCH_SIZE_FIELD, fetchSize);
             }
@@ -163,7 +164,7 @@ public class MongoStatement implements StatementAdapter {
             long cursorId = cursor.getLong(CURSOR_ID_FIELD);
             currentQueryResult =
                     new CurrentQueryResult(
-                            currentQueryResult.collection,
+                            castNonNull(currentQueryResult).collection,
                             new MongoResultSet(nextBatch),
                             cursorId
                     );

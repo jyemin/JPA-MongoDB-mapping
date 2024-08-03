@@ -73,24 +73,26 @@ public class ObjectIdJdbcType implements JdbcType {
         return new BasicExtractor<>(javaType, this) {
 
             @Override
-            @SuppressWarnings("nullness")
-            protected @Nullable X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
-                var value = rs.getObject(paramIndex, BsonObjectId.class).getValue();
-                return value == null ? null : javaType.getJavaTypeClass().cast(value);
+            @Nullable
+            protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
+                var obj = rs.getObject(paramIndex, BsonObjectId.class);
+                var value = obj == null ? null : obj.getValue();
+                return javaType.getJavaTypeClass().cast(value);
             }
 
             @Override
-            @SuppressWarnings("nullness")
-            protected @Nullable X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
-                var value = statement.getObject(index, BsonObjectId.class).getValue();
-                return value == null ? null : javaType.getJavaTypeClass().cast(value);
+            @Nullable
+            protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
+                var obj = statement.getObject(index, BsonObjectId.class);
+                var value = obj == null ? null : obj.getValue();
+                return javaType.getJavaTypeClass().cast(value);
             }
 
             @Override
-            @SuppressWarnings("nullness")
-            protected @Nullable X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
+            @Nullable
+            protected X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
                 var value = statement.getObject(name, ObjectId.class);
-                return value == null ? null : javaType.getJavaTypeClass().cast(value);
+                return javaType.getJavaTypeClass().cast(value);
             }
         };
     }

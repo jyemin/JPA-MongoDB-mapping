@@ -32,6 +32,8 @@ import java.sql.Types;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.hibernate.internal.util.NullnessUtil.castNonNull;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -104,8 +106,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public String getString(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonString bsonValue = currentDocument.getString(getKey(columnIndex));
+        BsonString bsonValue = castNonNull(currentDocument).getString(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : bsonValue.getValue();
     }
@@ -113,8 +114,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public boolean getBoolean(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonBoolean bsonValue = currentDocument.getBoolean(getKey(columnIndex));
+        BsonBoolean bsonValue = castNonNull(currentDocument).getBoolean(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -125,8 +125,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public byte getByte(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -137,8 +136,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public short getShort(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -149,8 +147,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public int getInt(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -161,8 +158,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public long getLong(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -173,8 +169,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public float getFloat(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -185,8 +180,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public double getDouble(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonNumber bsonValue = currentDocument.getNumber(getKey(columnIndex));
+        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
         if (bsonValue.isNull()) {
             throw new BsonNullValueSQLException();
@@ -198,8 +192,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public byte[] getBytes(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonBinary bsonValue = currentDocument.getBinary(getKey(columnIndex));
+        BsonBinary bsonValue = castNonNull(currentDocument).getBinary(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : bsonValue.getData();
     }
@@ -208,8 +201,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public Date getDate(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
+        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : new Date(bsonValue.getValue());
     }
@@ -218,8 +210,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public Time getTime(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
+        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : new Time(bsonValue.getValue());
     }
@@ -228,8 +219,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public Timestamp getTimestamp(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonDateTime bsonValue = currentDocument.getDateTime(getKey(columnIndex));
+        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : new Timestamp(bsonValue.getValue());
     }
@@ -238,8 +228,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public BigDecimal getBigDecimal(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        BsonDecimal128 bsonValue = currentDocument.getDecimal128(getKey(columnIndex));
+        BsonDecimal128 bsonValue = castNonNull(currentDocument).getDecimal128(getKey(columnIndex));
         lastRead = bsonValue;
         return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
     }
@@ -247,8 +236,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public Array getArray(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        List<BsonValue> bsonValues = currentDocument.getArray(getKey(columnIndex)).getValues();
+        List<BsonValue> bsonValues = castNonNull(currentDocument).getArray(getKey(columnIndex)).getValues();
         return new ArrayAdapter() {
 
             @Override
@@ -270,8 +258,7 @@ public class MongoResultSet implements ResultSetAdapter {
     public <T> T getObject(int columnIndex, Class<T> type) throws SimulatedSQLException {
         Assertions.notNull("type", type);
         beforeAccessCurrentDocumentField();
-        @SuppressWarnings("nullness")
-        var value = currentDocument.get(getKey(columnIndex));
+        var value = castNonNull(currentDocument).get(getKey(columnIndex));
         return value == null ? null : type.cast(value);
     }
 

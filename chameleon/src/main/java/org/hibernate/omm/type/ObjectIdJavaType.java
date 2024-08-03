@@ -34,7 +34,6 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
     @Override
     @Nullable
-    @SuppressWarnings("nullness")
     public <X> X unwrap(@Nullable final ObjectId value, final Class<X> type, @Nullable final WrapperOptions options) {
         Assertions.notNull("type", type);
         return type.cast(value);
@@ -42,7 +41,6 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
     @Override
     @Nullable
-    @SuppressWarnings("nullness")
     public <X> ObjectId wrap(@Nullable final X value, @Nullable final WrapperOptions options) {
         return (ObjectId) value;
     }
