@@ -1,9 +1,9 @@
 package org.hibernate.omm.mapping;
 
+import com.mongodb.client.model.Filters;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.bson.Document;
 import org.hibernate.omm.AbstractMongodbIntegrationTests;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,18 +31,11 @@ class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
             return movie;
         });
 
-        var nativeQuery = "{ find: \"movies\", filter: { _id: { $eq: " + id + " } }, projection: { _id: 0, tags: 1 } }";
-        Document result = getMongoDatabase().runCommand(Document.parse(nativeQuery));
+        var doc = getMongoDatabase().getCollection("movies")
+                .find(Filters.eq(id)).first();
 
-        assertThat(result.getDouble("ok")).isEqualTo(1.0);
-
-        @SuppressWarnings("unchecked")
-        List<Document> firstBatch = result.getEmbedded(List.of("cursor", "firstBatch"), List.class);
-
-        assertThat(firstBatch.size()).isEqualTo(1L);
-        Document doc = firstBatch.get(0);
-
-        assertThat(doc).usingRecursiveComparison().isEqualTo(new Document("tags", insertedMovie.tags));
+        assertThat(doc).isNotNull();
+        assertThat(doc.getList("tags", String.class)).isEqualTo(insertedMovie.tags);
     }
 
     @Test

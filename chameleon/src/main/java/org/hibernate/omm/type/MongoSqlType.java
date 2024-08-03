@@ -11,5 +11,6 @@ import org.hibernate.type.descriptor.java.JavaType;
  * @since 1.0.0
  */
 public final class MongoSqlType {
+    public static final int UNKNOWN = 4_000;
     public static final int OBJECT_ID = 3_000;
 }
