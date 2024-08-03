@@ -1,0 +1,7 @@
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+package org.hibernate.sql.ast.tree.expression;
+
+class ColumnReference {
+    void appendReadExpression(SqlAppender appender, @Nullable String qualifier);
+}

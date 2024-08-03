@@ -1,0 +1,16 @@
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+package java.sql;
+
+interface Statement {
+    @Nullable Object getResultSet();
+}
+
+interface ResultSet {
+    @Nullable Object getBigDecimal(String columnLabel, int scale);
+    @Nullable Object getBlob(int columnIndex);
+}
+
+interface Connection {
+    @Nullable Object getWarnings();
+}

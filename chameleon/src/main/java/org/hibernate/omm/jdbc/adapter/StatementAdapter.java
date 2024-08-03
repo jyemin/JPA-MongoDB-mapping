@@ -91,7 +91,6 @@ public interface StatementAdapter extends Statement {
 
     @Override
     @Nullable
-    @SuppressWarnings("nullness")
     default ResultSet getResultSet() throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
