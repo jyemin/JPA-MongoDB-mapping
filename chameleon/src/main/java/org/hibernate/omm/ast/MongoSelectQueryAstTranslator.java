@@ -136,7 +136,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             }
             appendSql("{ aggregate: ");
             visitFromClause(querySpec.getFromClause());
-            appendSql(", { $match: ");
+            appendSql("{ $match: ");
             visitWhereClause(querySpec.getWhereClauseRestrictions());
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
@@ -205,7 +205,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             tableGroupJoinCollector.addAll(tableGroup.getTableGroupJoins());
         } else {
             tableGroup.getPrimaryTableReference().accept(this);
-            appendSql(", pipeline: [");
+            appendSql(", pipeline: [ ");
             processTableGroupJoins(tableGroup);
         }
         ModelPartContainer modelPart = tableGroup.getModelPart();
@@ -221,12 +221,10 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     protected void processTableGroupJoins(TableGroup source) {
         if (!source.getTableGroupJoins().isEmpty()) {
             for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
-                if (i == 0) {
-                    appendSql(' ');
-                } else {
+                processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
+                if (i + 1 < source.getTableGroupJoins().size()) {
                     appendSql(", ");
                 }
-                processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
             }
         }
     }

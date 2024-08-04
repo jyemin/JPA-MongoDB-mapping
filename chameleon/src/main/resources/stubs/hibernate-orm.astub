@@ -15,7 +15,7 @@ class JavaType<T> {
 
 package org.hibernate.type.descriptor.jdbc;
 
-class BasicExtractor {
+class BasicExtractor<J> {
     @Nullable J doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException;
     @Nullable J doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException;
     @Nullable J doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException;

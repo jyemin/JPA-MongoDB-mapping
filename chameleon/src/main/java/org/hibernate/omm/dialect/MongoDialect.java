@@ -24,6 +24,9 @@ import org.hibernate.type.spi.TypeConfiguration;
 
 import java.util.List;
 
+import static org.hibernate.type.SqlTypes.ARRAY;
+import static org.hibernate.type.SqlTypes.VARBINARY;
+
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -79,6 +82,7 @@ public class MongoDialect extends Dialect {
         var functionRegistry = functionContributions.getFunctionRegistry();
         var typeConfiguration = functionContributions.getTypeConfiguration();
         functionRegistry.register("array_contains", new MongoArrayContainsFunction(typeConfiguration));
+        functionRegistry.register("array_includes", new MongoArrayIncludesFunction(typeConfiguration));
     }
 
     // https://www.mongodb.com/docs/manual/tutorial/query-arrays/
@@ -113,6 +117,29 @@ public class MongoDialect extends Dialect {
                 needleExpression.accept(walker);
                 sqlAppender.append(" }");
             }
+        }
+    }
+
+    private static class MongoArrayIncludesFunction extends AbstractArrayContainsFunction {
+
+        public MongoArrayIncludesFunction(TypeConfiguration typeConfiguration) {
+            super(true, typeConfiguration);
+        }
+
+        @Override
+        public void render(
+                SqlAppender sqlAppender,
+                List<? extends SqlAstNode> sqlAstArguments,
+                ReturnableType<?> returnType,
+                SqlAstTranslator<?> walker) {
+            final Expression haystackExpression = (Expression) sqlAstArguments.get(0);
+            final Expression needleExpression = (Expression) sqlAstArguments.get(1);
+
+            sqlAppender.append("{ ");
+            haystackExpression.accept(walker);
+            sqlAppender.append(": { $all: ");
+            needleExpression.accept(walker);
+            sqlAppender.append(" } }");
         }
     }
 }
