@@ -25,7 +25,6 @@ import org.hibernate.type.spi.TypeConfiguration;
 import java.util.List;
 
 import static org.hibernate.type.SqlTypes.ARRAY;
-import static org.hibernate.type.SqlTypes.VARBINARY;
 
 /**
  * @author Nathan Xu
@@ -67,6 +66,11 @@ public class MongoDialect extends Dialect {
     @Override
     public boolean supportsStandardArrays() {
         return true;
+    }
+
+    @Override
+    public int getPreferredSqlTypeCodeForArray() {
+        return ARRAY;
     }
 
     @Override

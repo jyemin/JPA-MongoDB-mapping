@@ -81,7 +81,6 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
     @Nullable
     private String targetQualifier;
-    private boolean inAggregateExpressionScope;
 
     public MongoSelectQueryAstTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);

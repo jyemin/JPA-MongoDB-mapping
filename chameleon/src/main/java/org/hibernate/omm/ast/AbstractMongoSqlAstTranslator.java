@@ -7499,7 +7499,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         appendSql(" end)");
     }
 
-    private void appendInClauseSeparator(InListPredicate inListPredicate) {
+    protected void appendInClauseSeparator(InListPredicate inListPredicate) {
         appendSql(CLOSE_PARENTHESIS);
         appendSql(inListPredicate.isNegated() ? " and " : " or ");
         inListPredicate.getTestExpression().accept(this);
@@ -7510,7 +7510,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         appendSql(OPEN_PARENTHESIS);
     }
 
-    private static int addPadding(int bindValueCount, int inExprLimit) {
+    protected static int addPadding(int bindValueCount, int inExprLimit) {
         int ceilingPowerOfTwo = MathHelper.ceilingPowerOfTwo(bindValueCount);
         if (inExprLimit <= 0 || ceilingPowerOfTwo <= inExprLimit) {
             return ceilingPowerOfTwo;
@@ -7754,7 +7754,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    private void visitJunctionPredicate(Junction.Nature nature, Predicate p) {
+    protected void visitJunctionPredicate(Junction.Nature nature, Predicate p) {
         if (p instanceof Junction) {
             final Junction junction = (Junction) p;
             // If we have the same nature, or if this is a disjunction and the operand is a conjunction,
