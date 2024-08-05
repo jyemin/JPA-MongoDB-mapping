@@ -28,7 +28,10 @@ class NativeQueryTests extends AbstractMongodbIntegrationTests {
             return book;
         });
 
-        var nativeQuery = "{ find: \"books\", filter: { _id: { $eq: ? } }, projection: { _id: 1, author: 1, publishYear: 1, title: 1 } }";
+        var nativeQuery = "{ aggregate: \"books\", pipeline: [" +
+                "{ $match :  { _id: { $eq: ? } } }, " +
+                "{ $project: { _id: 1, publishYear: 1, title: 1, author: 1 } }" +
+                "] }";
         getSessionFactory().inTransaction(session -> {
             var query = session.createNativeQuery(nativeQuery, Book.class);
             query.setParameter(1, id);

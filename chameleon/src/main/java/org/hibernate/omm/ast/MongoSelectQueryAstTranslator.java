@@ -152,7 +152,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             //if ( queryPartForRowNumbering == null ) {
             //visitForUpdateClause( querySpec );
             //}
-            appendSql(" } ], cursor: {} }");
+            appendSql(" } ] }");
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
