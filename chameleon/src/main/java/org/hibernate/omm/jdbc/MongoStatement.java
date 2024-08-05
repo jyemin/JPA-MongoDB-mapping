@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.lang.Nullable;
+import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
@@ -72,18 +73,28 @@ public class MongoStatement implements StatementAdapter {
                 return 1;
             case "update":
                 BsonDocument updateDocument = command.getArray("updates").get(0).asDocument();
-                // TODO: this should call updateMany or updateOne depending on the value of the multi field
-                UpdateResult updateResult = collection.updateMany(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
+                boolean updateOne = updateDocument.getBoolean("multi", BsonBoolean.FALSE).getValue();
+                final UpdateResult updateResult;
+                if (updateOne) {
+                    updateResult = collection.updateOne(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
+                } else {
+                    updateResult = collection.updateMany(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
+                }
                 return (int) updateResult.getModifiedCount();
             case "delete":
                 BsonDocument deleteDocument = command.getArray("deletes").get(0).asDocument();
-                // TODO: this should call deleteMany or deleteOne depending on the value of the limit field
-                DeleteResult deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
+                boolean deleteOne = deleteDocument.getInt32("limit").getValue() == 1;
+                final DeleteResult deleteResult;
+                if (deleteOne) {
+                    deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
+                } else {
+                    deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
+                }
                 return (int) deleteResult.getDeletedCount();
             default:
-                throw new NotSupportedSQLException();
+                throw new NotSupportedSQLException("unknown command: " + commandName);
         }
-   }
+    }
 
     @Override
     public boolean execute(String sql) throws SimulatedSQLException {

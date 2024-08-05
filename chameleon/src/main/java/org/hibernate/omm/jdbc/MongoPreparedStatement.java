@@ -11,6 +11,7 @@ import org.bson.json.JsonWriter;
 import org.bson.types.ObjectId;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
+import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -169,13 +170,6 @@ public class MongoPreparedStatement extends MongoStatement
         );
     }
 
-
-    @Override
-    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, int length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
     @Override
     public void setObject(int parameterIndex, @Nullable Object x, int targetSqlType)
             throws SimulatedSQLException {
@@ -191,21 +185,6 @@ public class MongoPreparedStatement extends MongoStatement
                     throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
             }
         }
-    }
-
-    @Override
-    public void setObject(int parameterIndex, @Nullable Object x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setBlob(int parameterIndex, @Nullable Blob x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setClob(int parameterIndex, @Nullable Clob x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
     }
 
     @Override
@@ -275,83 +254,6 @@ public class MongoPreparedStatement extends MongoStatement
         return stringWriter.toString();
     }
 
-    @Override
-    public void setDate(int parameterIndex, @Nullable Date x, @Nullable Calendar cal) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setTime(int parameterIndex, @Nullable Time x, @Nullable Calendar cal) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setTimestamp(int parameterIndex, @Nullable Timestamp x, @Nullable Calendar cal)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setNull(int parameterIndex, int sqlType, String typeName)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setRowId(int parameterIndex, @Nullable RowId x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setNString(int parameterIndex, @Nullable String value) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setNCharacterStream(int parameterIndex, @Nullable Reader value, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setNClob(int parameterIndex, @Nullable NClob value) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setClob(int parameterIndex, @Nullable Reader reader, long length) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setBlob(int parameterIndex, @Nullable InputStream inputStream, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setNClob(int parameterIndex, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setSQLXML(int parameterIndex, @Nullable SQLXML xmlObject) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    public void setCharacterStream(int parameterIndex, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
     private String getDeParameterizedBsonCommand() {
         int parameterIndex = 1;
         int lastIndex = -1;
@@ -370,6 +272,95 @@ public class MongoPreparedStatement extends MongoStatement
             LOG.debug("BSON command generated: {}", command);
         }
         return command;
+    }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // the following methods are used in Hibernate internally and likely we need to override
+    // but for now we left them here for placeholders
+
+    @Override
+    public void setObject(int parameterIndex, @Nullable Object x) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, @Nullable Blob x) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setClob(int parameterIndex, @Nullable Clob x) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setDate(int parameterIndex, @Nullable Date x, @Nullable Calendar cal) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setTime(int parameterIndex, @Nullable Time x, @Nullable Calendar cal) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setTimestamp(int parameterIndex, @Nullable Timestamp x, @Nullable Calendar cal) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setNull(int parameterIndex, int sqlType, String typeName) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setRowId(int parameterIndex, @Nullable RowId x) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setNString(int parameterIndex, @Nullable String value) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex, @Nullable Reader value, long length) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, @Nullable NClob value) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setClob(int parameterIndex, @Nullable Reader reader, long length) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, @Nullable InputStream inputStream, long length) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, @Nullable Reader reader, long length) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setSQLXML(int parameterIndex, @Nullable SQLXML xmlObject) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, long length) {
+        throw new NotYetImplementedException();
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, @Nullable Reader reader, long length) {
+        throw new NotYetImplementedException();
     }
 
 }
