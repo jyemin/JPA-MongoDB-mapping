@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.util.ReflectionUtils;
@@ -25,9 +26,12 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  * @author Nathn Xu
  * @since 1.0.0
  */
-public class SessionFactoryExtension implements BeforeEachCallback {
+public class SessionFactoryExtension implements BeforeEachCallback, AfterEachCallback {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
+
+    private MongoDBContainer mongoDBContainer;
+    private SessionFactory sessionFactory;
 
     @Override
     public void beforeEach(final ExtensionContext context) {
@@ -42,21 +46,32 @@ public class SessionFactoryExtension implements BeforeEachCallback {
             throw new IllegalStateException("no Entity inner static class found with the testing class!");
         }
 
-        try (var mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME)) {
-            mongoDBContainer.start();
+        mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
+        mongoDBContainer.start();
 
-            var cfg = new Configuration();
-            cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
-            cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
-            annotatedClasses.forEach(cfg::addAnnotatedClass);
-            var sessionFactory = cfg.buildSessionFactory();
+        var cfg = new Configuration();
+        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
+        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
+        annotatedClasses.forEach(cfg::addAnnotatedClass);
+        sessionFactory = cfg.buildSessionFactory();
 
-            Object testInstance = context.getRequiredTestInstance();
-            injectFields(testClass, testInstance, sessionFactory);
+        Object testInstance = context.getRequiredTestInstance();
+        injectFields(testClass, testInstance);
+    }
+
+    @Override
+    public void afterEach(final ExtensionContext context) {
+        if (sessionFactory != null) {
+            sessionFactory.close();
+            sessionFactory = null;
+        }
+        if (mongoDBContainer != null) {
+            mongoDBContainer.close();
+            mongoDBContainer = null;
         }
     }
 
-    private void injectFields(Class<?> testClass, Object testInstance, SessionFactory sessionFactory) {
+    private void injectFields(Class<?> testClass, Object testInstance) {
 
         Predicate<Field> predicate = field -> ReflectionUtils.isNotStatic(field) && SessionFactory.class.isAssignableFrom(field.getType());
         findAnnotatedFields(testClass, SessionFactoryInjected.class, predicate)
