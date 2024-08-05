@@ -4,10 +4,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.bson.types.ObjectId;
-import org.hibernate.omm.AbstractMongodbIntegrationTests;
+import org.hibernate.SessionFactory;
+import org.hibernate.omm.extension.SessionFactoryExtension;
+import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,12 +16,16 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Nathan Xu
  * @since 1.0.0
  */
-class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
+@ExtendWith(SessionFactoryExtension.class)
+class ObjectIdTypeTests {
 
     final ObjectId objectId = ObjectId.get();
 
+    @SessionFactoryInjected
+    private SessionFactory sessionFactory;
+
     Book insertBook() {
-        return getSessionFactory().fromTransaction(session -> {
+        return sessionFactory.fromTransaction(session -> {
             var book = new Book();
             book.id = objectId;
             book.title = "War and Peace";
@@ -38,7 +43,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
         // { insert: "books", documents: [ { author: ?, publishYear: ?, title: ?, _id: ? } ] }
         var insertedBook = insertBook();
 
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);
             var book = query.getSingleResult();
@@ -53,11 +58,11 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { delete: "books", deletes: [ { q: { _id: { $eq: ? } }, limit: 0 } ] }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book = session.getReference(Book.class, objectId);
             session.remove(book);
         });
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createSelectionQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);
             assertThat(query.getResultList()).isEmpty();
@@ -71,7 +76,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, objectId);
             assertThat(book).usingRecursiveComparison().isEqualTo(insertedBook);
@@ -85,7 +90,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);
             var book = query.getSingleResult();
@@ -102,7 +107,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, objectId);
             book.author = newAuthor;
@@ -110,7 +115,7 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
             book.publishYear = newPublishYear;
             session.persist(book);
         });
-        getSessionFactory().inSession(session -> {
+        sessionFactory.inSession(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);
             var book = query.getSingleResult();
@@ -118,11 +123,6 @@ class ObjectIdTypeTests extends AbstractMongodbIntegrationTests {
             assertThat(book.title).isEqualTo(newTitle);
             assertThat(book.publishYear).isEqualTo(newPublishYear);
         });
-    }
-
-    @Override
-    public List<Class<?>> getAnnotatedClasses() {
-        return List.of(Book.class);
     }
 
     @Entity(name = "Book")
