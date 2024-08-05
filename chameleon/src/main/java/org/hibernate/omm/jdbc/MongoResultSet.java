@@ -1,6 +1,7 @@
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.lang.Nullable;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -10,12 +11,10 @@ import org.bson.BsonDocument;
 import org.bson.BsonNumber;
 import org.bson.BsonString;
 import org.bson.BsonValue;
-import org.bson.Document;
 import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
 import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
 import org.hibernate.omm.jdbc.adapter.ResultSetMetaDataAdapter;
 import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
-import org.hibernate.omm.jdbc.exception.ColumnInfoUnknownSQLException;
 import org.hibernate.omm.jdbc.exception.CurrentDocumentNullSQLException;
 import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -29,7 +28,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.hibernate.internal.util.NullnessUtil.castNonNull;
@@ -39,40 +37,23 @@ import static org.hibernate.internal.util.NullnessUtil.castNonNull;
  * @since 1.0.0
  */
 public class MongoResultSet implements ResultSetAdapter {
-    private static final String OK_FIELD = "ok";
-    private static final String CURSOR_FIELD = "cursor";
-    private static final String FIRST_BATCH_FIELD = "firstBatch";
 
-    private final Iterator<Document> documentsIterator;
+    private final MongoCursor<BsonDocument> cursor;
+
+    private final List<String> fieldNames;
 
     @Nullable
     private BsonDocument currentDocument;
 
     @Nullable
-    private List<String> currentDocumentKeys;
-
-    @Nullable
     private BsonValue lastRead;
 
-    private volatile boolean closed;
+    private boolean closed;
 
-    public MongoResultSet(Document commandResult) {
-        Assertions.notNull("commandResult", commandResult);
-        Assertions.assertTrue(commandResult.getDouble(OK_FIELD) == 1.0);
-        var firstBatch = commandResult
-                .get(CURSOR_FIELD, Document.class)
-                .getList(FIRST_BATCH_FIELD, Document.class);
-        this.documentsIterator = firstBatch.iterator();
-        if (!firstBatch.isEmpty()) {
-            this.currentDocumentKeys = List.copyOf(firstBatch.get(0).keySet());
-        } else {
-            this.currentDocumentKeys = null;
-        }
-    }
-
-    public MongoResultSet(Iterable<Document> documentIterable) {
-        Assertions.notNull("documentIterable", documentIterable);
-        this.documentsIterator = documentIterable.iterator();
+    public MongoResultSet(MongoCursor<BsonDocument> cursor, final List<String> fieldNames) {
+        Assertions.notNull("cursor", cursor);
+        this.cursor = cursor;
+        this.fieldNames = fieldNames;
     }
 
     @Override
@@ -80,9 +61,8 @@ public class MongoResultSet implements ResultSetAdapter {
         if (closed) {
             throw new ResultSetClosedSQLException();
         }
-        if (documentsIterator.hasNext()) {
-            currentDocument = documentsIterator.next().toBsonDocument();
-            currentDocumentKeys = List.copyOf(currentDocument.keySet());
+        if (cursor.hasNext()) {
+            currentDocument = cursor.next().toBsonDocument();
             return true;
         } else {
             return false;
@@ -92,6 +72,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public void close() {
         closed = true;
+        cursor.close();
     }
 
     @Override
@@ -268,18 +249,12 @@ public class MongoResultSet implements ResultSetAdapter {
 
             @Override
             public int getColumnCount() throws SimulatedSQLException {
-                if (currentDocumentKeys == null) {
-                    throw new ColumnInfoUnknownSQLException();
-                }
-                return currentDocumentKeys.size();
+                return fieldNames.size();
             }
 
             @Override
             public String getColumnLabel(final int column) throws SimulatedSQLException {
-                if (currentDocumentKeys == null) {
-                    throw new ColumnInfoUnknownSQLException();
-                }
-                return currentDocumentKeys.get(column - 1);
+                return fieldNames.get(column - 1);
             }
         };
     }
@@ -287,17 +262,11 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public int findColumn(String columnLabel) throws SimulatedSQLException {
         Assertions.notNull("columnLabel", columnLabel);
-        if (currentDocumentKeys == null) {
-            throw new ColumnInfoUnknownSQLException();
-        }
-        return currentDocumentKeys.indexOf(columnLabel) + 1;
+        return fieldNames.indexOf(columnLabel) + 1;
     }
 
     private String getKey(int columnIndex) throws SimulatedSQLException {
-        if (currentDocumentKeys == null) {
-            throw new ColumnInfoUnknownSQLException();
-        }
-        return currentDocumentKeys.get(columnIndex - 1);
+        return fieldNames.get(columnIndex - 1);
     }
 
     private void beforeAccessCurrentDocumentField() throws ResultSetClosedSQLException, CurrentDocumentNullSQLException {

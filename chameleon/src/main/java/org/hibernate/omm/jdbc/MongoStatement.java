@@ -2,11 +2,15 @@ package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.DeleteResult;
+import com.mongodb.client.result.UpdateResult;
 import com.mongodb.lang.Nullable;
-import org.bson.Document;
+import org.bson.BsonDocument;
+import org.bson.BsonValue;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
-import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
@@ -16,38 +20,18 @@ import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.List;
 
-import static org.hibernate.internal.util.NullnessUtil.castNonNull;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public class MongoStatement implements StatementAdapter {
-    private static final String OK_FIELD = "ok";
-    private static final String COUNT_FIELD = "n";
-    private static final String CURSOR_FIELD = "cursor";
-    private static final String FIRST_BATCH_FIELD = "firstBatch";
-    private static final String NEXT_BATCH_FIELD = "nextBatch";
-    private static final String CURSOR_ID_FIELD = "id";
-    private static final String GET_MORE_ID_FIELD = "getMore";
-    private static final String GET_MORE_COLLECTION_FIELD = "collection";
-    private static final String GET_MORE_BATCH_SIZE_FIELD = "batchSize";
-
-    private record CurrentQueryResult(String collection, ResultSet resultSet, long cursorId) {
-    }
 
     protected final MongoDatabase mongoDatabase;
     protected final ClientSession clientSession;
 
     protected final Connection connection;
 
-    @Nullable
-    private CurrentQueryResult currentQueryResult;
-
-    private int currentUpdateCount;
-    private int fetchSize;
-
-    private volatile boolean closed;
+    private boolean closed;
 
     public MongoStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
@@ -58,57 +42,53 @@ public class MongoStatement implements StatementAdapter {
         this.connection = connection;
     }
 
-    private Document runCommand(Document command) {
-        return mongoDatabase.runCommand(clientSession, command);
-    }
-
     @Override
     public ResultSet executeQuery(String sql) throws SimulatedSQLException {
         Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
-        Document command = Document.parse(sql);
-        Document commandResult = runCommand(command);
-        if (commandResult.getDouble(OK_FIELD) != 1.0) {
-            throw new CommandRunFailSQLException(commandResult);
-        }
-        return new MongoResultSet(commandResult);
+        BsonDocument command = BsonDocument.parse(sql);
+        MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
+                BsonDocument.class);
+        List<BsonDocument> pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
+        MongoCursor<BsonDocument> cursor = collection.aggregate(clientSession, pipeline).cursor();
+
+        return new MongoResultSet(cursor,
+                pipeline.get(pipeline.size() - 1).asDocument().getDocument("$project").keySet().stream().toList());
     }
 
     @Override
     public int executeUpdate(String sql) throws SimulatedSQLException {
         Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
-        Document command = Document.parse(sql);
-        Document commandResult = runCommand(command);
-        if (commandResult.getDouble(OK_FIELD) != 1.0) {
-            throw new CommandRunFailSQLException(commandResult);
+        BsonDocument command = BsonDocument.parse(sql);
+
+        String commandName = command.getFirstKey();
+        MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
+                BsonDocument.class);
+        switch (commandName) {
+            case "insert":
+                BsonDocument document = command.getArray("documents").get(0).asDocument();
+                collection.insertOne(clientSession, document);
+                return 1;
+            case "update":
+                BsonDocument updateDocument = command.getArray("updates").get(0).asDocument();
+                // TODO: this should call updateMany or updateOne depending on the value of the multi field
+                UpdateResult updateResult = collection.updateMany(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
+                return (int) updateResult.getModifiedCount();
+            case "delete":
+                BsonDocument deleteDocument = command.getArray("deletes").get(0).asDocument();
+                // TODO: this should call deleteMany or deleteOne depending on the value of the limit field
+                DeleteResult deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
+                return (int) deleteResult.getDeletedCount();
+            default:
+                throw new NotSupportedSQLException();
         }
-        return commandResult.getInteger(COUNT_FIELD);
-    }
+   }
 
     @Override
     public boolean execute(String sql) throws SimulatedSQLException {
-        Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
-        Document command = Document.parse(sql);
-        String collection = (String) command.entrySet().iterator().next().getValue();
-        Document commandResult = runCommand(command);
-        if (commandResult.getDouble(OK_FIELD) != 1.0) {
-            throw new CommandRunFailSQLException(commandResult);
-        }
-        Document cursor = commandResult.get(CURSOR_FIELD, Document.class);
-        if (cursor != null) {
-            long cursorId = cursor.getLong(CURSOR_ID_FIELD);
-            ResultSet resultSet =
-                    new MongoResultSet(cursor.getList(FIRST_BATCH_FIELD, Document.class));
-            currentQueryResult = new CurrentQueryResult(collection, resultSet, cursorId);
-            currentUpdateCount = -1;
-            return true;
-        } else {
-            currentQueryResult = null;
-            currentUpdateCount = commandResult.getInteger(COUNT_FIELD);
-            return false;
-        }
+        throw new NotSupportedSQLException();
     }
 
     @Override
@@ -136,54 +116,33 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     @Nullable
-    public ResultSet getResultSet() {
-        return currentQueryResult == null ? null : currentQueryResult.resultSet;
+    public ResultSet getResultSet() throws SimulatedSQLException {
+        throwExceptionIfClosed();
+        throw new NotSupportedSQLException();
     }
 
     @Override
     public int getUpdateCount() {
-        return currentUpdateCount;
+        // unclear what this is, throw for now.
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean getMoreResults() throws SimulatedSQLException {
-        if (currentQueryResult != null) {
-            Document moreResultsCommand =
-                    new Document()
-                            .append(GET_MORE_ID_FIELD, castNonNull(currentQueryResult).cursorId)
-                            .append(GET_MORE_COLLECTION_FIELD, castNonNull(currentQueryResult).collection);
-            if (fetchSize != 0) {
-                moreResultsCommand.append(GET_MORE_BATCH_SIZE_FIELD, fetchSize);
-            }
-            Document moreResults = runCommand(moreResultsCommand);
-            if (moreResults.getDouble(OK_FIELD) != 1.0) {
-                throw new CommandRunFailSQLException(moreResults);
-            }
-            Document cursor = moreResults.get(CURSOR_FIELD, Document.class);
-            List<Document> nextBatch = cursor.getList(NEXT_BATCH_FIELD, Document.class);
-            long cursorId = cursor.getLong(CURSOR_ID_FIELD);
-            currentQueryResult =
-                    new CurrentQueryResult(
-                            castNonNull(currentQueryResult).collection,
-                            new MongoResultSet(nextBatch),
-                            cursorId
-                    );
-            return !nextBatch.isEmpty();
-        } else {
-            return false;
-        }
+        throwExceptionIfClosed();
+        throw new NotSupportedSQLException();
     }
 
     @Override
     public void setFetchSize(int rows) throws SimulatedSQLException {
         throwExceptionIfClosed();
-        this.fetchSize = rows;
+        throw new NotSupportedSQLException();
     }
 
     @Override
     public int getFetchSize() throws SimulatedSQLException {
         throwExceptionIfClosed();
-        return this.fetchSize;
+        throw new NotSupportedSQLException();
     }
 
     @Override
