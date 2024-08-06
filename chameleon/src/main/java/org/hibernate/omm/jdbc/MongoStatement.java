@@ -3,7 +3,6 @@ package org.hibernate.omm.jdbc;
 import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
@@ -15,11 +14,14 @@ import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
+import org.hibernate.sql.ast.tree.select.SelectClause;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLWarning;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Nathan Xu
@@ -47,14 +49,36 @@ public class MongoStatement implements StatementAdapter {
     public ResultSet executeQuery(String sql) throws SimulatedSQLException {
         Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
-        BsonDocument command = BsonDocument.parse(sql);
-        MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
-                BsonDocument.class);
-        List<BsonDocument> pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
-        MongoCursor<BsonDocument> cursor = collection.aggregate(clientSession, pipeline).cursor();
 
-        return new MongoResultSet(cursor,
-                pipeline.get(pipeline.size() - 1).asDocument().getDocument("$project").keySet().stream().toList());
+        var command = BsonDocument.parse(sql);
+        var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
+                BsonDocument.class);
+        var pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
+        var cursor = collection.aggregate(clientSession, pipeline).cursor();
+        var fieldNames = getFieldNamesFromProjectDocument(pipeline.get(pipeline.size() - 1).asDocument().getDocument("$project"));
+        return new MongoResultSet(cursor, fieldNames);
+    }
+
+    /**
+     * Get explicitly ordered field name list from $project document
+     *
+     * @param projectDocument the $project document
+     * @return ordered field name list
+     * @see org.hibernate.omm.ast.MongoSelectQueryAstTranslator#visitSelectClause(SelectClause)
+     */
+    private List<String> getFieldNamesFromProjectDocument(BsonDocument projectDocument) {
+        // we rely on $project field renaming to ensure order
+        // but we also skip '_id' explicitly (e.g. _id: 0)
+        var fieldNames = new ArrayList<String>(projectDocument.size() - 1);
+        for (Map.Entry<String, BsonValue> entry : projectDocument.entrySet()) {
+            var value = entry.getValue();
+            boolean skip = value.isNumber() && value.asNumber().intValue() == 0
+                    || value.isBoolean() && value.asBoolean().equals(BsonBoolean.FALSE);
+            if (!skip) {
+                fieldNames.add(entry.getKey());
+            }
+        }
+        return fieldNames;
     }
 
     @Override

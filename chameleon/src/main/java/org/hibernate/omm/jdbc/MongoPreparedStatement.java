@@ -4,10 +4,6 @@ import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
-import org.bson.codecs.Codec;
-import org.bson.codecs.EncoderContext;
-import org.bson.codecs.pojo.PojoCodecProvider;
-import org.bson.json.JsonWriter;
 import org.bson.types.ObjectId;
 import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
 import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
@@ -36,7 +32,6 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Calendar;
@@ -60,8 +55,6 @@ public class MongoPreparedStatement extends MongoStatement
     private final String parameterizedCommandJson;
     private final Map<Integer, String> parameters;
 
-    private final PojoCodecProvider pojoCodecProvider;
-
     public MongoPreparedStatement(
             MongoDatabase mongoDatabase,
             ClientSession clientSession,
@@ -70,7 +63,6 @@ public class MongoPreparedStatement extends MongoStatement
         super(mongoDatabase, clientSession, connection);
         this.parameterizedCommandJson = parameterizedCommandJson;
         this.parameters = new HashMap<>();
-        this.pojoCodecProvider = PojoCodecProvider.builder().automatic(true).build();
     }
 
     @Override
@@ -198,45 +190,13 @@ public class MongoPreparedStatement extends MongoStatement
             } else {
                 iterable = ((Iterable<?>) x.getArray());
             }
-            final String json;
-            if (x.getBaseType() == Types.STRUCT) {
-                json = getArrayJsonForStruct(iterable);
-            } else {
-                json = getArrayJsonForNonStruct(iterable);
-            }
-            parameters.put(parameterIndex, json);
+            parameters.put(parameterIndex, getArrayJson(iterable));
         } catch (SQLException | IOException cause) {
             throw new SimulatedSQLException(cause.getMessage(), cause);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private String getArrayJsonForStruct(Iterable<?> iterable) {
-        var stringWriter = new CharArrayWriter();
-        var jsonWriter = new JsonWriter(stringWriter);
-        jsonWriter.writeStartDocument();
-        jsonWriter.writeStartArray("fakeRoot");
-
-        Codec codec = null;
-        for (Object obj : iterable) {
-            if (obj == null) {
-                jsonWriter.writeNull();
-            } else {
-                if (codec == null) {
-                    codec = pojoCodecProvider.get(obj.getClass(), mongoDatabase.getCodecRegistry());
-                    Assertions.assertNotNull(codec);
-                }
-                codec.encode(jsonWriter, obj, EncoderContext.builder().build());
-            }
-        }
-        jsonWriter.writeEndArray();
-        jsonWriter.writeEndDocument();
-        String wholeJson = stringWriter.toString();
-        int arrayStartIndex = wholeJson.indexOf('['), arrayEndIndex = wholeJson.lastIndexOf(']');
-        return wholeJson.substring(arrayStartIndex, arrayEndIndex + 1);
-    }
-
-    private String getArrayJsonForNonStruct(Iterable<?> iterable) throws IOException {
+    private String getArrayJson(Iterable<?> iterable) throws IOException {
         var stringWriter = new CharArrayWriter();
         stringWriter.write("[ ");
         var first = true;

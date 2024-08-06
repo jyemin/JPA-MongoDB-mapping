@@ -92,11 +92,6 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
-    public String nativeSQL(String sql) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
     public boolean getAutoCommit() {
         return this.autoCommit;
     }
