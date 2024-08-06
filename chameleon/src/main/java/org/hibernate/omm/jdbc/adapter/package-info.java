@@ -11,6 +11,6 @@
  * <p>
  * Another caveat is once JDBC interface added new methods, we might fail to sync up in these adapter interfaces, but
  * then all the child Mongo specific classes compilation would fail and then we need to either override or add it
- * to the adatper interface here.
+ * to the adapter interface here.
  */
 package org.hibernate.omm.jdbc.adapter;

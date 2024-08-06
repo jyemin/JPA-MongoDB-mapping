@@ -87,10 +87,10 @@ class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
             assertThat(romanticMovies).extracting(Movie::getId).containsExactly(1, 3);
         });
 
-       getSessionFactory().inTransaction(session -> {
+        getSessionFactory().inTransaction(session -> {
             var queryStr = "from Movie m where array_includes(m.tags, :tags)";
             var classicRomanticMovies =
-                    session.createQuery(queryStr, Movie.class).setParameter("tags", new String[] { classicTag, romanticTag }).list();
+                    session.createQuery(queryStr, Movie.class).setParameter("tags", new String[]{classicTag, romanticTag}).list();
             assertThat(classicRomanticMovies).extracting(Movie::getId).containsExactly(3);
         });
     }
@@ -106,7 +106,9 @@ class EmbeddedArrayFieldTests extends AbstractMongodbIntegrationTests {
         @Id
         Integer id;
 
-        Movie() {}
+        Movie() {
+        }
+
         Movie(Integer id) {
             this.id = id;
         }

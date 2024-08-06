@@ -23,6 +23,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  * annotated with {@link Entity} and added them automatically into Hibernate's meta model.
  * <p/>
  * Another benefit is testing class could extend from other parent class, if needed.
+ *
  * @author Nathn Xu
  * @since 1.0.0
  */
