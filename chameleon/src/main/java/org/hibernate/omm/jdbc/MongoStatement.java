@@ -9,6 +9,7 @@ import com.mongodb.client.result.UpdateResult;
 import com.mongodb.lang.Nullable;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
+import org.bson.BsonInt32;
 import org.bson.BsonValue;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
@@ -69,7 +70,7 @@ public class MongoStatement implements StatementAdapter {
     private List<String> getFieldNamesFromProjectDocument(BsonDocument projectDocument) {
         // we rely on $project field renaming to ensure order
         // but we also skip '_id' explicitly (e.g. _id: 0)
-        var fieldNames = new ArrayList<String>(projectDocument.size() - 1);
+        var fieldNames = new ArrayList<String>(projectDocument.size());
         for (Map.Entry<String, BsonValue> entry : projectDocument.entrySet()) {
             var value = entry.getValue();
             boolean skip = value.isNumber() && value.asNumber().intValue() == 0
@@ -107,10 +108,10 @@ public class MongoStatement implements StatementAdapter {
                 return (int) updateResult.getModifiedCount();
             case "delete":
                 BsonDocument deleteDocument = command.getArray("deletes").get(0).asDocument();
-                boolean deleteOne = deleteDocument.getInt32("limit").getValue() == 1;
+                boolean deleteOne = deleteDocument.getNumber("limit", new BsonInt32(1)).intValue() == 1;
                 final DeleteResult deleteResult;
                 if (deleteOne) {
-                    deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
+                    deleteResult = collection.deleteOne(clientSession, deleteDocument.getDocument("q"));
                 } else {
                     deleteResult = collection.deleteMany(clientSession, deleteDocument.getDocument("q"));
                 }

@@ -52,6 +52,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     public MongoResultSet(MongoCursor<BsonDocument> cursor, final List<String> fieldNames) {
         Assertions.notNull("cursor", cursor);
+        Assertions.notNull("fieldNames", fieldNames);
         this.cursor = cursor;
         this.fieldNames = fieldNames;
     }
