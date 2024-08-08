@@ -66,6 +66,7 @@ import org.hibernate.query.sqm.sql.internal.SqmParameterInterpretation;
 import org.hibernate.query.sqm.sql.internal.SqmPathInterpretation;
 import org.hibernate.query.sqm.tree.expression.Conversion;
 import org.hibernate.spi.NavigablePath;
+import org.hibernate.sql.Template;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.SqlAstJoinType;
 import org.hibernate.sql.ast.SqlAstNodeRenderingMode;
@@ -101,6 +102,7 @@ import org.hibernate.sql.ast.tree.expression.ColumnReference;
 import org.hibernate.sql.ast.tree.expression.Distinct;
 import org.hibernate.sql.ast.tree.expression.Duration;
 import org.hibernate.sql.ast.tree.expression.DurationUnit;
+import org.hibernate.sql.ast.tree.expression.EmbeddableTypeLiteral;
 import org.hibernate.sql.ast.tree.expression.EntityTypeLiteral;
 import org.hibernate.sql.ast.tree.expression.Every;
 import org.hibernate.sql.ast.tree.expression.Expression;
@@ -111,6 +113,7 @@ import org.hibernate.sql.ast.tree.expression.JdbcParameter;
 import org.hibernate.sql.ast.tree.expression.Literal;
 import org.hibernate.sql.ast.tree.expression.LiteralAsParameter;
 import org.hibernate.sql.ast.tree.expression.ModifiedSubQueryExpression;
+import org.hibernate.sql.ast.tree.expression.NestedColumnReference;
 import org.hibernate.sql.ast.tree.expression.OrderedSetAggregateFunctionExpression;
 import org.hibernate.sql.ast.tree.expression.Over;
 import org.hibernate.sql.ast.tree.expression.Overflow;
@@ -203,6 +206,7 @@ import org.hibernate.type.BasicType;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.descriptor.WrapperOptions;
+import org.hibernate.type.descriptor.converter.spi.BasicValueConverter;
 import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.JdbcLiteralFormatter;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
@@ -228,6 +232,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static org.hibernate.persister.entity.DiscriminatorHelper.jdbcLiteral;
 import static org.hibernate.query.sqm.BinaryArithmeticOperator.DIVIDE_PORTABLE;
 import static org.hibernate.query.sqm.TemporalUnit.NANOSECOND;
 import static org.hibernate.sql.ast.SqlTreePrinter.logSqlAst;
@@ -242,14 +247,8 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
  * </ul>
  *
  * @author Steve Ebersole
- * @apiNote The reason is we don't want to dump all logic into one single gigantic class (this class has almost 10k LOCs),
- * so we maintain two separate child classes focusing on select query and mutation query respectively.
- * This common ancestor class needs to be more open to allow both to access it, but that should be
- * the only kind of change to it after copying the class from Hibernate and putting it here
- * @see MongoSelectQueryAstTranslator
- * @see MongoMutationQuerySqlAstTranslator
  */
-@SuppressWarnings({"nullness", "removal"})
+@SuppressWarnings({"removal", "nullness"})
 public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     /**
@@ -304,9 +303,9 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     // In-flight state
     private final StringBuilder sqlBuffer = new StringBuilder();
 
-    protected final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
+    private final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
     private final JdbcParametersImpl jdbcParameters = new JdbcParametersImpl();
-    protected JdbcParameterBindings jdbcParameterBindings;
+    private JdbcParameterBindings jdbcParameterBindings;
     private Map<JdbcParameter, JdbcParameterBinding> appliedParameterBindings = Collections.emptyMap();
     protected SqlAstNodeRenderingMode parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
     private final ParameterMarkerStrategy parameterMarkerStrategy;
@@ -314,7 +313,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
 
     protected final Stack<Clause> clauseStack = new StandardStack<>(Clause.class);
     protected final Stack<QueryPart> queryPartStack = new StandardStack<>(QueryPart.class);
-    protected final Stack<Statement> statementStack = new StandardStack<>(Statement.class);
+    private final Stack<Statement> statementStack = new StandardStack<>(Statement.class);
 
     protected final Dialect dialect;
     private final Set<String> affectedTableNames = new HashSet<>();
@@ -329,11 +328,11 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     // contribute to the row numbering i.e. if the query part is a sub-query in the where clause.
     // To determine whether a query part contributes to row numbering, we remember the clause depth
     // and when visiting a query part, compare the current clause depth against the remembered one.
+
     @Nullable
     protected QueryPart queryPartForRowNumbering;
-
     protected int queryPartForRowNumberingClauseDepth = -1;
-    protected int queryPartForRowNumberingAliasCounter;
+    private int queryPartForRowNumberingAliasCounter;
     protected int queryGroupAliasCounter;
     // This field is used to remember the index of the most recently rendered top level with clause element in the sqlBuffer.
     // See #visitCteContainer for details about the usage.
@@ -347,8 +346,8 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     private transient BasicType<String> stringType;
     private transient BasicType<Boolean> booleanType;
 
-    protected LockOptions lockOptions;
-    protected Limit limit;
+    private LockOptions lockOptions;
+    private Limit limit;
     private JdbcParameter offsetParameter;
     private JdbcParameter limitParameter;
 
@@ -1643,7 +1642,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         visitValuesListStandard(valuesList);
     }
 
-    protected void visitValuesListStandard(List<Values> valuesList) {
+    protected final void visitValuesListStandard(List<Values> valuesList) {
         if (valuesList.size() != 1 && !dialect.supportsValuesListForInsert()) {
             throw new IllegalQueryOperationException("Dialect does not support values lists for insert statements");
         }
@@ -2450,7 +2449,8 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             }
             if (!supportsWithClauseInSubquery() && isInSubquery()) {
                 final String cteName = tableGroup.getPrimaryTableReference().getTableId();
-                final CteContainer cteOwner = statementStack.findCurrentFirstWithParameter(cteName, AbstractMongoSqlAstTranslator::matchCteContainerByStatement);
+                final CteContainer cteOwner = statementStack.findCurrentFirstWithParameter(cteName,
+                        AbstractMongoSqlAstTranslator::matchCteContainerByStatement);
                 // If the CTE is owned by the root statement, it will be rendered as CTE, so we can refer to it
                 return cteOwner != statementStack.getRoot() && !cteOwner.getCteStatement(cteName).isRecursive();
             }
@@ -3775,7 +3775,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         );
     }
 
-    protected void visitGroupByClause(QuerySpec querySpec, SelectItemReferenceStrategy referenceStrategy) {
+    protected final void visitGroupByClause(QuerySpec querySpec, SelectItemReferenceStrategy referenceStrategy) {
         final List<Expression> partitionExpressions = querySpec.getGroupByClauseExpressions();
         if (!partitionExpressions.isEmpty()) {
             try {
@@ -3788,7 +3788,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void visitPartitionByClause(List<Expression> partitionExpressions) {
+    protected final void visitPartitionByClause(List<Expression> partitionExpressions) {
         if (!partitionExpressions.isEmpty()) {
             try {
                 clauseStack.push(Clause.PARTITION);
@@ -3800,7 +3800,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void visitPartitionExpressions(
+    protected final void visitPartitionExpressions(
             List<Expression> partitionExpressions,
             SelectItemReferenceStrategy referenceStrategy) {
         final Function<Expression, Expression> resolveAliasExpression;
@@ -3823,7 +3823,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         visitPartitionExpressions(partitionExpressions, resolveAliasExpression, inlineParametersOfAliasedExpressions);
     }
 
-    protected void visitPartitionExpressions(
+    protected final void visitPartitionExpressions(
             List<Expression> partitionExpressions,
             Function<Expression, Expression> resolveAliasExpression,
             boolean inlineParametersOfAliasedExpressions) {
@@ -3874,7 +3874,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void visitHavingClause(QuerySpec querySpec) {
+    protected final void visitHavingClause(QuerySpec querySpec) {
         final Predicate havingClauseRestrictions = querySpec.getHavingClauseRestrictions();
         if (havingClauseRestrictions != null && !havingClauseRestrictions.isEmpty()) {
             appendSql(" having ");
@@ -4322,20 +4322,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             emulateSortSpecificationNullPrecedence(sortExpression, nullPrecedence);
         }
 
-        if (ignoreCase) {
-            appendSql(dialect.getLowercaseFunction());
-            appendSql(OPEN_PARENTHESIS);
-        }
-
-        if (inOverOrWithinGroupClause()) {
-            resolveAliasedExpression(sortExpression).accept(this);
-        } else {
-            sortExpression.accept(this);
-        }
-
-        if (ignoreCase) {
-            appendSql(CLOSE_PARENTHESIS);
-        }
+        renderSortExpression(sortExpression, ignoreCase);
 
         if (sortOrder == SortDirection.DESCENDING) {
             appendSql(" desc");
@@ -4346,6 +4333,23 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         if (renderNullPrecedence && supportsNullPrecedence) {
             appendSql(" nulls ");
             appendSql(nullPrecedence == NullPrecedence.LAST ? "last" : "first");
+        }
+    }
+
+    protected void renderSortExpression(Expression sortExpression, boolean ignoreCase) {
+        if (ignoreCase) {
+            appendSql(dialect.getLowercaseFunction());
+            appendSql(OPEN_PARENTHESIS);
+        }
+
+        if (inOverOrWithinGroupClause() || ignoreCase) {
+            resolveAliasedExpression(sortExpression).accept(this);
+        } else {
+            sortExpression.accept(this);
+        }
+
+        if (ignoreCase) {
+            appendSql(CLOSE_PARENTHESIS);
         }
     }
 
@@ -5120,7 +5124,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         appendSql(CLOSE_PARENTHESIS);
     }
 
-    protected void withRowNumbering(QueryPart queryPart, boolean needsSelectAliases, Runnable r) {
+    protected final void withRowNumbering(QueryPart queryPart, boolean needsSelectAliases, Runnable r) {
         final QueryPart queryPartForRowNumbering = this.queryPartForRowNumbering;
         final int queryPartForRowNumberingClauseDepth = this.queryPartForRowNumberingClauseDepth;
         final boolean originalNeedsSelectAliases = this.needsSelectAliases;
@@ -5273,7 +5277,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         return false;
     }
 
-    protected SqlSelectionExpression getSelectItemReference(Expression expression) {
+    protected final SqlSelectionExpression getSelectItemReference(Expression expression) {
         final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple(expression);
         if (sqlTuple != null) {
             for (Expression e : sqlTuple.getExpressions()) {
@@ -5362,7 +5366,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         );
     }
 
-    protected void visitOverClause(
+    protected final void visitOverClause(
             List<Expression> partitionExpressions,
             List<SortSpecification> sortSpecifications) {
         visitOverClause(
@@ -5471,11 +5475,11 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         visitOverClause(Collections.emptyList(), getSortSpecificationsRowNumbering(selectClause, queryPart));
     }
 
-    protected boolean isParameter(Expression expression) {
+    protected final boolean isParameter(Expression expression) {
         return expression instanceof JdbcParameter || expression instanceof SqmParameterInterpretation;
     }
 
-    protected boolean isLiteral(Expression expression) {
+    protected final boolean isLiteral(Expression expression) {
         return expression instanceof Literal;
     }
 
@@ -5821,7 +5825,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         return separator;
     }
 
-    protected void renderRootTableGroup(TableGroup tableGroup, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderRootTableGroup(TableGroup tableGroup, List<TableGroupJoin> tableGroupJoinCollector) {
         final LockMode effectiveLockMode = getEffectiveLockMode(tableGroup.getSourceAlias());
         final boolean usesLockHint = renderPrimaryTableReference(tableGroup, effectiveLockMode);
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
@@ -5852,7 +5856,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderTableGroup(TableGroup tableGroup, @Nullable Predicate predicate, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderTableGroup(TableGroup tableGroup, Predicate predicate, List<TableGroupJoin> tableGroupJoinCollector) {
         // Without reference joins or nested join groups, even a real table group does not need parenthesis
         final boolean realTableGroup = tableGroup.isRealTableGroup()
                 && (CollectionHelper.isNotEmpty(tableGroup.getTableReferenceJoins())
@@ -6192,11 +6196,11 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         source.visitTableGroupJoins(tableGroupJoin -> processTableGroupJoin(tableGroupJoin, null));
     }
 
-    protected void processNestedTableGroupJoins(TableGroup source, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void processNestedTableGroupJoins(TableGroup source, List<TableGroupJoin> tableGroupJoinCollector) {
         source.visitNestedTableGroupJoins(tableGroupJoin -> processTableGroupJoin(tableGroupJoin, tableGroupJoinCollector));
     }
 
-    protected void processTableGroupJoin(TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void processTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
         final TableGroup joinedGroup = tableGroupJoin.getJoinedGroup();
 
         if (joinedGroup.isVirtual()) {
@@ -6223,7 +6227,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderTableGroupJoin(TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderTableGroupJoin(TableGroupJoin tableGroupJoin, List<TableGroupJoin> tableGroupJoinCollector) {
         appendSql(WHITESPACE);
         appendSql(tableGroupJoin.getJoinType().getText());
         appendSql("join ");
@@ -6678,6 +6682,19 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     }
 
     @Override
+    public void visitNestedColumnReference(NestedColumnReference nestedColumnReference) {
+        final String readExpression = nestedColumnReference.getReadExpression();
+        int start = 0;
+        int idx;
+        while ((idx = readExpression.indexOf(Template.TEMPLATE, start)) != -1) {
+            append(readExpression, start, idx);
+            nestedColumnReference.getBaseExpression().accept(this);
+            start = idx + Template.TEMPLATE.length();
+        }
+        append(readExpression, start, readExpression.length());
+    }
+
+    @Override
     public void visitAggregateColumnWriteExpression(AggregateColumnWriteExpression aggregateColumnWriteExpression) {
         aggregateColumnWriteExpression.appendWriteExpression(
                 this,
@@ -6826,6 +6843,9 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
                 renderExpressionAsLiteral(jdbcParameter, jdbcParameterBindings);
                 break;
             }
+            case WRAP_ALL_PARAMETERS:
+                renderWrappedParameter(jdbcParameter);
+                break;
             case DEFAULT:
             default: {
                 visitParameterAsParameter(jdbcParameter);
@@ -6840,10 +6860,23 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         jdbcParameters.addParameter(jdbcParameter);
     }
 
-    protected void renderParameterAsParameter(JdbcParameter jdbcParameter) {
+    protected final void renderParameterAsParameter(JdbcParameter jdbcParameter) {
         final JdbcType jdbcType = jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
         assert jdbcType != null;
         renderParameterAsParameter(parameterBinders.size() + 1, jdbcParameter);
+    }
+
+    protected void renderWrappedParameter(JdbcParameter jdbcParameter) {
+        clauseStack.push(Clause.SELECT);
+
+        try {
+            appendSql("(select ");
+            visitParameterAsParameter(jdbcParameter);
+            appendSql(getFromDualForSelectOnly());
+            appendSql(')');
+        } finally {
+            clauseStack.pop();
+        }
     }
 
     /**
@@ -6862,7 +6895,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     @Override
     public void render(SqlAstNode sqlAstNode, SqlAstNodeRenderingMode renderingMode) {
         SqlAstNodeRenderingMode original = this.parameterRenderingMode;
-        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
             this.parameterRenderingMode = renderingMode;
         }
         try {
@@ -6874,7 +6907,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
 
     protected void withParameterRenderingMode(SqlAstNodeRenderingMode renderingMode, Runnable runnable) {
         SqlAstNodeRenderingMode original = this.parameterRenderingMode;
-        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
             this.parameterRenderingMode = renderingMode;
         }
         try {
@@ -6900,7 +6933,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderCommaSeparated(Iterable<? extends SqlAstNode> expressions) {
+    protected final void renderCommaSeparated(Iterable<? extends SqlAstNode> expressions) {
         String separator = NO_SEPARATOR;
         for (SqlAstNode expression : expressions) {
             appendSql(separator);
@@ -6909,7 +6942,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderCommaSeparatedSelectExpression(Iterable<? extends SqlAstNode> expressions) {
+    protected final void renderCommaSeparatedSelectExpression(Iterable<? extends SqlAstNode> expressions) {
         String separator = NO_SEPARATOR;
         for (SqlAstNode expression : expressions) {
             final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple(expression);
@@ -6930,7 +6963,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected void renderCommaSeparatedSelectExpression(Iterable<? extends SqlAstNode> expressions, Iterable<String> aliases) {
+    protected final void renderCommaSeparatedSelectExpression(Iterable<? extends SqlAstNode> expressions, Iterable<String> aliases) {
         String separator = NO_SEPARATOR;
         final Iterator<String> aliasIterator = aliases.iterator();
         for (SqlAstNode expression : expressions) {
@@ -6971,6 +7004,19 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     @Override
     public void visitEntityTypeLiteral(EntityTypeLiteral expression) {
         appendSql(expression.getEntityTypeDescriptor().getDiscriminatorSQLValue());
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public void visitEmbeddableTypeLiteral(EmbeddableTypeLiteral expression) {
+        final BasicValueConverter valueConverter = expression.getJdbcMapping().getValueConverter();
+        appendSql(jdbcLiteral(
+                valueConverter != null ?
+                        valueConverter.toRelationalValue(expression.getEmbeddableClass()) :
+                        expression.getEmbeddableClass(),
+                expression.getExpressionType().getSingleJdbcMapping().getJdbcLiteralFormatter(),
+                getDialect()
+        ));
     }
 
     @Override
@@ -7037,7 +7083,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         appendSql("case");
         final SqlAstNodeRenderingMode original = this.parameterRenderingMode;
         for (CaseSearchedExpression.WhenFragment whenFragment : caseSearchedExpression.getWhenFragments()) {
-            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
                 this.parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
             }
             appendSql(" when ");
@@ -7065,7 +7111,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         for (int i = 0; i < caseNumber; i++) {
             final CaseSearchedExpression.WhenFragment whenFragment = whenFragments.get(i);
             Predicate predicate = whenFragment.getPredicate();
-            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
                 this.parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
             }
             if (i != 0) {
@@ -7110,12 +7156,12 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             Consumer<Expression> resultRenderer) {
         appendSql("case ");
         final SqlAstNodeRenderingMode original = this.parameterRenderingMode;
-        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+        if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
             this.parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
         }
         caseSimpleExpression.getFixture().accept(this);
         for (CaseSimpleExpression.WhenFragment whenFragment : caseSimpleExpression.getWhenFragments()) {
-            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS) {
+            if (original != SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS && original != SqlAstNodeRenderingMode.WRAP_ALL_PARAMETERS) {
                 this.parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
             }
             appendSql(" when ");
@@ -7384,7 +7430,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     public void visitInListPredicate(InListPredicate inListPredicate) {
         final List<Expression> listExpressions = inListPredicate.getListExpressions();
         if (listExpressions.isEmpty()) {
-            emptyInList(inListPredicate);
+            appendSql("1=" + (inListPredicate.isNegated() ? "1" : "0"));
             return;
         }
         Function<Expression, Expression> itemAccessor = Function.identity();
@@ -7487,16 +7533,6 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         if (parenthesis) {
             appendSql(CLOSE_PARENTHESIS);
         }
-    }
-
-    protected void emptyInList(InListPredicate inListPredicate) {
-        appendSql("(");
-        appendSql(inListPredicate.isNegated() ? "0" : "1");
-        appendSql(" = case when ");
-        inListPredicate.getTestExpression().accept(this);
-        appendSql(" is not null then 0");
-//		dialect.appendBooleanValueString( this, inListPredicate.isNegated() );
-        appendSql(" end)");
     }
 
     protected void appendInClauseSeparator(InListPredicate inListPredicate) {
@@ -8044,14 +8080,14 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             } else if (needsTupleComparisonEmulation(operator)) {
                 rhsTuple = SqlTupleContainer.getSqlTuple(rhsExpression);
                 assert rhsTuple != null;
-                // Some DBs like Oracle support tuples only for the IN subquery predicate
-                if ((operator == ComparisonOperator.EQUAL || operator == ComparisonOperator.NOT_EQUAL) && supportsRowValueConstructorSyntaxInInSubQuery()) {
+                // If the DB supports tuples in the IN list predicate, use that syntax as it's more concise
+                if ((operator == ComparisonOperator.EQUAL || operator == ComparisonOperator.NOT_EQUAL) && supportsRowValueConstructorSyntaxInInList()) {
                     comparisonPredicate.getLeftHandExpression().accept(this);
                     if (operator == ComparisonOperator.NOT_EQUAL) {
                         appendSql(" not");
                     }
                     appendSql(" in (");
-                    renderExpressionsAsSubquery(rhsTuple.getExpressions());
+                    rhsTuple.accept(this);
                     appendSql(CLOSE_PARENTHESIS);
                 } else {
                     emulateTupleComparison(
@@ -8440,7 +8476,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
         }
     }
 
-    protected T translateTableMutation(TableMutation<?> mutation) {
+    private T translateTableMutation(TableMutation<?> mutation) {
         mutation.accept(this);
         //noinspection unchecked
         return (T) mutation.createMutationOperation(getSql(), parameterBinders);

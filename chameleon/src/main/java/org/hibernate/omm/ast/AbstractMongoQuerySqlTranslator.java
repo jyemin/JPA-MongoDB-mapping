@@ -204,6 +204,16 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
         }
     }
 
+    protected void emptyInList(InListPredicate inListPredicate) {
+        appendSql("(");
+        appendSql(inListPredicate.isNegated() ? "0" : "1");
+        appendSql(" = case when ");
+        inListPredicate.getTestExpression().accept(this);
+        appendSql(" is not null then 0");
+//		dialect.appendBooleanValueString( this, inListPredicate.isNegated() );
+        appendSql(" end)");
+    }
+
     @Override
     public void visitExistsPredicate(ExistsPredicate existsPredicate) {
         appendSql("{ ");

@@ -53,6 +53,11 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
+    public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) {
+        return prepareStatement(sql);
+    }
+
+    @Override
     public DatabaseMetaData getMetaData() throws SimulatedSQLException {
         Document result = mongoDatabase.runCommand(new Document(DB_VERSION_QUERY_FIELD_NAME, 1));
         if (result.getDouble("ok") != 1.0) {
