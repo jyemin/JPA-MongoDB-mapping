@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Simulate JDBC's {@link java.sql.PreparedStatement} to create a virtual MongoDB JDBC layer
+ * Simulate JDBC's {@link java.sql.PreparedStatement} to create a virtual MongoDB JDBC driver
  * on top of MongoDB Java driver.
  *
  * @author Nathan Xu

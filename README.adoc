@@ -20,13 +20,13 @@ They call it https://github.com/hibernate/hibernate-ogm[Hibernate OGM] (**O**bje
 However, it lacks some basic JPA features (e.g. Criteria and Filter) and ceased to be actively maintained any more. It is based on outdated Hibernate v5 core library models. Given the leap of faith of Hibernate
 v6 release, it is extremely challenging to revive it by integrating with v6's new query model, if possible.
 
-*Spring Data MongoDB* (https://spring.io/projects/spring-data-mongodb) is a good choice for CRUD tasks, but it lacks
-other important JPA features, for instance:
+*Spring Data MongoDB* (https://spring.io/projects/spring-data-mongodb) is a good choice for CRUD tasks, but it is a sibling project to
+*Spring Data JPA*, not a super set, thus lacking many important JPA features. For instance:
 
 * OOP Inheritance Mapping
 * JP-QL or HQL
 * Criteria
-* Lazy Loading and Entity Graph
+* Entity Graph
 * Second-level Cache
 
 There used to be lesser known libraries aiming Mongodb mapping exclusively every now and again, but usually they are not actively maintained and phased out quickly.
@@ -36,20 +36,21 @@ The author of this library is an experienced Hibernate contributor and participa
 He humbly proposed a new OMM idea and this github project is the end result. The idea is simple and boils down to the following principles:
 
 * loose coupling with Hibernate core library so future Hibernate evolution won't break OMM
-* focus on providing a "Virtual JDBC Layer" on top of Mongodb's Java driver; the "Virtual JDBC Layer" will pass JSON instead of SQL though
+* focus on providing a "Virtual JDBC Driver" on top of Mongodb's Java driver; the "Virtual JDBC Driver" will pass JSON instead of SQL though
 
 === Implementation Details
 Since Hibernate v6, a unified SQM (**S**emantic **Q**uery **M**odel) was created for both JP-QL and Criteria. It is not only an elegant
 tech design but also streamlines vendor specific SQL or NoSQL statement generation. In Chameleon, we could easily create parameterized Mongodb Bson command string
-ready to be run by Mongodb java driver. The virtual JDBC layer will pass the JSON string instead of SQL between Hibernate and Mongodb server.
+ready to be run by Mongodb java driver. The virtual JDBC driver will pass the JSON string instead of SQL between Hibernate and Mongodb
+server.
 No need to overwrite or bypass Hibernate's core workflow for vendor specific SQL rendering is a standardized core feature of Hibernate, and ultimately Hibernate sits on top
-of JDBC layer invariably. Our "Virtual JDBC Layer" will act as an adapter between JDBC contract and MongoDB, so the customization if outside of Hibernate's scope.
+of JDBC layer invariably. Our "Virtual JDBC Driver" will act as an adapter between JDBC contract and MongoDB, so the customization is outside of Hibernate's scope.
 
 === Some Caveats
 Obviously we can't anticipate all JPA features (entity class and JPA annotations, JP-QL or HQL statements) has one-to-one
 counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation to great extents, e.g.:
 
-* SQL table joining: MongoDB has collection joining simulation
+* SQL table joining: MongoDB has collection joining simulation (`$lookup` and `$unwind` `aggregate` pipeline stage)
 * transaction: since Mongodb v4, transaction is provided
 * embedding array field: since https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html[Hibernate v6.1], JDBC's
 ARRAY type is supported
