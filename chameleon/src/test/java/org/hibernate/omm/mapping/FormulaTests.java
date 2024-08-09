@@ -23,10 +23,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FormulaTests {
 
     @SessionFactoryInjected
-    SessionFactory sessionFactory;
+    static SessionFactory sessionFactory;
 
     @MongoDatabaseInjected
-    MongoDatabase mongoDatabase;
+    static MongoDatabase mongoDatabase;
 
     @Test
     void test() {

@@ -22,7 +22,7 @@ class ObjectIdTypeTests {
     final ObjectId objectId = ObjectId.get();
 
     @SessionFactoryInjected
-    private SessionFactory sessionFactory;
+    static SessionFactory sessionFactory;
 
     Book insertBook() {
         return sessionFactory.fromTransaction(session -> {
