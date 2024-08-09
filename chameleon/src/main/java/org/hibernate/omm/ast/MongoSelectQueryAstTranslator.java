@@ -69,11 +69,17 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
         public String renderColumnReference(ColumnReference columnReference) {
             var path = pathByQualifier.get(columnReference.getQualifier());
+            String result;
             if (path == null) {
-                return columnReference.getColumnExpression();
+                if (columnReference.isColumnExpressionFormula()) {
+                    return columnReference.getColumnExpression().replace(columnReference.getQualifier() + ".", "");
+                } else {
+                    result = columnReference.getColumnExpression();
+                }
             } else {
-                return path + "." + columnReference.getColumnExpression();
+                result = path + "." + columnReference.getColumnExpression();
             }
+            return "\"$" + result + "\"";
         }
     }
 
@@ -329,9 +335,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                 }
                 if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
                     appendSql("f" + i); // field name doesn't matter for Hibernate ResultSet retrieval only relies on order since v6
-                    appendSql(": \"$");
+                    appendSql(": ");
                     appendSql(pathTracker.renderColumnReference(columnReference));
-                    appendSql('"');
                 } else {
                     visitSqlSelection(sqlSelection);
                     appendSql(": 1");
