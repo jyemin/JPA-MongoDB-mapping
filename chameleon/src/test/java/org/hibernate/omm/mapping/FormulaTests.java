@@ -1,11 +1,14 @@
 package org.hibernate.omm.mapping;
 
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Formula;
-import org.hibernate.omm.extension.SessionFactoryExtension;
+import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.MongoDatabaseInjected;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,11 +19,14 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Nathan Xu
  * @since 1.0.0
  */
-@ExtendWith(SessionFactoryExtension.class)
+@ExtendWith(ChameleonExtension.class)
 class FormulaTests {
 
     @SessionFactoryInjected
-    private SessionFactory sessionFactory;
+    SessionFactory sessionFactory;
+
+    @MongoDatabaseInjected
+    MongoDatabase mongoDatabase;
 
     @Test
     void test() {
@@ -33,6 +39,13 @@ class FormulaTests {
             account.rate = rate;
             session.persist(account);
         });
+
+        var doc = mongoDatabase.getCollection("accounts")
+                .find(Filters.eq(id)).first();
+
+        assertThat(doc).isNotNull();
+        assertThat(doc.keySet()).doesNotContain("interest");
+
         sessionFactory.inTransaction(session -> {
             var loadedAccount = new Account();
             session.load(loadedAccount, id);
