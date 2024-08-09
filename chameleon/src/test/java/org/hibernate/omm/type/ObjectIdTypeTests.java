@@ -22,7 +22,7 @@ class ObjectIdTypeTests {
     final ObjectId objectId = ObjectId.get();
 
     @SessionFactoryInjected
-    static SessionFactory sessionFactory;
+    SessionFactory sessionFactory;
 
     Book insertBook() {
         return sessionFactory.fromTransaction(session -> {
@@ -75,7 +75,7 @@ class ObjectIdTypeTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
         sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, objectId);
@@ -89,7 +89,7 @@ class ObjectIdTypeTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
         sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);

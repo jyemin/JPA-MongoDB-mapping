@@ -23,7 +23,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
 
 /**
  * A JUnit 5 extension mechanism injecting initialized {@link SessionFactory} and/or {@link MongoDatabase}
- * into testing class's static fields annotated with {@link SessionFactoryInjected} or {@link MongoDatabaseInjected},
+ * into testing class's static or instance fields annotated with {@link SessionFactoryInjected} or {@link MongoDatabaseInjected},
  * and scanning the inner classes annotated with {@link Entity} and adding them automatically into Hibernate's meta model.
  * <p/>
  * Another benefit is the testing class could extend from other parent class, if needed.
@@ -34,6 +34,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
 public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
+    private static final String DATABASE_NAME = "test";
 
     private MongoDBContainer mongoDBContainer;
     private SessionFactory sessionFactory;
@@ -49,7 +50,7 @@ public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, 
                 .forEach(annotatedClasses::add);
 
         if (annotatedClasses.isEmpty()) {
-            throw new IllegalStateException("no Entity inner static class found with the testing class!");
+            throw new IllegalStateException("No Entity inner static class found within the testing class: " + testClass.getName());
         }
 
         mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
@@ -57,7 +58,7 @@ public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, 
 
         var cfg = new Configuration();
         cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
-        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
+        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
         sessionFactory = cfg.buildSessionFactory();
 
@@ -70,12 +71,18 @@ public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, 
     @Override
     public void afterAll(final ExtensionContext context) {
         if (sessionFactory != null) {
-            sessionFactory.close();
-            sessionFactory = null;
+            try {
+                sessionFactory.close();
+            } finally {
+                sessionFactory = null;
+            }
         }
         if (mongoDBContainer != null) {
-            mongoDBContainer.close();
-            mongoDBContainer = null;
+            try {
+                mongoDBContainer.stop();
+            } finally {
+                mongoDBContainer = null;
+            }
         }
     }
 
@@ -87,11 +94,15 @@ public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, 
                 mongoDatabase.getCollection(collectionNameIter.next()).drop();
             }
         }
+        injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), SessionFactoryInjected.class,
+                SessionFactory.class,
+                sessionFactory);
+        injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), MongoDatabaseInjected.class,
+                MongoDatabase.class, mongoDatabase);
     }
 
     private void injectStaticFields(Class<?> testClass, Class<? extends Annotation> annotationClass, Class<?> fieldType,
             Object injectedValue) {
-
         Predicate<Field> predicate = field -> ReflectionUtils.isStatic(field) && fieldType.isAssignableFrom(field.getType());
         findAnnotatedFields(testClass, annotationClass, predicate)
                 .forEach(field -> {
@@ -103,5 +114,21 @@ public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, 
                     }
                 });
     }
+
+    private void injectInstanceFields(Class<?> testClass, Object testInstance, Class<? extends Annotation> annotationClass,
+            Class<?> fieldType,
+            Object injectedValue) {
+        Predicate<Field> predicate = field -> ReflectionUtils.isNotStatic(field) && fieldType.isAssignableFrom(field.getType());
+        findAnnotatedFields(testClass, annotationClass, predicate)
+                .forEach(field -> {
+                    try {
+                        field.setAccessible(true);
+                        field.set(testInstance, injectedValue);
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
+    }
+
 
 }

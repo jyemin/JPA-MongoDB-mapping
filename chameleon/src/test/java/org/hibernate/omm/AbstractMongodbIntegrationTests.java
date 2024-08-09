@@ -20,11 +20,12 @@ import java.util.List;
  * </ul>
  *
  * @author Nathan Xu
- * @apiNote For current stage, perf is not as important as logic correctness, so a slow-but-safe approach is adopted
+ * @deprecated use {@link org.hibernate.omm.extension.ChameleonExtension} instead
  */
 public abstract class AbstractMongodbIntegrationTests {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
+    private static final String DATABASE_NAME = "test";
 
     private MongoDBContainer mongoDBContainer;
 
@@ -36,7 +37,7 @@ public abstract class AbstractMongodbIntegrationTests {
         mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
         mongoDBContainer.start();
         cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
-        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, "test");
+        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, DATABASE_NAME);
         getAnnotatedClasses().forEach(cfg::addAnnotatedClass);
         sessionFactory = cfg.buildSessionFactory();
     }

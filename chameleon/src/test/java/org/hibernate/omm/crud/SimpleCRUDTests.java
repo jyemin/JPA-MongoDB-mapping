@@ -3,22 +3,27 @@ package org.hibernate.omm.crud;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.omm.AbstractMongodbIntegrationTests;
+import org.hibernate.SessionFactory;
+import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
  */
-class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
+@ExtendWith(ChameleonExtension.class)
+class SimpleCRUDTests {
+
+    @SessionFactoryInjected
+    static SessionFactory sessionFactory;
 
     final Long id = 1234L;
 
     Book insertBook() {
-        return getSessionFactory().fromTransaction(session -> {
+        return sessionFactory.fromTransaction(session -> {
             var book = new Book();
             book.id = id;
             book.title = "War and Peace";
@@ -33,10 +38,10 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
     void testInsert() {
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
         var insertedBook = insertBook();
 
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             var book = query.getSingleResult();
@@ -51,11 +56,11 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { delete: "books", deletes: [ { q: { _id: { $eq: ? } }, limit: 0 } ] }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book = session.getReference(Book.class, id);
             session.remove(book);
         });
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createSelectionQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             assertThat(query.getResultList()).isEmpty();
@@ -68,8 +73,8 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
-        getSessionFactory().inTransaction(session -> {
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
+        sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, id);
             assertThat(book).usingRecursiveComparison().isEqualTo(insertedBook);
@@ -82,8 +87,8 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ], cursor: {} }
-        getSessionFactory().inTransaction(session -> {
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
+        sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             var book = query.getSingleResult();
@@ -100,7 +105,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
 
         // the following JSON command will be issued:
         // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, id);
             book.author = newAuthor;
@@ -108,7 +113,7 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
             book.publishYear = newPublishYear;
             session.persist(book);
         });
-        getSessionFactory().inSession(session -> {
+        sessionFactory.inSession(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             var book = query.getSingleResult();
@@ -116,11 +121,6 @@ class SimpleCRUDTests extends AbstractMongodbIntegrationTests {
             assertThat(book.title).isEqualTo(newTitle);
             assertThat(book.publishYear).isEqualTo(newPublishYear);
         });
-    }
-
-    @Override
-    public List<Class<?>> getAnnotatedClasses() {
-        return List.of(Book.class);
     }
 
     @Entity(name = "Book")

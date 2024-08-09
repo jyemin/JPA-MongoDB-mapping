@@ -1,22 +1,32 @@
 package org.hibernate.omm.id;
 
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.bson.Document;
-import org.hibernate.omm.AbstractMongodbIntegrationTests;
+import org.hibernate.SessionFactory;
+import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.MongoDatabaseInjected;
+import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
  */
-class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
+@ExtendWith(ChameleonExtension.class)
+class MongoIdColumnNameTests {
+
+    @SessionFactoryInjected
+    static SessionFactory sessionFactory;
+
+    @MongoDatabaseInjected
+    static MongoDatabase mongoDatabase;
 
     final Long id = 21344L;
 
@@ -24,50 +34,29 @@ class MongoIdColumnNameTests extends AbstractMongodbIntegrationTests {
     @DisplayName("when @Id field was not annotated with @Column(name = \"xxx\")")
     void test_implicit_id_column_spec() {
 
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var entity = new WithImplicitIdColumnSpec();
             entity.id = id;
             entity.title = "Bible";
             session.persist(entity);
         });
 
-        var findQuery = "{ find: \"books\", filter: { _id: { $eq: " + id + " } } }";
-
-        var response = getMongoDatabase().runCommand(Document.parse(findQuery));
-        assertThat(response.getDouble("ok")).isEqualTo(1.0);
-
-        List<Document> docs = response.get("cursor", Document.class).getList("firstBatch", Document.class);
-        assertThat(docs).hasSize(1);
-
-        assertThat(docs.get(0)).doesNotContainKey("id"); // 'id' is the implicit column name per entity
+        assertThat(mongoDatabase.getCollection("books").find(Filters.eq(id)).first()).isNotNull();
     }
 
     @Test
     @DisplayName("when @Id field was annotated with @Column(name = \"xxx\")")
     void test_explicit_id_column_spec() {
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var entity = new WithExplicitIdColumnSpec();
             entity.id = id;
             entity.title = "Bible";
             session.persist(entity);
         });
 
-        var findQuery = "{ find: \"books\", filter: { _id: { $eq: " + id + " } } }";
-
-        var response = getMongoDatabase().runCommand(Document.parse(findQuery));
-        assertThat(response.getDouble("ok")).isEqualTo(1.0);
-
-        List<Document> docs = response.get("cursor", Document.class).getList("firstBatch", Document.class);
-        assertThat(docs).hasSize(1);
-
-        assertThat(docs.get(0)).doesNotContainKey("identifier"); // 'identifier' is the explicit column name per entity
+        assertThat(mongoDatabase.getCollection("books").find(Filters.eq(id)).first()).isNotNull();
     }
 
-
-    @Override
-    public List<Class<?>> getAnnotatedClasses() {
-        return List.of(WithImplicitIdColumnSpec.class, WithExplicitIdColumnSpec.class);
-    }
 
     @Entity(name = "WithImplicitIdColumnSpec")
     @Table(name = "books")

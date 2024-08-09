@@ -3,11 +3,12 @@ package org.hibernate.omm.crud;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import org.hibernate.omm.AbstractMongodbIntegrationTests;
+import org.hibernate.SessionFactory;
+import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,11 +16,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Nathan Xu
  * @since 1.0.0
  */
-class DeleteAllTests extends AbstractMongodbIntegrationTests {
+@ExtendWith(ChameleonExtension.class)
+class DeleteAllTests {
+
+    @SessionFactoryInjected
+    SessionFactory sessionFactory;
 
     @Test
     void test_delete_all() {
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var book1 = new Book(1L);
             var book2 = new Book(2L);
             var book3 = new Book(3L);
@@ -27,19 +32,14 @@ class DeleteAllTests extends AbstractMongodbIntegrationTests {
             session.persist(book2);
             session.persist(book3);
         });
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createMutationQuery("delete from Book");
             Assertions.assertDoesNotThrow(query::executeUpdate);
         });
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             var query = session.createSelectionQuery("from Book", Book.class);
             assertThat(query.getResultList()).isEmpty();
         });
-    }
-
-    @Override
-    public List<Class<?>> getAnnotatedClasses() {
-        return List.of(Book.class);
     }
 
     @Entity(name = "Book")

@@ -10,6 +10,7 @@ import org.hibernate.annotations.Formula;
 import org.hibernate.omm.extension.ChameleonExtension;
 import org.hibernate.omm.extension.MongoDatabaseInjected;
 import org.hibernate.omm.extension.SessionFactoryInjected;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -23,12 +24,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FormulaTests {
 
     @SessionFactoryInjected
-    static SessionFactory sessionFactory;
+    SessionFactory sessionFactory;
 
     @MongoDatabaseInjected
-    static MongoDatabase mongoDatabase;
+    MongoDatabase mongoDatabase;
 
     @Test
+    @DisplayName("entity field annotated with @Formula will be computed based on provided Mongo aggregate expression")
     void test() {
         var id = 1234L;
         var credit = 200.0;
@@ -67,7 +69,9 @@ class FormulaTests {
         @Formula("{ $multiply: [ \"$credit\", \"$rate\" ] }")
         Double interest;
 
-        Account() {}
+        Account() {
+        }
+
         Account(Long id) {
             this.id = id;
         }

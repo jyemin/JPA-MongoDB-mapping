@@ -4,19 +4,24 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
-import org.hibernate.omm.AbstractMongodbIntegrationTests;
+import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
  */
-class SimpleJoinTests extends AbstractMongodbIntegrationTests {
+@ExtendWith(ChameleonExtension.class)
+class SimpleJoinTests {
+
+    @SessionFactoryInjected
+    static SessionFactory sessionFactory;
 
     @Test
     void test() {
@@ -28,7 +33,7 @@ class SimpleJoinTests extends AbstractMongodbIntegrationTests {
         province.country = country;
         province.name = "Jilin";
 
-        getSessionFactory().inTransaction(session -> {
+        sessionFactory.inTransaction(session -> {
             City city = new City();
             city.id = 3;
             city.province = province;
@@ -41,16 +46,11 @@ class SimpleJoinTests extends AbstractMongodbIntegrationTests {
         City city = new City();
 
         // the following Bson command will be issued:
-        // { aggregate: "cities", pipeline: [ { $lookup: { from: "province", localField: "province_id", foreignField: "_id", as: "p1_0", pipeline: [ { $lookup: { from: "countries", localField: "country_id", foreignField: "_id", as: "c2_0" } }, { $unwind: "$c2_0" } ] } }, { $unwind: "$p1_0" }, { $match: { _id: { $eq: ? } } }, { $project: { f0: "$_id", f1: "$name", f2: "$p1_0._id", f3: "$p1_0.c2_0._id", f4: "$p1_0.c2_0.name", f5: "$p1_0.name", _id: 0 } } ], cursor: {} }
-        getSessionFactory().inTransaction(session -> session.load(city, 3));
+        // { aggregate: "cities", pipeline: [ { $lookup: { from: "province", localField: "province_id", foreignField: "_id", as: "p1_0", pipeline: [ { $lookup: { from: "countries", localField: "country_id", foreignField: "_id", as: "c2_0" } }, { $unwind: "$c2_0" } ] } }, { $unwind: "$p1_0" }, { $match: { _id: { $eq: ? } } }, { $project: { f0: "$_id", f1: "$name", f2: "$p1_0._id", f3: "$p1_0.c2_0._id", f4: "$p1_0.c2_0.name", f5: "$p1_0.name", _id: 0 } } ] }
+        sessionFactory.inTransaction(session -> session.load(city, 3));
 
         assertThat(city.province).usingRecursiveComparison().isEqualTo(province);
         assertThat(city.province.country).usingRecursiveComparison().isEqualTo(country);
-    }
-
-    @Override
-    public List<Class<?>> getAnnotatedClasses() {
-        return List.of(Country.class, Province.class, City.class);
     }
 
     @Entity(name = "Country")
