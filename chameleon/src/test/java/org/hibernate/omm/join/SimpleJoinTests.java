@@ -78,7 +78,7 @@ class SimpleJoinTests {
         int id;
 
         @ManyToOne
-        @Fetch(FetchMode.JOIN) // not needed for it is default config; kind of doc
+        @Fetch(FetchMode.JOIN)
         Province province;
 
         String name;
