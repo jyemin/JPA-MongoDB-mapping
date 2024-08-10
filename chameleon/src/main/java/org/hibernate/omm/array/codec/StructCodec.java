@@ -12,6 +12,7 @@ import java.sql.Struct;
 /**
  * A {@link Codec} meant to be created each time when it is used for it encodes or decodes embeddable entity field annotated with
  * {@link Struct} individually.
+ *
  * @author Nathan Xu
  * @since 1.0.0
  */

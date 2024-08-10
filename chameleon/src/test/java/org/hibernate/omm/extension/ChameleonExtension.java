@@ -4,6 +4,8 @@ import com.mongodb.client.MongoDatabase;
 import jakarta.persistence.Entity;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
+import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.omm.jdbc.MongoConnectionProvider;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -37,7 +39,7 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
     private static final String DATABASE_NAME = "test";
 
     private MongoDBContainer mongoDBContainer;
-    private SessionFactory sessionFactory;
+    private SessionFactoryImplementor sessionFactory;
     private MongoDatabase mongoDatabase;
 
     @Override
@@ -60,9 +62,11 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
         cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
-        sessionFactory = cfg.buildSessionFactory();
+        sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
 
-        mongoDatabase = MongoConnectionProvider.mongoDatabase;
+        var mongoConnectionProvider = (MongoConnectionProvider) sessionFactory.getServiceRegistry().getService(ConnectionProvider.class);
+        assert mongoConnectionProvider != null;
+        mongoDatabase = mongoConnectionProvider.getMongoDatabase();
 
         injectStaticFields(testClass, SessionFactoryInjected.class, SessionFactory.class, sessionFactory);
         injectStaticFields(testClass, MongoDatabaseInjected.class, MongoDatabase.class, mongoDatabase);
@@ -103,32 +107,28 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
 
     private void injectStaticFields(Class<?> testClass, Class<? extends Annotation> annotationClass, Class<?> fieldType,
             Object injectedValue) {
-        Predicate<Field> predicate = field -> ReflectionUtils.isStatic(field) && fieldType.isAssignableFrom(field.getType());
-        findAnnotatedFields(testClass, annotationClass, predicate)
-                .forEach(field -> {
-                    try {
-                        field.setAccessible(true);
-                        field.set(testClass, injectedValue);
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                });
+        doInjectFields(true, testClass, testClass, annotationClass, fieldType, injectedValue);
     }
 
     private void injectInstanceFields(Class<?> testClass, Object testInstance, Class<? extends Annotation> annotationClass,
             Class<?> fieldType,
             Object injectedValue) {
-        Predicate<Field> predicate = field -> ReflectionUtils.isNotStatic(field) && fieldType.isAssignableFrom(field.getType());
+        doInjectFields(false, testClass, testInstance, annotationClass, fieldType, injectedValue);
+    }
+
+    private void doInjectFields(boolean injectStaticField, Class<?> testClass, Object fieldOwner,
+            Class<? extends Annotation> annotationClass, Class<?> fieldType,
+            Object injectedValue) {
+        Predicate<Field> predicate = field -> (injectStaticField ?
+                ReflectionUtils.isStatic(field) : ReflectionUtils.isNotStatic(field) ) && fieldType.isAssignableFrom(field.getType());
         findAnnotatedFields(testClass, annotationClass, predicate)
                 .forEach(field -> {
                     try {
                         field.setAccessible(true);
-                        field.set(testInstance, injectedValue);
+                        field.set(fieldOwner, injectedValue);
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
                 });
     }
-
-
 }

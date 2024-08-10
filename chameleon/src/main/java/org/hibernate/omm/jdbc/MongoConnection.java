@@ -8,13 +8,11 @@ import org.bson.Document;
 import org.hibernate.omm.array.MongoArray;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
-import org.hibernate.omm.jdbc.adapter.DatabaseMetaDataAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLWarning;
@@ -71,29 +69,7 @@ public class MongoConnection implements ConnectionAdapter {
 
         Assertions.assertTrue(versionArray.size() >= 2);
 
-        return new DatabaseMetaDataAdapter() {
-
-            @Override
-            public String getDatabaseProductVersion() {
-                return version;
-            }
-
-            @Override
-            public int getDatabaseMajorVersion() {
-                return versionArray.get(0);
-            }
-
-            @Override
-            public int getDatabaseMinorVersion() {
-                return versionArray.get(1);
-            }
-
-            @Override
-            public Connection getConnection() {
-                return MongoConnection.this;
-            }
-
-        };
+        return new MongoDatabaseMetaData(version, versionArray.get(0), versionArray.get(1), this);
     }
 
     @Override

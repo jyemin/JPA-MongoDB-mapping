@@ -1,7 +1,7 @@
 package org.hibernate.omm.array;
 
-import org.hibernate.omm.type.MongoSqlType;
 import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
+import org.hibernate.omm.type.MongoSqlType;
 
 import java.util.Map;
 

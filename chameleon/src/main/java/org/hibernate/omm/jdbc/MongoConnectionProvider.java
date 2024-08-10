@@ -6,19 +6,25 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.lang.NonNull;
+import com.mongodb.lang.Nullable;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
+import org.hibernate.omm.exception.MongoConfigMissingException;
 import org.hibernate.service.UnknownUnwrapTypeException;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.Stoppable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
+import static org.hibernate.internal.util.NullnessUtil.castNonNull;
 
 /**
  * @author Nathan Xu
@@ -26,23 +32,32 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
  */
 public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
 
-    public static @MonotonicNonNull MongoDatabase mongoDatabase;
+    private @MonotonicNonNull MongoDatabase mongoDatabase;
 
     private @MonotonicNonNull MongoClient mongoClient;
 
     @Override
     public void configure(Map<String, Object> configurationValues) {
+        List<String> missingConfigurations = new ArrayList<>(2);
+
         String mongodbConnectionURL =
                 (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL);
         if (mongodbConnectionURL == null) {
-            throw new IllegalStateException(MongoAvailableSettings.MONGODB_CONNECTION_URL + " must be configured");
+            missingConfigurations.add(MongoAvailableSettings.MONGODB_CONNECTION_URL);
         }
+
         String mongodbDatabaseName =
                 (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE);
         if (mongodbDatabaseName == null) {
-            throw new IllegalStateException(MongoAvailableSettings.MONGODB_DATABASE + " must be configured");
+            missingConfigurations.add(MongoAvailableSettings.MONGODB_DATABASE);
         }
-        ConnectionString connectionString = new ConnectionString(mongodbConnectionURL);
+
+        if (!missingConfigurations.isEmpty()) {
+            throw new MongoConfigMissingException(missingConfigurations);
+        }
+
+        // MongoConfigMissingException would have been thrown if mongodbConnectionURL is null
+        ConnectionString connectionString = new ConnectionString(castNonNull(mongodbConnectionURL));
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
         );
@@ -52,7 +67,10 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
                 .codecRegistry(codecRegistry)
                 .build();
         mongoClient = MongoClients.create(clientSettings);
-        mongoDatabase = mongoClient.getDatabase(mongodbDatabaseName);
+
+        // MongoConfigMissingException would have been thrown if mongodbDatabaseName is null
+        mongoDatabase = mongoClient.getDatabase(castNonNull(mongodbDatabaseName));
+
     }
 
     @Override
@@ -80,12 +98,12 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
     }
 
     @Override
-    public boolean isUnwrappableAs(Class<?> unwrapType) {
+    public boolean isUnwrappableAs(@NonNull Class<?> unwrapType) {
         return false;
     }
 
     @Override
-    public <T> T unwrap(Class<T> unwrapType) {
+    public <T> T unwrap(@NonNull Class<T> unwrapType) {
         throw new UnknownUnwrapTypeException(unwrapType);
     }
 
@@ -95,4 +113,10 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
             mongoClient.close();
         }
     }
+
+    @Nullable
+    public MongoDatabase getMongoDatabase() {
+        return mongoDatabase;
+    }
+
 }

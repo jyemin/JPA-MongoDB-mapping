@@ -47,6 +47,7 @@ class DeleteAllTests {
         @Id
         Long id;
 
+        Book() {}
         Book(final Long id) {
             this.id = id;
         }
