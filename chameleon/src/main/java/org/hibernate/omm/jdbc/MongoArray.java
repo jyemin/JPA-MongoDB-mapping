@@ -1,20 +1,20 @@
 package org.hibernate.omm.jdbc;
 
+import org.hibernate.omm.dialect.type.MongoSqlType;
 import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
-import org.hibernate.omm.type.MongoSqlType;
 
 import java.util.Map;
 
 public class MongoArray implements ArrayAdapter {
 
-    private final Object elements;
     private final String baseTypeName;
+    private final Object elements;
 
     private int baseType = MongoSqlType.UNKNOWN;
 
-    public MongoArray(Object elements, String baseTypeName) {
-        this.elements = elements;
+    public MongoArray(String baseTypeName, Object elements) {
         this.baseTypeName = baseTypeName;
+        this.elements = elements;
     }
 
     public void setBaseType(Integer baseType) {

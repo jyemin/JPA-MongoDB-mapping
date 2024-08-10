@@ -1,4 +1,4 @@
-package org.hibernate.omm.type;
+package org.hibernate.omm.dialect.type;
 
 import org.hibernate.type.descriptor.java.JavaType;
 

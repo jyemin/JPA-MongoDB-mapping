@@ -1,4 +1,4 @@
-package org.hibernate.omm.type;
+package org.hibernate.omm.dialect.type;
 
 import com.mongodb.assertions.Assertions;
 import com.mongodb.lang.Nullable;

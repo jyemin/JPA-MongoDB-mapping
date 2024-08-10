@@ -4,25 +4,17 @@ import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.function.array.AbstractArrayContainsFunction;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
-import org.hibernate.metamodel.mapping.JdbcMapping;
-import org.hibernate.metamodel.mapping.JdbcMappingContainer;
 import org.hibernate.omm.ast.MongoSqlAstTranslatorFactory;
-import org.hibernate.omm.type.ObjectIdJavaType;
-import org.hibernate.omm.type.ObjectIdJdbcType;
+import org.hibernate.omm.dialect.function.MongoArrayContainsFunction;
+import org.hibernate.omm.dialect.function.MongoArrayIncludesFunction;
+import org.hibernate.omm.dialect.type.ObjectIdJavaType;
+import org.hibernate.omm.dialect.type.ObjectIdJdbcType;
 import org.hibernate.omm.util.StringUtil;
-import org.hibernate.query.ReturnableType;
 import org.hibernate.service.ServiceRegistry;
-import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
-import org.hibernate.sql.ast.tree.SqlAstNode;
-import org.hibernate.sql.ast.tree.expression.Expression;
-import org.hibernate.type.BasicPluralType;
 import org.hibernate.type.spi.TypeConfiguration;
-
-import java.util.List;
 
 import static org.hibernate.type.SqlTypes.ARRAY;
 
@@ -75,7 +67,7 @@ public class MongoDialect extends Dialect {
 
     @Override
     public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
-        super.contribute(typeContributions, serviceRegistry); // need to call the super method to enable Array support
+        contributeTypes(typeContributions, serviceRegistry);
         TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
         typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
         typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.INSTANCE);
@@ -89,61 +81,4 @@ public class MongoDialect extends Dialect {
         functionRegistry.register("array_includes", new MongoArrayIncludesFunction(typeConfiguration));
     }
 
-    // https://www.mongodb.com/docs/manual/tutorial/query-arrays/
-    private static class MongoArrayContainsFunction extends AbstractArrayContainsFunction {
-
-        public MongoArrayContainsFunction(TypeConfiguration typeConfiguration) {
-            super(true, typeConfiguration);
-        }
-
-        @Override
-        public void render(
-                SqlAppender sqlAppender,
-                List<? extends SqlAstNode> sqlAstArguments,
-                ReturnableType<?> returnType,
-                SqlAstTranslator<?> walker) {
-            final Expression haystackExpression = (Expression) sqlAstArguments.get(0);
-            final Expression needleExpression = (Expression) sqlAstArguments.get(1);
-
-            final JdbcMappingContainer needleTypeContainer = needleExpression.getExpressionType();
-            final JdbcMapping needleType = needleTypeContainer == null ? null : needleTypeContainer.getSingleJdbcMapping();
-
-            if (needleType == null || needleType instanceof BasicPluralType<?, ?>) {
-                sqlAppender.append("{ ");
-                haystackExpression.accept(walker);
-                sqlAppender.append(": { $all: ");
-                needleExpression.accept(walker);
-                sqlAppender.append(" } }");
-            } else {
-                sqlAppender.append("{ ");
-                haystackExpression.accept(walker);
-                sqlAppender.append(": ");
-                needleExpression.accept(walker);
-                sqlAppender.append(" }");
-            }
-        }
-    }
-
-    private static class MongoArrayIncludesFunction extends AbstractArrayContainsFunction {
-
-        public MongoArrayIncludesFunction(TypeConfiguration typeConfiguration) {
-            super(true, typeConfiguration);
-        }
-
-        @Override
-        public void render(
-                SqlAppender sqlAppender,
-                List<? extends SqlAstNode> sqlAstArguments,
-                ReturnableType<?> returnType,
-                SqlAstTranslator<?> walker) {
-            final Expression haystackExpression = (Expression) sqlAstArguments.get(0);
-            final Expression needleExpression = (Expression) sqlAstArguments.get(1);
-
-            sqlAppender.append("{ ");
-            haystackExpression.accept(walker);
-            sqlAppender.append(": { $all: ");
-            needleExpression.accept(walker);
-            sqlAppender.append(" } }");
-        }
-    }
 }

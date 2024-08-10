@@ -5,10 +5,10 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
 import org.bson.Document;
+import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.adapter.DatabaseMetaDataAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 
 import java.sql.Array;
@@ -26,6 +26,8 @@ import java.util.List;
  */
 public class MongoConnection implements ConnectionAdapter {
     private static final String DB_VERSION_QUERY_FIELD_NAME = "buildinfo";
+    private static final String VERSION_FIELD_NAME = "version";
+    private static final String VERSION_ARRAY_FIELD_NAME = "versionArray";
 
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
@@ -63,8 +65,10 @@ public class MongoConnection implements ConnectionAdapter {
         if (result.getDouble("ok") != 1.0) {
             throw new CommandRunFailSQLException(result);
         }
-        String version = result.getString("version");
-        List<Integer> versionArray = result.getList("versionArray", Integer.class);
+        String version = result.getString(VERSION_FIELD_NAME);
+        List<Integer> versionArray = result.getList(VERSION_ARRAY_FIELD_NAME, Integer.class);
+
+        Assertions.assertTrue(versionArray.size() >= 2);
 
         return new DatabaseMetaDataAdapter() {
 
@@ -92,8 +96,8 @@ public class MongoConnection implements ConnectionAdapter {
     }
 
     @Override
-    public CallableStatement prepareCall(String sql) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
+    public CallableStatement prepareCall(String sql) {
+        throw new NotYetImplementedException();
     }
 
     @Override
@@ -157,6 +161,6 @@ public class MongoConnection implements ConnectionAdapter {
 
     @Override
     public Array createArrayOf(String typeName, Object[] elements) {
-        return new MongoArray(elements, typeName);
+        return new MongoArray(typeName, elements);
     }
 }
