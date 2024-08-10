@@ -7,17 +7,16 @@ import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
-import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
  */
-@ExtendWith(ChameleonExtension.class)
+@MongoIntegrationTest
 class SimpleJoinTests {
 
     @SessionFactoryInjected

@@ -4,11 +4,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
-import org.hibernate.omm.extension.ChameleonExtension;
+import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Nathan Xu
  * @since 1.0.0
  */
-@ExtendWith(ChameleonExtension.class)
+@MongoIntegrationTest
 class DeleteAllTests {
 
     @SessionFactoryInjected

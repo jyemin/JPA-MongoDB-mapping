@@ -20,7 +20,7 @@ import java.util.List;
  * </ul>
  *
  * @author Nathan Xu
- * @deprecated use {@link org.hibernate.omm.extension.ChameleonExtension} instead
+ * @deprecated use {@link org.hibernate.omm.extension.MongoIntegrationTest} instead
  */
 public abstract class AbstractMongodbIntegrationTests {
 

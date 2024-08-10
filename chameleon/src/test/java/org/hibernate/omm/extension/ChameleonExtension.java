@@ -31,7 +31,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  * @author Nathn Xu
  * @since 1.0.0
  */
-public class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
+class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
     private static final String DATABASE_NAME = "test";
