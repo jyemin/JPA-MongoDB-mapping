@@ -1,4 +1,4 @@
-package org.hibernate.omm.dialect.type;
+package org.hibernate.omm.type;
 
 import com.mongodb.lang.Nullable;
 import org.bson.BsonObjectId;

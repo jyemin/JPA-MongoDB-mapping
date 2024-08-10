@@ -46,6 +46,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
         );
+
         MongoClientSettings clientSettings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .codecRegistry(codecRegistry)

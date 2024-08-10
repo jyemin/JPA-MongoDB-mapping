@@ -1,4 +1,4 @@
-package org.hibernate.omm.dialect.function;
+package org.hibernate.omm.array.function;
 
 import org.hibernate.dialect.function.array.AbstractArrayContainsFunction;
 import org.hibernate.metamodel.mapping.JdbcMapping;
