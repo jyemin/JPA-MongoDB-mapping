@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.ast;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
@@ -29,7 +44,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    public void visitStandardTableInsert(TableInsertStandard tableInsert) {
+    public void visitStandardTableInsert(final TableInsertStandard tableInsert) {
         getCurrentClauseStack().push(Clause.INSERT);
         try {
             renderInsertInto(tableInsert);
@@ -41,7 +56,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
         }
     }
 
-    private void renderInsertInto(TableInsertStandard tableInsert) {
+    private void renderInsertInto(final TableInsertStandard tableInsert) {
         if (tableInsert.getNumberOfValueBindings() == 0) {
             renderInsertIntoNoColumns(tableInsert);
             return;
@@ -68,13 +83,13 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void renderIntoIntoAndTable(TableInsertStandard tableInsert) {
+    protected void renderIntoIntoAndTable(final TableInsertStandard tableInsert) {
         appendSql(writeStringHelper(tableInsert.getMutatingTable().getTableName()));
         registerAffectedTable(tableInsert.getMutatingTable().getTableName());
     }
 
     @Override
-    protected void visitInsertStatementOnly(InsertSelectStatement statement) {
+    protected void visitInsertStatementOnly(final InsertSelectStatement statement) {
         getClauseStack().push(Clause.INSERT);
         appendSql("{ ");
 
@@ -116,7 +131,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    public void visitStandardTableDelete(TableDeleteStandard tableDelete) {
+    public void visitStandardTableDelete(final TableDeleteStandard tableDelete) {
         getClauseStack().push(Clause.DELETE);
         try {
             appendSql("{ delete: ");
@@ -177,7 +192,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void visitDeleteStatementOnly(DeleteStatement statement) {
+    protected void visitDeleteStatementOnly(final DeleteStatement statement) {
         if (CollectionUtil.isNotEmpty(statement.getReturningColumns())) {
             throw new NotSupportedRuntimeException("delete statement with returning columns not supported");
         }
@@ -198,7 +213,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void renderDeleteClause(DeleteStatement statement) {
+    protected void renderDeleteClause(final DeleteStatement statement) {
         appendSql("{ delete: ");
         try {
             getClauseStack().push(Clause.DELETE);
@@ -209,7 +224,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    public void visitStandardTableUpdate(TableUpdateStandard tableUpdate) {
+    public void visitStandardTableUpdate(final TableUpdateStandard tableUpdate) {
         getClauseStack().push(Clause.UPDATE);
         try {
             visitTableUpdate(tableUpdate);
@@ -218,7 +233,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
         }
     }
 
-    private void visitTableUpdate(RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
+    private void visitTableUpdate(final RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
         appendSql("{ update: ");
         appendSql(writeStringHelper(tableUpdate.getMutatingTable().getTableName()));
         registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
@@ -303,7 +318,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void visitUpdateStatementOnly(UpdateStatement statement) {
+    protected void visitUpdateStatementOnly(final UpdateStatement statement) {
         if (statement.getFromClause().getRoots().size() > 1) {
             throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
         }
@@ -319,7 +334,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void renderUpdateClause(UpdateStatement updateStatement) {
+    protected void renderUpdateClause(final UpdateStatement updateStatement) {
         appendSql("update: ");
         try {
             getClauseStack().push(Clause.UPDATE);
@@ -330,7 +345,7 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
     }
 
     @Override
-    protected void renderSetClause(List<Assignment> assignments) {
+    protected void renderSetClause(final List<Assignment> assignments) {
         appendSql(" , u: { ");
         var separator = " ";
         try {

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
@@ -47,6 +62,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
     private static class PathTracker {
         private final Map<String, String> pathByQualifier = new HashMap<>();
+
         @Nullable
         private String rootQualifier;
 
@@ -58,7 +74,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             return rootQualifier;
         }
 
-        public void trackPath(String sourceQualifier, String targetQualifier) {
+        public void trackPath(final String sourceQualifier, final String targetQualifier) {
             var sourcePath = pathByQualifier.get(sourceQualifier);
             if (sourcePath != null) {
                 pathByQualifier.put(targetQualifier, sourcePath + "." + targetQualifier);
@@ -67,7 +83,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             }
         }
 
-        public String renderColumnReference(ColumnReference columnReference) {
+        public String renderColumnReference(final ColumnReference columnReference) {
             var path = pathByQualifier.get(columnReference.getQualifier());
             String result;
             if (path == null) {
@@ -93,7 +109,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    public void visitQuerySpec(QuerySpec querySpec) {
+    public void visitQuerySpec(final QuerySpec querySpec) {
         final QueryPart queryPartForRowNumbering = this.queryPartForRowNumbering;
         final int queryPartForRowNumberingClauseDepth = this.queryPartForRowNumberingClauseDepth;
         final boolean needsSelectAliases = this.needsSelectAliases;
@@ -171,7 +187,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    public void visitFromClause(@Nullable FromClause fromClause) {
+    public void visitFromClause(@Nullable final FromClause fromClause) {
         if (fromClause == null || fromClause.getRoots().isEmpty()) {
             throw new NotSupportedRuntimeException("null fromClause or empty root not supported");
         } else {
@@ -180,7 +196,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void renderFromClauseSpaces(FromClause fromClause) {
+    protected void renderFromClauseSpaces(final FromClause fromClause) {
         try {
             clauseStack.push(Clause.FROM);
             if (fromClause.getRoots().size() > 1) {
@@ -193,7 +209,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private void renderFromClauseRoot(TableGroup root) {
+    private void renderFromClauseRoot(final TableGroup root) {
         if (root.isVirtual()) {
             throw new NotYetImplementedException();
         } else if (root.isInitialized()) {
@@ -202,7 +218,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void renderRootTableGroup(TableGroup tableGroup, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    protected void renderRootTableGroup(final TableGroup tableGroup, @Nullable final List<TableGroupJoin> tableGroupJoinCollector) {
 
         renderTableReferenceJoins(tableGroup);
         processNestedTableGroupJoins(tableGroup, tableGroupJoinCollector);
@@ -223,7 +239,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void processTableGroupJoins(TableGroup source) {
+    protected void processTableGroupJoins(final TableGroup source) {
         if (!source.getTableGroupJoins().isEmpty()) {
             for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
                 processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
@@ -235,7 +251,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    public void visitSelectClause(SelectClause selectClause) {
+    public void visitSelectClause(final SelectClause selectClause) {
         clauseStack.push(Clause.SELECT);
         appendSql("{ ");
         try {
@@ -250,7 +266,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void visitSqlSelections(SelectClause selectClause) {
+    protected void visitSqlSelections(final SelectClause selectClause) {
         final List<SqlSelection> sqlSelections = selectClause.getSqlSelections();
         final int size = sqlSelections.size();
         final SelectItemReferenceStrategy referenceStrategy = dialect.getGroupBySelectItemReferenceStrategy();
@@ -358,7 +374,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         return false;
     }
 
-    private void processTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    private void processTableGroupJoin(final TableGroup source, final TableGroupJoin tableGroupJoin,
+            @Nullable final List<TableGroupJoin> tableGroupJoinCollector) {
         final TableGroup joinedGroup = tableGroupJoin.getJoinedGroup();
 
         if (joinedGroup.isVirtual()) {
@@ -386,7 +403,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private void renderTableGroupJoin(TableGroup source, TableGroupJoin tableGroupJoin, @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+    private void renderTableGroupJoin(final TableGroup source, final TableGroupJoin tableGroupJoin,
+            @Nullable final List<TableGroupJoin> tableGroupJoinCollector) {
         //appendSql(tableGroupJoin.getJoinType().getText());
 
         final Predicate predicate;
@@ -407,10 +425,10 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     private void renderTableGroup(
-            TableGroup source,
-            TableGroup tableGroup,
-            @Nullable Predicate predicate,
-            @Nullable List<TableGroupJoin> tableGroupJoinCollector) {
+            final TableGroup source,
+            final TableGroup tableGroup,
+            @Nullable final Predicate predicate,
+            @Nullable final List<TableGroupJoin> tableGroupJoinCollector) {
 
         // Without reference joins or nested join groups, even a real table group does not need parenthesis
         final boolean realTableGroup = tableGroup.isRealTableGroup()
@@ -484,7 +502,8 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private void simulateTableJoining(TableGroup sourceTableGroup, TableGroup targetTableGroup, @Nullable Predicate predicate) {
+    private void simulateTableJoining(final TableGroup sourceTableGroup, final TableGroup targetTableGroup,
+            @Nullable final Predicate predicate) {
         if (targetTableGroup.getPrimaryTableReference() instanceof NamedTableReference namedTargetTableReference) {
             var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
             appendSql("{ $lookup: { from: ");
@@ -547,7 +566,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private List<String> getSourceColumnsInPredicate(ComparisonPredicate comparisonPredicate, String sourceAlias) {
+    private List<String> getSourceColumnsInPredicate(final ComparisonPredicate comparisonPredicate, final String sourceAlias) {
         List<String> sourceColumns = new ArrayList<>();
         List<ColumnReference> columnReferences = new ArrayList<>();
         if (comparisonPredicate.getLeftHandExpression() instanceof ColumnReference columnReference) {
@@ -566,7 +585,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    public void visitColumnReference(ColumnReference columnReference) {
+    public void visitColumnReference(final ColumnReference columnReference) {
         if (targetQualifier != null && !columnReference.isColumnExpressionFormula()) {
             appendSql('"');
             appendSql(columnReference.getQualifier().equals(targetQualifier) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
@@ -586,7 +605,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
     }
 
     @Override
-    protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
+    protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
         if (inAggregateExpressionScope) {
             appendSql("{ ");
             appendSql(getMongoOperatorText(operator));
@@ -606,7 +625,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         }
     }
 
-    private String getMongoOperatorText(ComparisonOperator operator) {
+    private String getMongoOperatorText(final ComparisonOperator operator) {
         return switch (operator) {
             case EQUAL -> "$eq";
             case NOT_EQUAL -> "$ne";

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.ast;
 
 import org.hibernate.LockMode;
@@ -36,25 +51,25 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     }
 
     @Override
-    protected void renderDmlTargetTableExpression(NamedTableReference tableReference) {
+    protected void renderDmlTargetTableExpression(final NamedTableReference tableReference) {
         appendSql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
     }
 
     @Override
-    protected boolean renderNamedTableReference(NamedTableReference tableReference, LockMode lockMode) {
+    protected boolean renderNamedTableReference(final NamedTableReference tableReference, final LockMode lockMode) {
         appendSql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
         return false;
     }
 
     @Override
-    public void visitNamedTableReference(NamedTableReference tableReference) {
+    public void visitNamedTableReference(final NamedTableReference tableReference) {
         appendSql(writeStringHelper(tableReference.getTableExpression()));
     }
 
     @Override
-    protected void visitWhereClause(Predicate whereClauseRestrictions) {
+    protected void visitWhereClause(final Predicate whereClauseRestrictions) {
         final Predicate additionalWherePredicate = this.additionalWherePredicate;
         final boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
         final boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
@@ -87,7 +102,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     }
 
     @Override
-    public void visitInListPredicate(InListPredicate inListPredicate) {
+    public void visitInListPredicate(final InListPredicate inListPredicate) {
         final List<Expression> listExpressions = inListPredicate.getListExpressions();
         if (listExpressions.isEmpty()) {
             emptyInList(inListPredicate);
@@ -204,7 +219,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
         }
     }
 
-    protected void emptyInList(InListPredicate inListPredicate) {
+    protected void emptyInList(final InListPredicate inListPredicate) {
         appendSql("(");
         appendSql(inListPredicate.isNegated() ? "0" : "1");
         appendSql(" = case when ");
@@ -215,7 +230,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     }
 
     @Override
-    public void visitExistsPredicate(ExistsPredicate existsPredicate) {
+    public void visitExistsPredicate(final ExistsPredicate existsPredicate) {
         appendSql("{ ");
         if (existsPredicate.isNegated()) {
             appendSql(" $not: {");
@@ -229,7 +244,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     }
 
     @Override
-    public void visitJunction(Junction junction) {
+    public void visitJunction(final Junction junction) {
         if (junction.isEmpty()) {
             return;
         }
@@ -252,7 +267,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
     }
 
     @Override
-    public void visitNegatedPredicate(NegatedPredicate negatedPredicate) {
+    public void visitNegatedPredicate(final NegatedPredicate negatedPredicate) {
         if (negatedPredicate.isEmpty()) {
             return;
         }
@@ -261,7 +276,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
         appendSql(" }");
     }
 
-    protected void renderComparisonStandard(Expression lhs, ComparisonOperator operator, Expression rhs) {
+    protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
         if (inAggregateExpressionScope) {
             appendSql("{ ");
             appendSql(getMongoOperatorText(operator));
@@ -281,7 +296,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
         }
     }
 
-    private String getMongoOperatorText(ComparisonOperator operator) {
+    private String getMongoOperatorText(final ComparisonOperator operator) {
         return switch (operator) {
             case EQUAL -> "$eq";
             case NOT_EQUAL -> "$ne";

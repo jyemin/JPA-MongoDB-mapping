@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
@@ -37,7 +52,7 @@ public class MongoStatement implements StatementAdapter {
 
     private boolean closed;
 
-    public MongoStatement(MongoDatabase mongoDatabase, ClientSession clientSession, Connection connection) {
+    public MongoStatement(final MongoDatabase mongoDatabase, final ClientSession clientSession, final Connection connection) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
         Assertions.notNull("connection", connection);
@@ -47,7 +62,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public ResultSet executeQuery(String sql) throws SimulatedSQLException {
+    public ResultSet executeQuery(final String sql) throws SimulatedSQLException {
         Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
 
@@ -67,7 +82,7 @@ public class MongoStatement implements StatementAdapter {
      * @return ordered field name list
      * @see org.hibernate.omm.ast.MongoSelectQueryAstTranslator#visitSelectClause(SelectClause)
      */
-    private List<String> getFieldNamesFromProjectDocument(BsonDocument projectDocument) {
+    private List<String> getFieldNamesFromProjectDocument(final BsonDocument projectDocument) {
         // we rely on $project field renaming to ensure order
         // but we also skip '_id' explicitly (e.g. _id: 0)
         var fieldNames = new ArrayList<String>(projectDocument.size());
@@ -83,7 +98,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public int executeUpdate(String sql) throws SimulatedSQLException {
+    public int executeUpdate(final String sql) throws SimulatedSQLException {
         Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
         BsonDocument command = BsonDocument.parse(sql);
@@ -122,7 +137,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public boolean execute(String sql) throws SimulatedSQLException {
+    public boolean execute(final String sql) throws SimulatedSQLException {
         throwExceptionIfClosed();
         throw new NotSupportedSQLException();
     }
@@ -170,7 +185,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public void setFetchSize(int rows) throws SimulatedSQLException {
+    public void setFetchSize(final int rows) throws SimulatedSQLException {
         throwExceptionIfClosed();
         throw new NotSupportedSQLException();
     }
@@ -182,7 +197,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    public void addBatch(String sql) throws SimulatedSQLException {
+    public void addBatch(final String sql) throws SimulatedSQLException {
         throwExceptionIfClosed();
         throw new NotSupportedSQLException();
     }

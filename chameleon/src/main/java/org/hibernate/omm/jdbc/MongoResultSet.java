@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
@@ -50,7 +65,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     private boolean closed;
 
-    public MongoResultSet(MongoCursor<BsonDocument> cursor, final List<String> fieldNames) {
+    public MongoResultSet(final MongoCursor<BsonDocument> cursor, final List<String> fieldNames) {
         Assertions.notNull("cursor", cursor);
         Assertions.notNull("fieldNames", fieldNames);
         this.cursor = cursor;
@@ -86,7 +101,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public String getString(int columnIndex) throws SimulatedSQLException {
+    public String getString(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonString bsonValue = castNonNull(currentDocument).getString(getKey(columnIndex));
         lastRead = bsonValue;
@@ -94,7 +109,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public boolean getBoolean(int columnIndex) throws SimulatedSQLException {
+    public boolean getBoolean(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonBoolean bsonValue = castNonNull(currentDocument).getBoolean(getKey(columnIndex));
         lastRead = bsonValue;
@@ -105,7 +120,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public byte getByte(int columnIndex) throws SimulatedSQLException {
+    public byte getByte(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -116,7 +131,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public short getShort(int columnIndex) throws SimulatedSQLException {
+    public short getShort(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -127,7 +142,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public int getInt(int columnIndex) throws SimulatedSQLException {
+    public int getInt(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -138,7 +153,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public long getLong(int columnIndex) throws SimulatedSQLException {
+    public long getLong(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -149,7 +164,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public float getFloat(int columnIndex) throws SimulatedSQLException {
+    public float getFloat(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -160,7 +175,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public double getDouble(int columnIndex) throws SimulatedSQLException {
+    public double getDouble(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
         lastRead = bsonValue;
@@ -172,7 +187,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public byte[] getBytes(int columnIndex) throws SimulatedSQLException {
+    public byte[] getBytes(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonBinary bsonValue = castNonNull(currentDocument).getBinary(getKey(columnIndex));
         lastRead = bsonValue;
@@ -181,7 +196,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public Date getDate(int columnIndex) throws SimulatedSQLException {
+    public Date getDate(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
@@ -190,7 +205,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public Time getTime(int columnIndex) throws SimulatedSQLException {
+    public Time getTime(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
@@ -199,7 +214,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public Timestamp getTimestamp(int columnIndex) throws SimulatedSQLException {
+    public Timestamp getTimestamp(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
         lastRead = bsonValue;
@@ -208,7 +223,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public BigDecimal getBigDecimal(int columnIndex) throws SimulatedSQLException {
+    public BigDecimal getBigDecimal(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         BsonDecimal128 bsonValue = castNonNull(currentDocument).getDecimal128(getKey(columnIndex));
         lastRead = bsonValue;
@@ -216,7 +231,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public Array getArray(int columnIndex) throws SimulatedSQLException {
+    public Array getArray(final int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
         List<BsonValue> bsonValues = castNonNull(currentDocument).getArray(getKey(columnIndex)).getValues();
         return new ArrayAdapter() {
@@ -237,7 +252,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public <T> T getObject(int columnIndex, Class<T> type) throws SimulatedSQLException {
+    public <T> T getObject(final int columnIndex, final Class<T> type) throws SimulatedSQLException {
         Assertions.notNull("type", type);
         beforeAccessCurrentDocumentField();
         var value = castNonNull(currentDocument).get(getKey(columnIndex));
@@ -261,12 +276,12 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    public int findColumn(String columnLabel) throws SimulatedSQLException {
+    public int findColumn(final String columnLabel) {
         Assertions.notNull("columnLabel", columnLabel);
         return fieldNames.indexOf(columnLabel) + 1;
     }
 
-    private String getKey(int columnIndex) throws SimulatedSQLException {
+    private String getKey(final int columnIndex) {
         return fieldNames.get(columnIndex - 1);
     }
 

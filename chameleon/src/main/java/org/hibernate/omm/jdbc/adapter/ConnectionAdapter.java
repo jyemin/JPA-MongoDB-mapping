@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc.adapter;
 
 import com.mongodb.lang.Nullable;
@@ -35,22 +50,22 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default PreparedStatement prepareStatement(String sql) throws SimulatedSQLException {
+    default PreparedStatement prepareStatement(final String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default CallableStatement prepareCall(String sql) throws SimulatedSQLException {
+    default CallableStatement prepareCall(final String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default String nativeSQL(String sql) throws SimulatedSQLException {
+    default String nativeSQL(final String sql) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setAutoCommit(boolean autoCommit) throws SimulatedSQLException {
+    default void setAutoCommit(final boolean autoCommit) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -85,7 +100,7 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default void setReadOnly(boolean readOnly) throws SimulatedSQLException {
+    default void setReadOnly(final boolean readOnly) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -95,7 +110,7 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default void setCatalog(String catalog) throws SimulatedSQLException {
+    default void setCatalog(final String catalog) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -105,7 +120,7 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default void setTransactionIsolation(int level) throws SimulatedSQLException {
+    default void setTransactionIsolation(final int level) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -126,19 +141,19 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default Statement createStatement(int resultSetType, int resultSetConcurrency)
+    default Statement createStatement(final int resultSetType, final int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
+    default PreparedStatement prepareStatement(final String sql, final int resultSetType, final int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency)
+    default CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -149,12 +164,12 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default void setTypeMap(Map<String, Class<?>> map) throws SimulatedSQLException {
+    default void setTypeMap(final Map<String, Class<?>> map) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setHoldability(int holdability) throws SimulatedSQLException {
+    default void setHoldability(final int holdability) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -169,55 +184,55 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default Savepoint setSavepoint(String name) throws SimulatedSQLException {
+    default Savepoint setSavepoint(final String name) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void rollback(Savepoint savepoint) throws SimulatedSQLException {
+    default void rollback(final Savepoint savepoint) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void releaseSavepoint(Savepoint savepoint) throws SimulatedSQLException {
+    default void releaseSavepoint(final Savepoint savepoint) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default Statement createStatement(
-            int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default PreparedStatement prepareStatement(
-            String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            final String sql, final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default CallableStatement prepareCall(
-            String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)
+            final String sql, final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default PreparedStatement prepareStatement(String sql, int autoGeneratedKeys)
+    default PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default PreparedStatement prepareStatement(String sql, int[] columnIndexes)
+    default PreparedStatement prepareStatement(final String sql, final int[] columnIndexes)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default PreparedStatement prepareStatement(String sql, String[] columnNames)
+    default PreparedStatement prepareStatement(final String sql, final String[] columnNames)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -243,22 +258,22 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default boolean isValid(int timeout) throws SimulatedSQLException {
+    default boolean isValid(final int timeout) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setClientInfo(String name, String value) throws SQLClientInfoException {
+    default void setClientInfo(final String name, final String value) throws SQLClientInfoException {
         throw new NotSupportedSqlClientInfoSQLException();
     }
 
     @Override
-    default void setClientInfo(Properties properties) throws SQLClientInfoException {
+    default void setClientInfo(final Properties properties) throws SQLClientInfoException {
         throw new NotSupportedSqlClientInfoSQLException();
     }
 
     @Override
-    default String getClientInfo(String name) throws SimulatedSQLException {
+    default String getClientInfo(final String name) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -268,17 +283,17 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default Array createArrayOf(String typeName, Object[] elements) throws SimulatedSQLException {
+    default Array createArrayOf(final String typeName, final Object[] elements) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default Struct createStruct(String typeName, Object[] attributes) throws SimulatedSQLException {
+    default Struct createStruct(final String typeName, final Object[] attributes) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setSchema(String schema) throws SimulatedSQLException {
+    default void setSchema(final String schema) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -288,12 +303,12 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default void abort(Executor executor) throws SimulatedSQLException {
+    default void abort(final Executor executor) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void setNetworkTimeout(Executor executor, int milliseconds) throws SimulatedSQLException {
+    default void setNetworkTimeout(final Executor executor, final int milliseconds) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -303,12 +318,12 @@ public interface ConnectionAdapter extends Connection {
     }
 
     @Override
-    default <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
+    default <T> T unwrap(final Class<T> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
+    default boolean isWrapperFor(final Class<?> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 }

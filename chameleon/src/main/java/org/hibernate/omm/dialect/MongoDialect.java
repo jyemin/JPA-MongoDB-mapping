@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.dialect;
 
 import org.hibernate.boot.model.FunctionContributions;
@@ -32,11 +47,11 @@ public class MongoDialect extends Dialect {
         this(MINIMUM_VERSION);
     }
 
-    public MongoDialect(DatabaseVersion version) {
+    public MongoDialect(final DatabaseVersion version) {
         super(version);
     }
 
-    public MongoDialect(DialectResolutionInfo dialectResolutionInfo) {
+    public MongoDialect(final DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
     }
 
@@ -46,7 +61,7 @@ public class MongoDialect extends Dialect {
     }
 
     @Override
-    public void appendLiteral(SqlAppender appender, String literal) {
+    public void appendLiteral(final SqlAppender appender, final String literal) {
         appender.appendSql(StringUtil.writeStringHelper(literal));
     }
 
@@ -66,7 +81,7 @@ public class MongoDialect extends Dialect {
     }
 
     @Override
-    public void contribute(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
+    public void contribute(final TypeContributions typeContributions, final ServiceRegistry serviceRegistry) {
         contributeTypes(typeContributions, serviceRegistry);
         TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
         typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
@@ -74,7 +89,7 @@ public class MongoDialect extends Dialect {
     }
 
     @Override
-    public void initializeFunctionRegistry(FunctionContributions functionContributions) {
+    public void initializeFunctionRegistry(final FunctionContributions functionContributions) {
         var functionRegistry = functionContributions.getFunctionRegistry();
         var typeConfiguration = functionContributions.getTypeConfiguration();
         functionRegistry.register("array_contains", new MongoArrayContainsFunction(typeConfiguration));

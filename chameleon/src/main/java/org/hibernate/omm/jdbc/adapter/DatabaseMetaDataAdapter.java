@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc.adapter;
 
 import com.mongodb.lang.Nullable;
@@ -582,7 +597,7 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default boolean supportsTransactionIsolationLevel(int level) throws SimulatedSQLException {
+    default boolean supportsTransactionIsolationLevel(final int level) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -607,23 +622,24 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getProcedures(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String procedureNamePattern)
+    default ResultSet getProcedures(@Nullable final String catalog, @Nullable final String schemaPattern,
+            @Nullable final String procedureNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getProcedureColumns(
-            @Nullable String catalog,
-            @Nullable String schemaPattern,
-            @Nullable String procedureNamePattern,
-            @Nullable String columnNamePattern) throws SimulatedSQLException {
+            @Nullable final String catalog,
+            @Nullable final String schemaPattern,
+            @Nullable final String procedureNamePattern,
+            @Nullable final String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern,
-            @Nullable String[] types)
+    default ResultSet getTables(@Nullable final String catalog, @Nullable final String schemaPattern, @Nullable final String tableNamePattern,
+            @Nullable final String[] types)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -644,58 +660,61 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getColumns(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern,
-            @Nullable String columnNamePattern)
+    default ResultSet getColumns(@Nullable final String catalog, @Nullable final String schemaPattern, @Nullable final String tableNamePattern,
+            @Nullable final String columnNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema, String table, @Nullable String columnNamePattern)
+    default ResultSet getColumnPrivileges(@Nullable final String catalog, @Nullable final String schema, final String table,
+            @Nullable final String columnNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern)
+    default ResultSet getTablePrivileges(@Nullable final String catalog, @Nullable final String schemaPattern,
+            @Nullable final String tableNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getBestRowIdentifier(@Nullable String catalog, @Nullable String schema, String table, int scope, boolean nullable)
+    default ResultSet getBestRowIdentifier(@Nullable final String catalog, @Nullable final String schema, final String table, final int scope,
+            final boolean nullable)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getVersionColumns(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
+    default ResultSet getVersionColumns(@Nullable final String catalog, @Nullable final String schema, final String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
+    default ResultSet getPrimaryKeys(@Nullable final String catalog, @Nullable final String schema, final String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getImportedKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
+    default ResultSet getImportedKeys(@Nullable final String catalog, @Nullable final String schema, final String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getExportedKeys(@Nullable String catalog, @Nullable String schema, String table) throws SimulatedSQLException {
+    default ResultSet getExportedKeys(@Nullable final String catalog, @Nullable final String schema, final String table) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getCrossReference(
-            @Nullable String parentCatalog,
-            @Nullable String parentSchema,
-            String parentTable,
-            @Nullable String foreignCatalog,
-            @Nullable String foreignSchema,
-            String foreignTable) throws SimulatedSQLException {
+            @Nullable final String parentCatalog,
+            @Nullable final String parentSchema,
+            final String parentTable,
+            @Nullable final String foreignCatalog,
+            @Nullable final String foreignSchema,
+            final String foreignTable) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -705,63 +724,64 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getIndexInfo(@Nullable String catalog, @Nullable String schema, String table, boolean unique, boolean approximate)
+    default ResultSet getIndexInfo(@Nullable final String catalog, @Nullable final String schema, final String table, final boolean unique,
+            final boolean approximate)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean supportsResultSetType(int type) throws SimulatedSQLException {
+    default boolean supportsResultSetType(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean supportsResultSetConcurrency(int type, int concurrency) throws SimulatedSQLException {
+    default boolean supportsResultSetConcurrency(final int type, final int concurrency) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean ownUpdatesAreVisible(int type) throws SimulatedSQLException {
+    default boolean ownUpdatesAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean ownDeletesAreVisible(int type) throws SimulatedSQLException {
+    default boolean ownDeletesAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean ownInsertsAreVisible(int type) throws SimulatedSQLException {
+    default boolean ownInsertsAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean othersUpdatesAreVisible(int type) throws SimulatedSQLException {
+    default boolean othersUpdatesAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean othersDeletesAreVisible(int type) throws SimulatedSQLException {
+    default boolean othersDeletesAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean othersInsertsAreVisible(int type) throws SimulatedSQLException {
+    default boolean othersInsertsAreVisible(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean updatesAreDetected(int type) throws SimulatedSQLException {
+    default boolean updatesAreDetected(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean deletesAreDetected(int type) throws SimulatedSQLException {
+    default boolean deletesAreDetected(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean insertsAreDetected(int type) throws SimulatedSQLException {
+    default boolean insertsAreDetected(final int type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -771,7 +791,8 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String typeNamePattern, @Nullable int[] types)
+    default ResultSet getUDTs(@Nullable final String catalog, @Nullable final String schemaPattern, @Nullable final String typeNamePattern,
+            @Nullable final int[] types)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
@@ -802,26 +823,28 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getSuperTypes(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String typeNamePattern) throws SimulatedSQLException {
+    default ResultSet getSuperTypes(@Nullable final String catalog, @Nullable final String schemaPattern,
+            @Nullable final String typeNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default ResultSet getSuperTables(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String tableNamePattern) throws SimulatedSQLException {
+    default ResultSet getSuperTables(@Nullable final String catalog, @Nullable final String schemaPattern,
+            @Nullable final String tableNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getAttributes(
-            @Nullable String catalog,
-            @Nullable String schemaPattern,
-            @Nullable String typeNamePattern,
-            @Nullable String attributeNamePattern) throws SimulatedSQLException {
+            @Nullable final String catalog,
+            @Nullable final String schemaPattern,
+            @Nullable final String typeNamePattern,
+            @Nullable final String attributeNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean supportsResultSetHoldability(int holdability) throws SimulatedSQLException {
+    default boolean supportsResultSetHoldability(final int holdability) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -871,7 +894,7 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern) throws SimulatedSQLException {
+    default ResultSet getSchemas(@Nullable final String catalog, @Nullable final String schemaPattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -891,26 +914,27 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default ResultSet getFunctions(@Nullable String catalog, @Nullable String schemaPattern, @Nullable String functionNamePattern)
+    default ResultSet getFunctions(@Nullable final String catalog, @Nullable final String schemaPattern,
+            @Nullable final String functionNamePattern)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getFunctionColumns(
-            @Nullable String catalog,
-            @Nullable String schemaPattern,
-            @Nullable String functionNamePattern,
-            @Nullable String columnNamePattern) throws SimulatedSQLException {
+            @Nullable final String catalog,
+            @Nullable final String schemaPattern,
+            @Nullable final String functionNamePattern,
+            @Nullable final String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     default ResultSet getPseudoColumns(
-            @Nullable String catalog,
-            @Nullable String schemaPattern,
-            @Nullable String tableNamePattern,
-            @Nullable String columnNamePattern) throws SimulatedSQLException {
+            @Nullable final String catalog,
+            @Nullable final String schemaPattern,
+            @Nullable final String tableNamePattern,
+            @Nullable final String columnNamePattern) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -920,12 +944,12 @@ public interface DatabaseMetaDataAdapter extends DatabaseMetaData {
     }
 
     @Override
-    default <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
+    default <T> T unwrap(final Class<T> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
+    default boolean isWrapperFor(final Class<?> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 }

@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.type;
 
 import com.mongodb.lang.Nullable;
@@ -31,21 +46,21 @@ public class ObjectIdJdbcType implements JdbcType {
 
     @Override
     public <T> JavaType<T> getJdbcRecommendedJavaTypeMapping(
-            @Nullable Integer length,
-            @Nullable Integer scale,
-            TypeConfiguration typeConfiguration) {
+            @Nullable final Integer length,
+            @Nullable final Integer scale,
+            final TypeConfiguration typeConfiguration) {
         Assertions.notNull("typeConfiguration", typeConfiguration);
         return typeConfiguration.getJavaTypeRegistry().getDescriptor(ObjectId.class);
     }
 
     @Override
-    public <T> JdbcLiteralFormatter<T> getJdbcLiteralFormatter(JavaType<T> javaType) {
+    public <T> JdbcLiteralFormatter<T> getJdbcLiteralFormatter(final JavaType<T> javaType) {
         Assertions.notNull("javaType", javaType);
         return new JdbcLiteralFormatterCharacterData<>(javaType, false);
     }
 
     @Override
-    public Class<?> getPreferredJavaTypeClass(@Nullable WrapperOptions options) {
+    public Class<?> getPreferredJavaTypeClass(@Nullable final WrapperOptions options) {
         return ObjectId.class;
     }
 
@@ -55,12 +70,12 @@ public class ObjectIdJdbcType implements JdbcType {
         return new BasicBinder<>(javaType, this) {
 
             @Override
-            protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
+            protected void doBind(final PreparedStatement st, final X value, final int index, final WrapperOptions options) throws SQLException {
                 st.setObject(index, value, MongoSqlType.OBJECT_ID);
             }
 
             @Override
-            protected void doBind(CallableStatement st, X value, String name, WrapperOptions options)
+            protected void doBind(final CallableStatement st, final X value, final String name, final WrapperOptions options)
                     throws SQLException {
                 st.setObject(name, value, MongoSqlType.OBJECT_ID);
             }
@@ -74,7 +89,7 @@ public class ObjectIdJdbcType implements JdbcType {
 
             @Override
             @Nullable
-            protected X doExtract(ResultSet rs, int paramIndex, WrapperOptions options) throws SQLException {
+            protected X doExtract(final ResultSet rs, final int paramIndex, final WrapperOptions options) throws SQLException {
                 var obj = rs.getObject(paramIndex, BsonObjectId.class);
                 var value = obj == null ? null : obj.getValue();
                 return javaType.getJavaTypeClass().cast(value);
@@ -82,7 +97,7 @@ public class ObjectIdJdbcType implements JdbcType {
 
             @Override
             @Nullable
-            protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
+            protected X doExtract(final CallableStatement statement, final int index, final WrapperOptions options) throws SQLException {
                 var obj = statement.getObject(index, BsonObjectId.class);
                 var value = obj == null ? null : obj.getValue();
                 return javaType.getJavaTypeClass().cast(value);
@@ -90,7 +105,7 @@ public class ObjectIdJdbcType implements JdbcType {
 
             @Override
             @Nullable
-            protected X doExtract(CallableStatement statement, String name, WrapperOptions options) throws SQLException {
+            protected X doExtract(final CallableStatement statement, final String name, final WrapperOptions options) throws SQLException {
                 var value = statement.getObject(name, ObjectId.class);
                 return javaType.getJavaTypeClass().cast(value);
             }

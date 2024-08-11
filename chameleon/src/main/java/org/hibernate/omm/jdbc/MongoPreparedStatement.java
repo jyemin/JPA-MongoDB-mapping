@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
@@ -56,10 +71,10 @@ public class MongoPreparedStatement extends MongoStatement
     private final Map<Integer, String> parameters;
 
     public MongoPreparedStatement(
-            MongoDatabase mongoDatabase,
-            ClientSession clientSession,
-            Connection connection,
-            String parameterizedCommandJson) {
+            final MongoDatabase mongoDatabase,
+            final ClientSession clientSession,
+            final Connection connection,
+            final String parameterizedCommandJson) {
         super(mongoDatabase, clientSession, connection);
         this.parameterizedCommandJson = parameterizedCommandJson;
         this.parameters = new HashMap<>();
@@ -90,72 +105,72 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setNull(int parameterIndex, int sqlType) {
+    public void setNull(final int parameterIndex, final int sqlType) {
         parameters.put(parameterIndex, "null");
     }
 
     @Override
-    public void setBoolean(int parameterIndex, boolean x) {
+    public void setBoolean(final int parameterIndex, final boolean x) {
         parameters.put(parameterIndex, Boolean.toString(x));
     }
 
     @Override
-    public void setByte(int parameterIndex, byte x) {
+    public void setByte(final int parameterIndex, final byte x) {
         parameters.put(parameterIndex, Byte.toString(x));
     }
 
     @Override
-    public void setShort(int parameterIndex, short x) {
+    public void setShort(final int parameterIndex, final short x) {
         parameters.put(parameterIndex, Short.toString(x));
     }
 
     @Override
-    public void setInt(int parameterIndex, int x) {
+    public void setInt(final int parameterIndex, final int x) {
         parameters.put(parameterIndex, "{ \"$numberInt\": \"" + x + "\" }");
     }
 
     @Override
-    public void setLong(int parameterIndex, long x) {
+    public void setLong(final int parameterIndex, final long x) {
         parameters.put(parameterIndex, "{ \"$numberLong\": \"" + x + "\" }");
     }
 
     @Override
-    public void setFloat(int parameterIndex, float x) {
+    public void setFloat(final int parameterIndex, final float x) {
         parameters.put(parameterIndex, Float.toString(x));
     }
 
     @Override
-    public void setDouble(int parameterIndex, double x) {
+    public void setDouble(final int parameterIndex, final double x) {
         parameters.put(parameterIndex, "{ \"$numberDouble\": \"" + x + "\" }");
     }
 
     @Override
-    public void setBigDecimal(int parameterIndex, @Nullable BigDecimal x) {
+    public void setBigDecimal(final int parameterIndex, @Nullable final BigDecimal x) {
         parameters.put(parameterIndex, x == null ? "null" : "{ \"$numberDecimal\": \"" + x + "\" }");
     }
 
     @Override
-    public void setString(int parameterIndex, @Nullable String x) {
+    public void setString(final int parameterIndex, @Nullable final String x) {
         parameters.put(parameterIndex, x == null ? "null" : StringUtil.writeStringHelper(x));
     }
 
     @Override
-    public void setBytes(int parameterIndex, @Nullable byte[] x) {
+    public void setBytes(final int parameterIndex, @Nullable final byte[] x) {
         parameters.put(parameterIndex, x == null ? "null" : "\"$binary\": {\"base64\": \"" + Base64.getEncoder().encodeToString(x) + "\", \"subType\": \"0\"}");
     }
 
     @Override
-    public void setDate(int parameterIndex, @Nullable Date x) {
+    public void setDate(final int parameterIndex, @Nullable final Date x) {
         parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTime(int parameterIndex, @Nullable Time x) {
+    public void setTime(final int parameterIndex, @Nullable final Time x) {
         parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, @Nullable Timestamp x) {
+    public void setTimestamp(final int parameterIndex, @Nullable final Timestamp x) {
         parameters.put(
                 parameterIndex,
                 x == null ? "null" : "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
@@ -163,7 +178,7 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setObject(int parameterIndex, @Nullable Object x, int targetSqlType)
+    public void setObject(final int parameterIndex, @Nullable final Object x, final int targetSqlType)
             throws SimulatedSQLException {
         if (x == null) {
             parameters.put(parameterIndex, "null");
@@ -180,7 +195,7 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setArray(int parameterIndex, Array x) throws SimulatedSQLException {
+    public void setArray(final int parameterIndex, final Array x) throws SimulatedSQLException {
         Assertions.notNull("x", x);
 
         try {
@@ -196,7 +211,7 @@ public class MongoPreparedStatement extends MongoStatement
         }
     }
 
-    private String getArrayJson(Iterable<?> iterable) throws IOException {
+    private String getArrayJson(final Iterable<?> iterable) throws IOException {
         var stringWriter = new CharArrayWriter();
         stringWriter.write("[ ");
         var first = true;
@@ -239,87 +254,87 @@ public class MongoPreparedStatement extends MongoStatement
     // but for now we left them here for placeholders
 
     @Override
-    public void setObject(int parameterIndex, @Nullable Object x) {
+    public void setObject(final int parameterIndex, @Nullable final Object x) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setBlob(int parameterIndex, @Nullable Blob x) {
+    public void setBlob(final int parameterIndex, @Nullable final Blob x) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setClob(int parameterIndex, @Nullable Clob x) {
+    public void setClob(final int parameterIndex, @Nullable final Clob x) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setDate(int parameterIndex, @Nullable Date x, @Nullable Calendar cal) {
+    public void setDate(final int parameterIndex, @Nullable final Date x, @Nullable final Calendar cal) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setTime(int parameterIndex, @Nullable Time x, @Nullable Calendar cal) {
+    public void setTime(final int parameterIndex, @Nullable final Time x, @Nullable final Calendar cal) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setTimestamp(int parameterIndex, @Nullable Timestamp x, @Nullable Calendar cal) {
+    public void setTimestamp(final int parameterIndex, @Nullable final Timestamp x, @Nullable final Calendar cal) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setNull(int parameterIndex, int sqlType, String typeName) {
+    public void setNull(final int parameterIndex, final int sqlType, final String typeName) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setRowId(int parameterIndex, @Nullable RowId x) {
+    public void setRowId(final int parameterIndex, @Nullable final RowId x) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setNString(int parameterIndex, @Nullable String value) {
+    public void setNString(final int parameterIndex, @Nullable final String value) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setNCharacterStream(int parameterIndex, @Nullable Reader value, long length) {
+    public void setNCharacterStream(final int parameterIndex, @Nullable final Reader value, final long length) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setNClob(int parameterIndex, @Nullable NClob value) {
+    public void setNClob(final int parameterIndex, @Nullable final NClob value) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setClob(int parameterIndex, @Nullable Reader reader, long length) {
+    public void setClob(final int parameterIndex, @Nullable final Reader reader, final long length) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setBlob(int parameterIndex, @Nullable InputStream inputStream, long length) {
+    public void setBlob(final int parameterIndex, @Nullable final InputStream inputStream, final long length) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setNClob(int parameterIndex, @Nullable Reader reader, long length) {
+    public void setNClob(final int parameterIndex, @Nullable final Reader reader, final long length) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setSQLXML(int parameterIndex, @Nullable SQLXML xmlObject) {
+    public void setSQLXML(final int parameterIndex, @Nullable final SQLXML xmlObject) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setBinaryStream(int parameterIndex, @Nullable InputStream x, long length) {
+    public void setBinaryStream(final int parameterIndex, @Nullable final InputStream x, final long length) {
         throw new NotYetImplementedException();
     }
 
     @Override
-    public void setCharacterStream(int parameterIndex, @Nullable Reader reader, long length) {
+    public void setCharacterStream(final int parameterIndex, @Nullable final Reader reader, final long length) {
         throw new NotYetImplementedException();
     }
 

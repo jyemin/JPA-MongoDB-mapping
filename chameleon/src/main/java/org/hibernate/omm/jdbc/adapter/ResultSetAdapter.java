@@ -1,3 +1,18 @@
+/*
+ * Copyright 2008-present MongoDB, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.hibernate.omm.jdbc.adapter;
 
 import com.mongodb.lang.Nullable;
@@ -48,178 +63,178 @@ public interface ResultSetAdapter extends ResultSet {
 
     @Override
     @Nullable
-    default String getString(int columnIndex) throws SimulatedSQLException {
+    default String getString(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean getBoolean(int columnIndex) throws SimulatedSQLException {
+    default boolean getBoolean(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default byte getByte(int columnIndex) throws SimulatedSQLException {
+    default byte getByte(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default short getShort(int columnIndex) throws SimulatedSQLException {
+    default short getShort(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default int getInt(int columnIndex) throws SimulatedSQLException {
+    default int getInt(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default long getLong(int columnIndex) throws SimulatedSQLException {
+    default long getLong(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default float getFloat(int columnIndex) throws SimulatedSQLException {
+    default float getFloat(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default double getDouble(int columnIndex) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    @Nullable
-    default BigDecimal getBigDecimal(int columnIndex, int scale) throws SimulatedSQLException {
+    default double getDouble(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default byte[] getBytes(int columnIndex) throws SimulatedSQLException {
+    default BigDecimal getBigDecimal(final int columnIndex, final int scale) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Date getDate(int columnIndex) throws SimulatedSQLException {
+    default byte[] getBytes(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Time getTime(int columnIndex) throws SimulatedSQLException {
+    default Date getDate(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Timestamp getTimestamp(int columnIndex) throws SimulatedSQLException {
+    default Time getTime(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default InputStream getAsciiStream(int columnIndex) throws SimulatedSQLException {
+    default Timestamp getTimestamp(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default InputStream getUnicodeStream(int columnIndex) throws SimulatedSQLException {
+    default InputStream getAsciiStream(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default InputStream getBinaryStream(int columnIndex) throws SimulatedSQLException {
+    default InputStream getUnicodeStream(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default String getString(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default boolean getBoolean(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default byte getByte(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default short getShort(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default int getInt(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default long getLong(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default float getFloat(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default double getDouble(String columnLabel) throws SimulatedSQLException {
+    default InputStream getBinaryStream(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default BigDecimal getBigDecimal(String columnLabel, int scale) throws SimulatedSQLException {
+    default String getString(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default boolean getBoolean(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default byte getByte(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default short getShort(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default int getInt(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default long getLong(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default float getFloat(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default double getDouble(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default byte[] getBytes(String columnLabel) throws SimulatedSQLException {
+    default BigDecimal getBigDecimal(final String columnLabel, final int scale) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Date getDate(String columnLabel) throws SimulatedSQLException {
+    default byte[] getBytes(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Time getTime(String columnLabel) throws SimulatedSQLException {
+    default Date getDate(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Timestamp getTimestamp(String columnLabel) throws SimulatedSQLException {
+    default Time getTime(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default InputStream getAsciiStream(String columnLabel) throws SimulatedSQLException {
+    default Timestamp getTimestamp(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default InputStream getUnicodeStream(String columnLabel) throws SimulatedSQLException {
+    default InputStream getAsciiStream(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default InputStream getBinaryStream(String columnLabel) throws SimulatedSQLException {
+    @Nullable
+    default InputStream getUnicodeStream(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default InputStream getBinaryStream(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -246,42 +261,42 @@ public interface ResultSetAdapter extends ResultSet {
 
     @Override
     @Nullable
-    default Object getObject(int columnIndex) throws SimulatedSQLException {
+    default Object getObject(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Object getObject(String columnLabel) throws SimulatedSQLException {
+    default Object getObject(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default int findColumn(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    @Nullable
-    default Reader getCharacterStream(int columnIndex) throws SimulatedSQLException {
+    default int findColumn(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Reader getCharacterStream(String columnLabel) throws SimulatedSQLException {
+    default Reader getCharacterStream(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default BigDecimal getBigDecimal(int columnIndex) throws SimulatedSQLException {
+    default Reader getCharacterStream(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default BigDecimal getBigDecimal(String columnLabel) throws SimulatedSQLException {
+    default BigDecimal getBigDecimal(final int columnIndex) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    @Nullable
+    default BigDecimal getBigDecimal(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -331,12 +346,12 @@ public interface ResultSetAdapter extends ResultSet {
     }
 
     @Override
-    default boolean absolute(int row) throws SimulatedSQLException {
+    default boolean absolute(final int row) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean relative(int rows) throws SimulatedSQLException {
+    default boolean relative(final int rows) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -346,7 +361,7 @@ public interface ResultSetAdapter extends ResultSet {
     }
 
     @Override
-    default void setFetchDirection(int direction) throws SimulatedSQLException {
+    default void setFetchDirection(final int direction) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -356,7 +371,7 @@ public interface ResultSetAdapter extends ResultSet {
     }
 
     @Override
-    default void setFetchSize(int rows) throws SimulatedSQLException {
+    default void setFetchSize(final int rows) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -391,200 +406,200 @@ public interface ResultSetAdapter extends ResultSet {
     }
 
     @Override
-    default void updateNull(int columnIndex) throws SimulatedSQLException {
+    default void updateNull(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBoolean(int columnIndex, boolean x) throws SimulatedSQLException {
+    default void updateBoolean(final int columnIndex, final boolean x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateByte(int columnIndex, byte x) throws SimulatedSQLException {
+    default void updateByte(final int columnIndex, final byte x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateShort(int columnIndex, short x) throws SimulatedSQLException {
+    default void updateShort(final int columnIndex, final short x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateInt(int columnIndex, int x) throws SimulatedSQLException {
+    default void updateInt(final int columnIndex, final int x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateLong(int columnIndex, long x) throws SimulatedSQLException {
+    default void updateLong(final int columnIndex, final long x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateFloat(int columnIndex, float x) throws SimulatedSQLException {
+    default void updateFloat(final int columnIndex, final float x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateDouble(int columnIndex, double x) throws SimulatedSQLException {
+    default void updateDouble(final int columnIndex, final double x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBigDecimal(int columnIndex, @Nullable BigDecimal x) throws SimulatedSQLException {
+    default void updateBigDecimal(final int columnIndex, @Nullable final BigDecimal x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateString(int columnIndex, @Nullable String x) throws SimulatedSQLException {
+    default void updateString(final int columnIndex, @Nullable final String x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBytes(int columnIndex, @Nullable byte[] x) throws SimulatedSQLException {
+    default void updateBytes(final int columnIndex, @Nullable final byte[] x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateDate(int columnIndex, @Nullable Date x) throws SimulatedSQLException {
+    default void updateDate(final int columnIndex, @Nullable final Date x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateTime(int columnIndex, @Nullable Time x) throws SimulatedSQLException {
+    default void updateTime(final int columnIndex, @Nullable final Time x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateTimestamp(int columnIndex, @Nullable Timestamp x) throws SimulatedSQLException {
+    default void updateTimestamp(final int columnIndex, @Nullable final Timestamp x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateAsciiStream(int columnIndex, @Nullable InputStream x, int length)
+    default void updateAsciiStream(final int columnIndex, @Nullable final InputStream x, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBinaryStream(int columnIndex, @Nullable InputStream x, int length)
+    default void updateBinaryStream(final int columnIndex, @Nullable final InputStream x, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateCharacterStream(int columnIndex, @Nullable Reader x, int length)
+    default void updateCharacterStream(final int columnIndex, @Nullable final Reader x, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateObject(int columnIndex, @Nullable Object x, int scaleOrLength)
+    default void updateObject(final int columnIndex, @Nullable final Object x, final int scaleOrLength)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateObject(int columnIndex, @Nullable Object x) throws SimulatedSQLException {
+    default void updateObject(final int columnIndex, @Nullable final Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateNull(String columnLabel) throws SimulatedSQLException {
+    default void updateNull(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBoolean(String columnLabel, boolean x) throws SimulatedSQLException {
+    default void updateBoolean(final String columnLabel, final boolean x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateByte(String columnLabel, byte x) throws SimulatedSQLException {
+    default void updateByte(final String columnLabel, final byte x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateShort(String columnLabel, short x) throws SimulatedSQLException {
+    default void updateShort(final String columnLabel, final short x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateInt(String columnLabel, int x) throws SimulatedSQLException {
+    default void updateInt(final String columnLabel, final int x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateLong(String columnLabel, long x) throws SimulatedSQLException {
+    default void updateLong(final String columnLabel, final long x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateFloat(String columnLabel, float x) throws SimulatedSQLException {
+    default void updateFloat(final String columnLabel, final float x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateDouble(String columnLabel, double x) throws SimulatedSQLException {
+    default void updateDouble(final String columnLabel, final double x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBigDecimal(String columnLabel, @Nullable BigDecimal x) throws SimulatedSQLException {
+    default void updateBigDecimal(final String columnLabel, @Nullable final BigDecimal x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateString(String columnLabel, @Nullable String x) throws SimulatedSQLException {
+    default void updateString(final String columnLabel, @Nullable final String x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBytes(String columnLabel, @Nullable byte[] x) throws SimulatedSQLException {
+    default void updateBytes(final String columnLabel, @Nullable final byte[] x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateDate(String columnLabel, @Nullable Date x) throws SimulatedSQLException {
+    default void updateDate(final String columnLabel, @Nullable final Date x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateTime(String columnLabel, @Nullable Time x) throws SimulatedSQLException {
+    default void updateTime(final String columnLabel, @Nullable final Time x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateTimestamp(String columnLabel, @Nullable Timestamp x) throws SimulatedSQLException {
+    default void updateTimestamp(final String columnLabel, @Nullable final Timestamp x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateAsciiStream(String columnLabel, @Nullable InputStream x, int length)
+    default void updateAsciiStream(final String columnLabel, @Nullable final InputStream x, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBinaryStream(String columnLabel, @Nullable InputStream x, int length)
+    default void updateBinaryStream(final String columnLabel, @Nullable final InputStream x, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateCharacterStream(String columnLabel, @Nullable Reader reader, int length)
+    default void updateCharacterStream(final String columnLabel, @Nullable final Reader reader, final int length)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateObject(String columnLabel, @Nullable Object x, int scaleOrLength)
+    default void updateObject(final String columnLabel, @Nullable final Object x, final int scaleOrLength)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateObject(String columnLabel, @Nullable Object x) throws SimulatedSQLException {
+    default void updateObject(final String columnLabel, @Nullable final Object x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -631,172 +646,172 @@ public interface ResultSetAdapter extends ResultSet {
 
     @Override
     @Nullable
-    default Object getObject(int columnIndex, Map<String, Class<?>> map) throws SimulatedSQLException {
+    default Object getObject(final int columnIndex, final Map<String, Class<?>> map) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Ref getRef(int columnIndex) throws SimulatedSQLException {
+    default Ref getRef(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Blob getBlob(int columnIndex) throws SimulatedSQLException {
+    default Blob getBlob(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Clob getClob(int columnIndex) throws SimulatedSQLException {
+    default Clob getClob(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Array getArray(int columnIndex) throws SimulatedSQLException {
+    default Array getArray(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Object getObject(String columnLabel, Map<String, Class<?>> map)
+    default Object getObject(final String columnLabel, final Map<String, Class<?>> map)
             throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Ref getRef(String columnLabel) throws SimulatedSQLException {
+    default Ref getRef(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Blob getBlob(String columnLabel) throws SimulatedSQLException {
+    default Blob getBlob(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Clob getClob(String columnLabel) throws SimulatedSQLException {
+    default Clob getClob(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Array getArray(String columnLabel) throws SimulatedSQLException {
+    default Array getArray(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Date getDate(int columnIndex, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Date getDate(final int columnIndex, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Date getDate(String columnLabel, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Date getDate(final String columnLabel, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Time getTime(int columnIndex, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Time getTime(final int columnIndex, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Time getTime(String columnLabel, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Time getTime(final String columnLabel, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Timestamp getTimestamp(int columnIndex, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Timestamp getTimestamp(final int columnIndex, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Timestamp getTimestamp(String columnLabel, @Nullable Calendar cal) throws SimulatedSQLException {
+    default Timestamp getTimestamp(final String columnLabel, @Nullable final Calendar cal) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default URL getURL(int columnIndex) throws SimulatedSQLException {
+    default URL getURL(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default URL getURL(String columnLabel) throws SimulatedSQLException {
+    default URL getURL(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateRef(int columnIndex, @Nullable Ref x) throws SimulatedSQLException {
+    default void updateRef(final int columnIndex, @Nullable final Ref x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateRef(String columnLabel, @Nullable Ref x) throws SimulatedSQLException {
+    default void updateRef(final String columnLabel, @Nullable final Ref x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBlob(int columnIndex, @Nullable Blob x) throws SimulatedSQLException {
+    default void updateBlob(final int columnIndex, @Nullable final Blob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateBlob(String columnLabel, @Nullable Blob x) throws SimulatedSQLException {
+    default void updateBlob(final String columnLabel, @Nullable final Blob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateClob(int columnIndex, @Nullable Clob x) throws SimulatedSQLException {
+    default void updateClob(final int columnIndex, @Nullable final Clob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateClob(String columnLabel, @Nullable Clob x) throws SimulatedSQLException {
+    default void updateClob(final String columnLabel, @Nullable final Clob x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateArray(int columnIndex, @Nullable Array x) throws SimulatedSQLException {
+    default void updateArray(final int columnIndex, @Nullable final Array x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateArray(String columnLabel, @Nullable Array x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    @Nullable
-    default RowId getRowId(int columnIndex) throws SimulatedSQLException {
+    default void updateArray(final String columnLabel, @Nullable final Array x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default RowId getRowId(String columnLabel) throws SimulatedSQLException {
+    default RowId getRowId(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateRowId(int columnIndex, @Nullable RowId x) throws SimulatedSQLException {
+    @Nullable
+    default RowId getRowId(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateRowId(String columnLabel, @Nullable RowId x) throws SimulatedSQLException {
+    default void updateRowId(final int columnIndex, @Nullable final RowId x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateRowId(final String columnLabel, @Nullable final RowId x) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
@@ -811,257 +826,257 @@ public interface ResultSetAdapter extends ResultSet {
     }
 
     @Override
-    default void updateNString(int columnIndex, @Nullable String nString) throws SimulatedSQLException {
+    default void updateNString(final int columnIndex, @Nullable final String nString) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateNString(String columnLabel, @Nullable String nString) throws SimulatedSQLException {
+    default void updateNString(final String columnLabel, @Nullable final String nString) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateNClob(int columnIndex, @Nullable NClob nClob) throws SimulatedSQLException {
+    default void updateNClob(final int columnIndex, @Nullable final NClob nClob) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default void updateNClob(String columnLabel, @Nullable NClob nClob) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    @Nullable
-    default NClob getNClob(int columnIndex) throws SimulatedSQLException {
+    default void updateNClob(final String columnLabel, @Nullable final NClob nClob) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default NClob getNClob(String columnLabel) throws SimulatedSQLException {
+    default NClob getNClob(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default SQLXML getSQLXML(int columnIndex) throws SimulatedSQLException {
+    default NClob getNClob(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default SQLXML getSQLXML(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateSQLXML(int columnIndex, @Nullable SQLXML xmlObject) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateSQLXML(String columnLabel, @Nullable SQLXML xmlObject) throws SimulatedSQLException {
+    default SQLXML getSQLXML(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default String getNString(int columnIndex) throws SimulatedSQLException {
+    default SQLXML getSQLXML(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateSQLXML(final int columnIndex, @Nullable final SQLXML xmlObject) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateSQLXML(final String columnLabel, @Nullable final SQLXML xmlObject) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default String getNString(String columnLabel) throws SimulatedSQLException {
+    default String getNString(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Reader getNCharacterStream(int columnIndex) throws SimulatedSQLException {
+    default String getNString(final String columnLabel) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default Reader getNCharacterStream(String columnLabel) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNCharacterStream(int columnIndex, @Nullable Reader x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNCharacterStream(String columnLabel, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateAsciiStream(int columnIndex, @Nullable InputStream x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBinaryStream(int columnIndex, @Nullable InputStream x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateCharacterStream(int columnIndex, @Nullable Reader x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateAsciiStream(String columnLabel, @Nullable InputStream x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBinaryStream(String columnLabel, @Nullable InputStream x, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateCharacterStream(String columnLabel, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBlob(int columnIndex, @Nullable InputStream inputStream, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBlob(String columnLabel, @Nullable InputStream inputStream, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateClob(int columnIndex, @Nullable Reader reader, long length) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateClob(String columnLabel, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNClob(int columnIndex, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNClob(String columnLabel, @Nullable Reader reader, long length)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNCharacterStream(int columnIndex, @Nullable Reader x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNCharacterStream(String columnLabel, @Nullable Reader reader)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateAsciiStream(int columnIndex, @Nullable InputStream x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBinaryStream(int columnIndex, @Nullable InputStream x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateCharacterStream(int columnIndex, @Nullable Reader x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateAsciiStream(String columnLabel, @Nullable InputStream x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBinaryStream(String columnLabel, @Nullable InputStream x) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateCharacterStream(String columnLabel, @Nullable Reader reader)
-            throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBlob(int columnIndex, @Nullable InputStream inputStream) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateBlob(String columnLabel, @Nullable InputStream inputStream) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateClob(int columnIndex, @Nullable Reader reader) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateClob(String columnLabel, @Nullable Reader reader) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNClob(int columnIndex, @Nullable Reader reader) throws SimulatedSQLException {
-        throw new NotSupportedSQLException();
-    }
-
-    @Override
-    default void updateNClob(String columnLabel, @Nullable Reader reader) throws SimulatedSQLException {
+    default Reader getNCharacterStream(final int columnIndex) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default <T> T getObject(int columnIndex, Class<T> type) throws SimulatedSQLException {
+    default Reader getNCharacterStream(final String columnLabel) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNCharacterStream(final int columnIndex, @Nullable final Reader x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNCharacterStream(final String columnLabel, @Nullable final Reader reader, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateAsciiStream(final int columnIndex, @Nullable final InputStream x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBinaryStream(final int columnIndex, @Nullable final InputStream x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateCharacterStream(final int columnIndex, @Nullable final Reader x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateAsciiStream(final String columnLabel, @Nullable final InputStream x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBinaryStream(final String columnLabel, @Nullable final InputStream x, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateCharacterStream(final String columnLabel, @Nullable final Reader reader, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBlob(final int columnIndex, @Nullable final InputStream inputStream, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBlob(final String columnLabel, @Nullable final InputStream inputStream, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateClob(final int columnIndex, @Nullable final Reader reader, final long length) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateClob(final String columnLabel, @Nullable final Reader reader, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNClob(final int columnIndex, @Nullable final Reader reader, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNClob(final String columnLabel, @Nullable final Reader reader, final long length)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNCharacterStream(final int columnIndex, @Nullable final Reader x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNCharacterStream(final String columnLabel, @Nullable final Reader reader)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateAsciiStream(final int columnIndex, @Nullable final InputStream x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBinaryStream(final int columnIndex, @Nullable final InputStream x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateCharacterStream(final int columnIndex, @Nullable final Reader x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateAsciiStream(final String columnLabel, @Nullable final InputStream x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBinaryStream(final String columnLabel, @Nullable final InputStream x) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateCharacterStream(final String columnLabel, @Nullable final Reader reader)
+            throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBlob(final int columnIndex, @Nullable final InputStream inputStream) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateBlob(final String columnLabel, @Nullable final InputStream inputStream) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateClob(final int columnIndex, @Nullable final Reader reader) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateClob(final String columnLabel, @Nullable final Reader reader) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNClob(final int columnIndex, @Nullable final Reader reader) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default void updateNClob(final String columnLabel, @Nullable final Reader reader) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
     @Nullable
-    default <T> T getObject(String columnLabel, Class<T> type) throws SimulatedSQLException {
+    default <T> T getObject(final int columnIndex, final Class<T> type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default <T> T unwrap(Class<T> iface) throws SimulatedSQLException {
+    @Nullable
+    default <T> T getObject(final String columnLabel, final Class<T> type) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 
     @Override
-    default boolean isWrapperFor(Class<?> iface) throws SimulatedSQLException {
+    default <T> T unwrap(final Class<T> iface) throws SimulatedSQLException {
+        throw new NotSupportedSQLException();
+    }
+
+    @Override
+    default boolean isWrapperFor(final Class<?> iface) throws SimulatedSQLException {
         throw new NotSupportedSQLException();
     }
 }
