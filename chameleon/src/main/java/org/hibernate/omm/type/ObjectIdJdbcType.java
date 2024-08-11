@@ -42,7 +42,11 @@ import java.sql.SQLException;
  */
 public class ObjectIdJdbcType implements JdbcType {
 
-    public static ObjectIdJdbcType INSTANCE = new ObjectIdJdbcType();
+    private static final ObjectIdJdbcType INSTANCE = new ObjectIdJdbcType();
+
+    public static ObjectIdJdbcType getInstance() {
+        return INSTANCE;
+    }
 
     @Override
     public <T> JavaType<T> getJdbcRecommendedJavaTypeMapping(

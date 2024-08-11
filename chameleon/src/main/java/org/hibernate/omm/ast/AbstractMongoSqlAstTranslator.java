@@ -257,7 +257,7 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
  *
  * @author Steve Ebersole
  */
-@SuppressWarnings({"removal", "nullness"})
+@SuppressWarnings({"unchecked", "removal", "nullness"})
 public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     /**

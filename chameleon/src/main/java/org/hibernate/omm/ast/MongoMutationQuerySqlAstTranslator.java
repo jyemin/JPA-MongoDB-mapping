@@ -239,81 +239,76 @@ public class MongoMutationQuerySqlAstTranslator<T extends JdbcOperation> extends
         registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
 
         appendSql(", updates: [ {");
-        {
-            getClauseStack().push(Clause.WHERE);
-            try {
-                appendSql(" q:");
-                int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
-                boolean hasWhereFragment =
-                        tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
-                if (hasWhereFragment) {
-                    predicates++;
+        getClauseStack().push(Clause.WHERE);
+        try {
+            appendSql(" q:");
+            int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
+            boolean hasWhereFragment =
+                    tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
+            if (hasWhereFragment) {
+                predicates++;
+            }
+            if (predicates == 0) {
+                appendSql("{ }");
+            } else {
+                if (predicates > 1) {
+                    appendSql(" { $and: [");
                 }
-                if (predicates == 0) {
-                    appendSql("{ }");
-                } else {
-                    if (predicates > 1) {
-                        appendSql(" { $and: [");
+                tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
+                    if (position == 0) {
+                        appendSql(' ');
+                    } else {
+                        appendSql(", ");
                     }
-                    tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
-                        if (position == 0) {
-                            appendSql(' ');
-                        } else {
-                            appendSql(", ");
-                        }
-                        appendSql("{ ");
+                    appendSql("{ ");
+                    appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                    appendSql(": { $eq: ");
+                    columnValueBinding.getValueExpression().accept(this);
+                    appendSql(" } }");
+                });
+
+                if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+                    tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
+                        appendSql(", { ");
                         appendSql(columnValueBinding.getColumnReference().getColumnExpression());
                         appendSql(": { $eq: ");
-                        columnValueBinding.getValueExpression().accept(this);
+                        if (columnValueBinding.getValueExpression() == null) {
+                            appendSql("null");
+                        } else {
+                            columnValueBinding.getValueExpression().accept(this);
+                        }
                         appendSql(" } }");
                     });
-
-                    if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
-                        tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
-                            appendSql(", { ");
-                            appendSql(columnValueBinding.getColumnReference().getColumnExpression());
-                            appendSql(": { $eq: ");
-                            if (columnValueBinding.getValueExpression() == null) {
-                                appendSql("null");
-                            } else {
-                                columnValueBinding.getValueExpression().accept(this);
-                            }
-                            appendSql(" } }");
-                        });
-                    }
-
-                    if (hasWhereFragment) {
-                        appendSql(", ");
-                        appendSql(((TableUpdateStandard) tableUpdate).getWhereFragment());
-                    }
-                    if (predicates > 1) {
-                        appendSql(" ] }");
-                    }
                 }
-            } finally {
-                getClauseStack().pop();
-            }
 
-            appendSql(", u: { $set: {");
-            {
-                getClauseStack().push(Clause.SET);
-                try {
-                    tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
-                        if (columnPosition == 0) {
-                            appendSql(' ');
-                        } else {
-                            appendSql(", ");
-                        }
-                        appendSql(columnValueBinding.getColumnReference().getColumnExpression());
-                        appendSql(": ");
-                        columnValueBinding.getValueExpression().accept(this);
-                    });
-                } finally {
-                    getClauseStack().pop();
+                if (hasWhereFragment) {
+                    appendSql(", ");
+                    appendSql(((TableUpdateStandard) tableUpdate).getWhereFragment());
                 }
-                appendSql(" } }");
+                if (predicates > 1) {
+                    appendSql(" ] }");
+                }
             }
+        } finally {
+            getClauseStack().pop();
         }
+        appendSql(", u: { $set: {");
+        getClauseStack().push(Clause.SET);
+        try {
+            tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
+                if (columnPosition == 0) {
+                    appendSql(' ');
+                } else {
+                    appendSql(", ");
+                }
+                appendSql(columnValueBinding.getColumnReference().getColumnExpression());
+                appendSql(": ");
+                columnValueBinding.getValueExpression().accept(this);
+            });
+        } finally {
+            getClauseStack().pop();
+        }
+        appendSql(" } }");
         appendSql(" } ] }");
     }
 

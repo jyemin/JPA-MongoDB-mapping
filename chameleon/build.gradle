@@ -7,6 +7,7 @@
 
 plugins {
     id 'java-library'
+    id 'checkstyle'
     id 'org.checkerframework' version '0.6.42'
 }
 
@@ -32,6 +33,10 @@ java {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+checkstyle {
+    checkstyleTest.enabled = false
 }
 
 checkerFramework {

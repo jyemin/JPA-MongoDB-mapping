@@ -66,7 +66,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         @Nullable
         private String rootQualifier;
 
-        public void setRootQualifier(String rootQualifier) {
+        public void setRootQualifier(final String rootQualifier) {
             this.rootQualifier = rootQualifier;
         }
 
@@ -255,9 +255,9 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
         clauseStack.push(Clause.SELECT);
         appendSql("{ ");
         try {
-			/*if ( selectClause.isDistinct() ) {
-				appendSql( "distinct " );
-			}*/
+            /*if ( selectClause.isDistinct() ) {
+                appendSql( "distinct " );
+            }*/
             visitSqlSelections(selectClause);
             appendSql(" }");
         } finally {
@@ -549,10 +549,10 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
                     appendSql(", pipeline: [ { $match: { $expr: ");
                     try {
                         this.targetQualifier = sourceQualifier;
-                        inAggregateExpressionScope = true;
+                        setInAggregateExpressionScope(true);
                         predicate.accept(this);
                     } finally {
-                        inAggregateExpressionScope = false;
+                        setInAggregateExpressionScope(false);
                         this.targetQualifier = null;
                     }
                 }
@@ -606,7 +606,7 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
 
     @Override
     protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
-        if (inAggregateExpressionScope) {
+        if (isInAggregateExpressionScope()) {
             appendSql("{ ");
             appendSql(getMongoOperatorText(operator));
             appendSql(": [ ");

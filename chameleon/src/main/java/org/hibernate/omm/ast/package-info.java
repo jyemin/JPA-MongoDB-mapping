@@ -15,5 +15,14 @@
  *  limitations under the License.
  *
  */
-
+/**
+ * One of the two pillars of Chameleon (another one is jdbc package). Do our due diligence to
+ * render SQM AST tree into Mongo Bson command string.
+ * <p/>
+ * Initially we copied existing {@link org.hibernate.sql.ast.spi.AbstractSqlAstTranslator} intact
+ * for imitating purpose (renamed to {@link org.hibernate.omm.ast.AbstractMongoSqlAstTranslator}; but ultimately we should get rid of its
+ * usage.
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 package org.hibernate.omm.ast;

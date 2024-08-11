@@ -53,22 +53,22 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
 
     @Override
     public void configure(final Map<String, Object> configurationValues) {
-        List<String> missingConfigurations = new ArrayList<>(2);
+        List<MongoAvailableSettings> missingSettings = new ArrayList<>(2);
 
         String mongodbConnectionURL =
-                (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL);
+                (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration());
         if (mongodbConnectionURL == null) {
-            missingConfigurations.add(MongoAvailableSettings.MONGODB_CONNECTION_URL);
+            missingSettings.add(MongoAvailableSettings.MONGODB_CONNECTION_URL);
         }
 
         String mongodbDatabaseName =
-                (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE);
+                (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration());
         if (mongodbDatabaseName == null) {
-            missingConfigurations.add(MongoAvailableSettings.MONGODB_DATABASE);
+            missingSettings.add(MongoAvailableSettings.MONGODB_DATABASE);
         }
 
-        if (!missingConfigurations.isEmpty()) {
-            throw new MongoConfigMissingException(missingConfigurations);
+        if (!missingSettings.isEmpty()) {
+            throw new MongoConfigMissingException(missingSettings);
         }
 
         // MongoConfigMissingException would have been thrown if mongodbConnectionURL is null

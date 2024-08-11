@@ -59,8 +59,8 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         mongoDBContainer.start();
 
         var cfg = new Configuration();
-        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL, mongoDBContainer.getConnectionString());
-        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE, DATABASE_NAME);
+        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration(), mongoDBContainer.getConnectionString());
+        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration(), DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
         sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
 

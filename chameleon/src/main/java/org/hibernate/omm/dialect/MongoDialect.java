@@ -41,7 +41,7 @@ public class MongoDialect extends Dialect {
 
     public static final int MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED = 3;
 
-    private final static DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED);
+    private static final DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED);
 
     public MongoDialect() {
         this(MINIMUM_VERSION);
@@ -84,8 +84,8 @@ public class MongoDialect extends Dialect {
     public void contribute(final TypeContributions typeContributions, final ServiceRegistry serviceRegistry) {
         contributeTypes(typeContributions, serviceRegistry);
         TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
-        typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.INSTANCE);
-        typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.INSTANCE);
+        typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.getInstance());
+        typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.getInstance());
     }
 
     @Override

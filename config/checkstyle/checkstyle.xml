@@ -234,4 +234,8 @@
         <property name="file" value="${config_loc}/suppressions.xml"/>
     </module>
 
+    <module name="SuppressionSingleFilter">
+        <property name="message" value="Unknown tag '(implNote|implSpec|apiNote)'\."/>
+    </module>
+
 </module>

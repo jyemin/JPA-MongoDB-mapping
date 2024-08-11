@@ -31,7 +31,11 @@ import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
  */
 public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
-    public static final ObjectIdJavaType INSTANCE = new ObjectIdJavaType(ObjectId.class);
+    private static final ObjectIdJavaType INSTANCE = new ObjectIdJavaType(ObjectId.class);
+
+    public static ObjectIdJavaType getInstance() {
+        return INSTANCE;
+    }
 
     protected ObjectIdJavaType(final Class<? extends ObjectId> type) {
         super(type);
@@ -62,6 +66,6 @@ public class ObjectIdJavaType extends AbstractClassJavaType<ObjectId> {
 
     @Override
     public JdbcType getRecommendedJdbcType(@Nullable final JdbcTypeIndicators context) {
-        return ObjectIdJdbcType.INSTANCE;
+        return ObjectIdJdbcType.getInstance();
     }
 }

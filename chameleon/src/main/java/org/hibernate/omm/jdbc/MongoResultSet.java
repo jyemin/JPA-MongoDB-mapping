@@ -238,9 +238,9 @@ public class MongoResultSet implements ResultSetAdapter {
 
             @Override
             public int getBaseType() {
-                return CollectionUtil.isEmpty(bsonValues) ?
-                        Types.NULL :
-                        TypeUtil.getJdbcType(bsonValues.get(0).getBsonType());
+                return CollectionUtil.isEmpty(bsonValues)
+                        ? Types.NULL
+                        : TypeUtil.getJdbcType(bsonValues.get(0).getBsonType());
             }
 
             @Override

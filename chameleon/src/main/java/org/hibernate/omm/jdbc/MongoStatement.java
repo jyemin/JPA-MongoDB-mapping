@@ -45,10 +45,9 @@ import java.util.Map;
  */
 public class MongoStatement implements StatementAdapter {
 
-    protected final MongoDatabase mongoDatabase;
-    protected final ClientSession clientSession;
-
-    protected final Connection connection;
+    private final MongoDatabase mongoDatabase;
+    private final ClientSession clientSession;
+    private final Connection connection;
 
     private boolean closed;
 

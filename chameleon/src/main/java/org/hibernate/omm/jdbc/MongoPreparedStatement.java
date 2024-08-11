@@ -20,8 +20,6 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
 import org.bson.types.ObjectId;
-import org.hibernate.engine.jdbc.mutation.JdbcValueBindings;
-import org.hibernate.engine.jdbc.mutation.TableInclusionChecker;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
@@ -95,10 +93,6 @@ public class MongoPreparedStatement extends MongoStatement
         return execute(getDeParameterizedBsonCommand());
     }
 
-    /**
-     * @see org.hibernate.engine.jdbc.batch.internal.BatchImpl#addToBatch(JdbcValueBindings,
-     * TableInclusionChecker)
-     */
     @Override
     public void addBatch() {
         // no-op
@@ -221,9 +215,9 @@ public class MongoPreparedStatement extends MongoStatement
             } else {
                 first = false;
             }
-            stringWriter.write(obj instanceof String aStr ?
-                    StringUtil.writeStringHelper(aStr) :
-                    obj == null ? "null" : obj.toString());
+            stringWriter.write(obj instanceof String aStr
+                    ? StringUtil.writeStringHelper(aStr)
+                    : obj == null ? "null" : obj.toString());
         }
         stringWriter.write(" ]");
         return stringWriter.toString();

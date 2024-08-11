@@ -44,10 +44,18 @@ import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 
 public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends AbstractMongoSqlAstTranslator<T> {
 
-    protected boolean inAggregateExpressionScope;
+    private boolean inAggregateExpressionScope;
 
     public AbstractMongoQuerySqlTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);
+    }
+
+    public boolean isInAggregateExpressionScope() {
+        return inAggregateExpressionScope;
+    }
+
+    public void setInAggregateExpressionScope(final boolean inAggregateExpressionScope) {
+        this.inAggregateExpressionScope = inAggregateExpressionScope;
     }
 
     @Override
@@ -109,17 +117,17 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
             return;
         }
         Function<Expression, Expression> itemAccessor = Function.identity();
-        final SqlTuple lhsTuple;
-        if ((lhsTuple = SqlTupleContainer.getSqlTuple(inListPredicate.getTestExpression())) != null) {
+        final SqlTuple lhsTuple = SqlTupleContainer.getSqlTuple(inListPredicate.getTestExpression());
+        if (lhsTuple != null) {
             if (lhsTuple.getExpressions().size() == 1) {
                 // Special case for tuples with arity 1 as any DBMS supports scalar IN predicates
                 itemAccessor = listExpression -> SqlTupleContainer.getSqlTuple(listExpression)
                         .getExpressions()
                         .get(0);
             } else if (!supportsRowValueConstructorSyntaxInInList()) {
-                final ComparisonOperator comparisonOperator = inListPredicate.isNegated() ?
-                        ComparisonOperator.NOT_EQUAL :
-                        ComparisonOperator.EQUAL;
+                final ComparisonOperator comparisonOperator = inListPredicate.isNegated()
+                        ? ComparisonOperator.NOT_EQUAL
+                        : ComparisonOperator.EQUAL;
                 // Some DBs like Oracle support tuples only for the IN subquery predicate
                 if (supportsRowValueConstructorSyntaxInInSubQuery() && dialect.supportsUnionAll()) {
                     inListPredicate.getTestExpression().accept(this);
@@ -225,7 +233,7 @@ public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends Ab
         appendSql(" = case when ");
         inListPredicate.getTestExpression().accept(this);
         appendSql(" is not null then 0");
-//		dialect.appendBooleanValueString( this, inListPredicate.isNegated() );
+        //dialect.appendBooleanValueString( this, inListPredicate.isNegated() );
         appendSql(" end)");
     }
 

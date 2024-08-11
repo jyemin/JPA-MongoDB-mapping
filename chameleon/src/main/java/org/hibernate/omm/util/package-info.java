@@ -13,5 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/**
+ * Various util classes
+ *
+ * @author Nathan Xu
+ * @since 1.0.0
+ */
 package org.hibernate.omm.util;
