@@ -1,0 +1,15 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'org.hibernate.omm'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.hibernate.orm.core, libs.mongodb.sync.java.driver, libs.junit.jupiter, libs.testcontainers.mongodb
+    implementation project(':chameleon-core')
+}

@@ -17,12 +17,14 @@ repositories {
 
 dependencies {
 
-    testImplementation libs.junit.jupiter, libs.logback.classic, libs.assertj, libs.testcontainers.mongodb
+    testImplementation libs.junit.jupiter, libs.logback.classic, libs.assertj
+    testImplementation project(':chameleon-testing')
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     api libs.hibernate.orm.core
     implementation libs.mongodb.sync.java.driver, libs.sl4j.api, libs.spotbugs.annotations
+
 }
 
 java {

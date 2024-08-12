@@ -11,4 +11,7 @@ plugins {
 }
 
 rootProject.name = 'jpa-mongodb-mapping'
-include('chameleon')
+
+include 'chameleon-core'
+include 'chameleon-testing'
+
