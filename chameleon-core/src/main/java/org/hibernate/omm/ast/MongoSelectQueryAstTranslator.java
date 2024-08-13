@@ -24,6 +24,8 @@ import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
+import org.hibernate.query.NullPrecedence;
+import org.hibernate.query.SortDirection;
 import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.SqlAstJoinType;
@@ -48,6 +50,7 @@ import org.hibernate.sql.ast.tree.select.QueryGroup;
 import org.hibernate.sql.ast.tree.select.QueryPart;
 import org.hibernate.sql.ast.tree.select.QuerySpec;
 import org.hibernate.sql.ast.tree.select.SelectClause;
+import org.hibernate.sql.ast.tree.select.SortSpecification;
 import org.hibernate.sql.exec.spi.JdbcOperationQuerySelect;
 
 import java.util.ArrayList;
@@ -622,6 +625,50 @@ public class MongoSelectQueryAstTranslator extends AbstractMongoQuerySqlTranslat
             appendSql(": ");
             rhs.accept(this);
             appendSql(" } }");
+        }
+    }
+
+    @Override
+    protected void renderOrderBy(final boolean addWhitespace, final List<SortSpecification> sortSpecifications) {
+        if (sortSpecifications != null && !sortSpecifications.isEmpty()) {
+            if (addWhitespace) {
+                appendSql(WHITESPACE);
+            }
+            appendSql(" { ");
+
+            clauseStack.push(Clause.ORDER);
+            try {
+                String separator = NO_SEPARATOR;
+                for (SortSpecification sortSpecification : sortSpecifications) {
+                    appendSql(separator);
+                    visitSortSpecification(sortSpecification);
+                    separator = COMMA_SEPARATOR;
+                }
+            } finally {
+                appendSql(" } ");
+                clauseStack.pop();
+            }
+        }
+    }
+
+    @Override
+    protected void visitSortSpecification(
+            final Expression sortExpression,
+            final SortDirection sortOrder,
+            final NullPrecedence nullPrecedence,
+            final boolean ignoreCase) {
+        if (nullPrecedence == NullPrecedence.LAST) {
+            throw new NotSupportedRuntimeException("Mongo only supports 'null goes first'");
+        }
+
+        renderSortExpression(sortExpression, ignoreCase);
+
+        appendSql(": ");
+
+        if (sortOrder == SortDirection.DESCENDING) {
+            appendSql("-1");
+        } else if (sortOrder == SortDirection.ASCENDING) {
+            appendSql("1");
         }
     }
 

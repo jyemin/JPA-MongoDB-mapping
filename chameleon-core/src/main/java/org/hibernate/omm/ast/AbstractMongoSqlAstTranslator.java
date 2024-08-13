@@ -307,7 +307,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
                     6;
 
     // pre-req state
-    private final SessionFactoryImplementor sessionFactory;
+    protected final SessionFactoryImplementor sessionFactory;
 
     // In-flight state
     private final StringBuilder sqlBuffer = new StringBuilder();
