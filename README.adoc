@@ -23,9 +23,8 @@ v6 release, it is extremely challenging to revive it by integrating with v6's ne
 *Spring Data MongoDB* (https://spring.io/projects/spring-data-mongodb) is a good choice for CRUD tasks, but it is a sibling project to
 *Spring Data JPA*, not a super set, thus lacking many important JPA features. For instance:
 
-* OOP Inheritance Mapping
-* JP-QL or HQL
-* Criteria
+* POJO OOP programming paradigm
+* JP-QL/HQL and Criteria
 * Entity Graph
 * Second-level Cache
 

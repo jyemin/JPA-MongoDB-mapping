@@ -22,7 +22,7 @@ import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.omm.array.function.MongoArrayContainsFunction;
 import org.hibernate.omm.array.function.MongoArrayIncludesFunction;
-import org.hibernate.omm.ast.MongoSqlAstTranslatorFactory;
+import org.hibernate.omm.ast.MQLAstTranslatorFactory;
 import org.hibernate.omm.type.ObjectIdJavaType;
 import org.hibernate.omm.type.ObjectIdJdbcType;
 import org.hibernate.omm.util.StringUtil;
@@ -57,7 +57,7 @@ public class MongoDialect extends Dialect {
 
     @Override
     public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
-        return new MongoSqlAstTranslatorFactory();
+        return new MQLAstTranslatorFactory();
     }
 
     @Override

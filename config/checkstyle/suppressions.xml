@@ -22,6 +22,6 @@
 <suppressions>
 
     <!-- classes copied from Hibernate orm-->
-    <suppress checks="[a-zA-Z0-9]*" files="AbstractMongoSqlAstTranslator\.java"/>
+    <suppress checks="[a-zA-Z0-9]*" files="AbstractSqlAstTranslator\.java"/>
 
 </suppressions>

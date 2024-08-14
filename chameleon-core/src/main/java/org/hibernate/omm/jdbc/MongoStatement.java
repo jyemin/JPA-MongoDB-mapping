@@ -26,6 +26,7 @@ import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
+import org.hibernate.omm.ast.mql.QueryMQLTranslator;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -79,7 +80,7 @@ public class MongoStatement implements StatementAdapter {
      *
      * @param projectDocument the $project document
      * @return ordered field name list
-     * @see org.hibernate.omm.ast.MongoSelectQueryAstTranslator#visitSelectClause(SelectClause)
+     * @see QueryMQLTranslator#visitSelectClause(SelectClause)
      */
     private List<String> getFieldNamesFromProjectDocument(final BsonDocument projectDocument) {
         // we rely on $project field renaming to ensure order

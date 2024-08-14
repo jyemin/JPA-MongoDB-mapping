@@ -16,14 +16,11 @@
  *
  */
 /**
- * One of the two pillars of Chameleon (another one is the "virtual JDBC Driver" in {@link org.hibernate.omm.jdbc} package).
- * Do our due diligence to render SQM AST tree into MQL (Mongo Query Language).
- * <p/>
- * Initially we copied existing {@link org.hibernate.sql.ast.spi.AbstractSqlAstTranslator} intact
- * for referencing and imitating purpose (renamed to {@link org.hibernate.omm.ast.AbstractSqlAstTranslator};
- * but ultimately we should get rid of its usage.
+ * Contains all MQL (Mongo Query Language) rendering logic. During early stage,
+ * {@link org.hibernate.sql.ast.spi.AbstractSqlAstTranslator} was heavily relied upon (copied into {@link org.hibernate.omm.ast.AbstractSqlAstTranslator}
+ * with minor changes to make it possible to inherit from it from classes in this package directly or indirectly.
  *
  * @author Nathan Xu
  * @since 1.0.0
  */
-package org.hibernate.omm.ast;
+package org.hibernate.omm.ast.mql;

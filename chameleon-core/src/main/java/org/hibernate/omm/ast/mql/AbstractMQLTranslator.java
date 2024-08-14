@@ -1,22 +1,25 @@
 /*
+ *
  * Copyright 2008-present MongoDB, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
-package org.hibernate.omm.ast;
+package org.hibernate.omm.ast.mql;
 
 import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
+import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.query.sqm.sql.internal.SqmParameterInterpretation;
@@ -42,11 +45,22 @@ import java.util.function.Function;
 import static org.hibernate.internal.util.NullnessUtil.castNonNull;
 import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 
-public class AbstractMongoQuerySqlTranslator<T extends JdbcOperation> extends AbstractMongoSqlAstTranslator<T> {
+/**
+ * Contains common stuff shared between {@link QueryMQLTranslator} and {@link MutationMQLTranslator}, e.g.:
+ * <ul>
+ *     <li>predicate rendering overriding</li>
+ *     <li>util methods</li>
+ * </ul>
+ *
+ * @author Nathan Xu
+ * @since 1.0.0
+ * @param <T> {@link JdbcOperation} generic type
+ */
+public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlAstTranslator<T> {
 
     private boolean inAggregateExpressionScope;
 
-    public AbstractMongoQuerySqlTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
+    public AbstractMQLTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);
     }
 

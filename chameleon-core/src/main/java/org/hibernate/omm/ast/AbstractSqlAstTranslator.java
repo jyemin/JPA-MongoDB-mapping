@@ -254,11 +254,23 @@ import static org.hibernate.sql.results.graph.DomainResultGraphPrinter.logDomain
  *     <li>some final methods are changed to be non-final</li>
  *     <li>some nullness annotations are added</li>
  * </ul>
+ * The reason for the above changes is we want to move MQL rendering customization logic out of this class, by inheriting
+ * directly or indirectly from this class, so we need maximal flexibility in terms of inheritance.
+ * <p/>
+ * Traditionally, this class was not meant to be customized heavily for SQL differences among vendors are minor.
+ * <p/>
+ * Other than the above changes, we are supposed to keep from customizing MQL rendering directly
+ * on this class, for at least two reasons:
+ * <ul>
+ *     <li>difficult to maintain due to the sheer file size</li>
+ *     <li>difficult to resolve conflict when Hibernate version bumps and we need to import change by re-copying</li>
+ * </ul>
+ * All MQL (Mongo Query Language) customization logic should go into the {@link org.hibernate.omm.ast.mql} package instead.
  *
  * @author Steve Ebersole
  */
 @SuppressWarnings({"unchecked", "removal", "nullness"})
-public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
+public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implements SqlAstTranslator<T>, SqlAppender {
 
     /**
      * When emulating the recursive WITH clause subclauses SEARCH and CYCLE,
@@ -363,7 +375,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     @Nullable
     protected ForUpdateClause forUpdate;
 
-    protected AbstractMongoSqlAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
+    protected AbstractSqlAstTranslator(SessionFactoryImplementor sessionFactory, Statement statement) {
         this.sessionFactory = sessionFactory;
         final JdbcServices jdbcServices = sessionFactory.getJdbcServices();
         this.dialect = jdbcServices.getDialect();
@@ -527,7 +539,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     }
 
     public MutationStatement getCurrentDmlStatement() {
-        return statementStack.findCurrentFirst(AbstractMongoSqlAstTranslator::matchMutationStatement);
+        return statementStack.findCurrentFirst(AbstractSqlAstTranslator::matchMutationStatement);
     }
 
     private static MutationStatement matchMutationStatement(Statement stmt) {
@@ -744,7 +756,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     }
 
     protected boolean inOverOrWithinGroupClause() {
-        return clauseStack.findCurrentFirst(AbstractMongoSqlAstTranslator::matchOverOrWithinGroupClauses) != null;
+        return clauseStack.findCurrentFirst(AbstractSqlAstTranslator::matchOverOrWithinGroupClauses) != null;
     }
 
     private static Boolean matchOverOrWithinGroupClauses(final Clause clause) {
@@ -784,7 +796,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
     }
 
     protected CteStatement getCteStatement(final String cteName) {
-        return statementStack.findCurrentFirstWithParameter(cteName, AbstractMongoSqlAstTranslator::matchCteStatement);
+        return statementStack.findCurrentFirstWithParameter(cteName, AbstractSqlAstTranslator::matchCteStatement);
     }
 
     private static CteStatement matchCteStatement(final Statement stmt, final String cteName) {
@@ -2158,7 +2170,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             pushToTopLevel = !supportsNestedWithClause()
                     || !supportsWithClauseInSubquery() && isInSubquery();
         }
-        final boolean inNestedWithClause = clauseStack.findCurrentFirst(AbstractMongoSqlAstTranslator::matchWithClause) != null;
+        final boolean inNestedWithClause = clauseStack.findCurrentFirst(AbstractSqlAstTranslator::matchWithClause) != null;
         clauseStack.push(Clause.WITH);
         if (!pushToTopLevel) {
             appendSql("with ");
@@ -2459,7 +2471,7 @@ public abstract class AbstractMongoSqlAstTranslator<T extends JdbcOperation> imp
             if (!supportsWithClauseInSubquery() && isInSubquery()) {
                 final String cteName = tableGroup.getPrimaryTableReference().getTableId();
                 final CteContainer cteOwner = statementStack.findCurrentFirstWithParameter(cteName,
-                        AbstractMongoSqlAstTranslator::matchCteContainerByStatement);
+                        AbstractSqlAstTranslator::matchCteContainerByStatement);
                 // If the CTE is owned by the root statement, it will be rendered as CTE, so we can refer to it
                 return cteOwner != statementStack.getRoot() && !cteOwner.getCteStatement(cteName).isRecursive();
             }
