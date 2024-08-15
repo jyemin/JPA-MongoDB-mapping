@@ -48,7 +48,8 @@ import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 /**
  * Contains common stuff shared between {@link QueryMQLTranslator} and {@link MutationMQLTranslator}, e.g.:
  * <ul>
- *     <li>predicate rendering overriding</li>
+ *     <li>expression rendering</li>
+ *     <li>predicate rendering</li>
  *     <li>util methods</li>
  * </ul>
  *
@@ -74,20 +75,20 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
 
     @Override
     protected void renderDmlTargetTableExpression(final NamedTableReference tableReference) {
-        appendSql(writeStringHelper(tableReference.getTableExpression()));
+        appendMql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
     }
 
     @Override
     protected boolean renderNamedTableReference(final NamedTableReference tableReference, final LockMode lockMode) {
-        appendSql(writeStringHelper(tableReference.getTableExpression()));
+        appendMql(writeStringHelper(tableReference.getTableExpression()));
         registerAffectedTable(tableReference);
         return false;
     }
 
     @Override
     public void visitNamedTableReference(final NamedTableReference tableReference) {
-        appendSql(writeStringHelper(tableReference.getTableExpression()));
+        appendMql(writeStringHelper(tableReference.getTableExpression()));
     }
 
     @Override
@@ -98,7 +99,7 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
         final boolean requiredAndPredicate = existsWhereClauseRestrictions && existsAdditionalWherePredicate;
         if (existsWhereClauseRestrictions || existsAdditionalWherePredicate) {
             if (requiredAndPredicate) {
-                appendSql("{ $and: [ ");
+                appendMql("{ $and: [ ");
             }
             getClauseStack().push(Clause.WHERE);
             try {
@@ -106,20 +107,20 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
                     whereClauseRestrictions.accept(this);
                 }
                 if (requiredAndPredicate) {
-                    appendSql(", ");
+                    appendMql(", ");
                 }
                 if (additionalWherePredicate != null) {
                     this.additionalWherePredicate = null;
                     additionalWherePredicate.accept(this);
                 }
                 if (requiredAndPredicate) {
-                    appendSql(" ] }");
+                    appendMql(" ] }");
                 }
             } finally {
                 getClauseStack().pop();
             }
         } else {
-            appendSql("{ }");
+            appendMql("{ }");
         }
     }
 
@@ -146,23 +147,23 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
                 if (supportsRowValueConstructorSyntaxInInSubQuery() && dialect.supportsUnionAll()) {
                     inListPredicate.getTestExpression().accept(this);
                     if (inListPredicate.isNegated()) {
-                        appendSql(" not");
+                        appendMql(" not");
                     }
-                    appendSql(" in (");
+                    appendMql(" in (");
                     String separator = NO_SEPARATOR;
                     for (Expression expression : listExpressions) {
-                        appendSql(separator);
+                        appendMql(separator);
                         renderExpressionsAsSubquery(
                                 SqlTupleContainer.getSqlTuple(expression).getExpressions()
                         );
                         separator = " union all ";
                     }
-                    appendSql(CLOSE_PARENTHESIS);
+                    appendMql(CLOSE_PARENTHESIS);
                 } else {
                     String separator = NO_SEPARATOR;
-                    appendSql(OPEN_PARENTHESIS);
+                    appendMql(OPEN_PARENTHESIS);
                     for (Expression expression : listExpressions) {
-                        appendSql(separator);
+                        appendMql(separator);
                         emulateTupleComparison(
                                 lhsTuple.getExpressions(),
                                 SqlTupleContainer.getSqlTuple(expression).getExpressions(),
@@ -171,7 +172,7 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
                         );
                         separator = " or ";
                     }
-                    appendSql(CLOSE_PARENTHESIS);
+                    appendMql(CLOSE_PARENTHESIS);
                 }
                 return;
             }
@@ -189,20 +190,20 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
         final boolean parenthesis = !inListPredicate.isNegated()
                 && inExprLimit > 0 && listExpressions.size() > inExprLimit;
         if (parenthesis) {
-            //appendSql( OPEN_PARENTHESIS );
+            //appendMql( OPEN_PARENTHESIS );
         }
 
-        appendSql("{ ");
+        appendMql("{ ");
 
         inListPredicate.getTestExpression().accept(this);
-        appendSql(": {");
+        appendMql(": {");
         if (inListPredicate.isNegated()) {
-            appendSql("\"$nin\": ");
-            //appendSql( " not" );
+            appendMql("\"$nin\": ");
+            //appendMql( " not" );
         }
-        //appendSql( " in (" );
-        appendSql("\"$in\": ");
-        appendSql("[");
+        //appendMql( " in (" );
+        appendMql("\"$in\": ");
+        appendMql("[");
         String separator = NO_SEPARATOR;
 
         final Iterator<Expression> iterator = listExpressions.iterator();
@@ -222,7 +223,7 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
             // but if that is the case the code takes an early exit.
             assert listExpression != null;
 
-            appendSql(separator);
+            appendMql(separator);
             castNonNull(listExpression).accept(this);
             separator = COMMA_SEPARATOR;
 
@@ -234,35 +235,35 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
             }
         }
 
-        appendSql("] }");
-        //appendSql( CLOSE_PARENTHESIS );
+        appendMql("] }");
+        //appendMql( CLOSE_PARENTHESIS );
         if (parenthesis) {
-            //appendSql( CLOSE_PARENTHESIS );
+            //appendMql( CLOSE_PARENTHESIS );
         }
     }
 
     protected void emptyInList(final InListPredicate inListPredicate) {
-        appendSql("(");
-        appendSql(inListPredicate.isNegated() ? "0" : "1");
-        appendSql(" = case when ");
+        appendMql("(");
+        appendMql(inListPredicate.isNegated() ? "0" : "1");
+        appendMql(" = case when ");
         inListPredicate.getTestExpression().accept(this);
-        appendSql(" is not null then 0");
+        appendMql(" is not null then 0");
         //dialect.appendBooleanValueString( this, inListPredicate.isNegated() );
-        appendSql(" end)");
+        appendMql(" end)");
     }
 
     @Override
     public void visitExistsPredicate(final ExistsPredicate existsPredicate) {
-        appendSql("{ ");
+        appendMql("{ ");
         if (existsPredicate.isNegated()) {
-            appendSql(" $not: {");
+            appendMql(" $not: {");
         }
-        appendSql("$exists: ");
+        appendMql("$exists: ");
         existsPredicate.getExpression().accept(this);
         if (existsPredicate.isNegated()) {
-            appendSql("} ");
+            appendMql("} ");
         }
-        appendSql(" }");
+        appendMql(" }");
     }
 
     @Override
@@ -271,21 +272,21 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
             return;
         }
 
-        appendSql("{ ");
+        appendMql("{ ");
         final Junction.Nature nature = junction.getNature();
         if (nature == Junction.Nature.CONJUNCTION) {
-            appendSql("$and: ");
+            appendMql("$and: ");
         } else {
-            appendSql("$or: ");
+            appendMql("$or: ");
         }
-        appendSql("[");
+        appendMql("[");
         final List<Predicate> predicates = junction.getPredicates();
         visitJunctionPredicate(nature, predicates.get(0));
         for (int i = 1; i < predicates.size(); i++) {
-            appendSql(", ");
+            appendMql(", ");
             visitJunctionPredicate(nature, predicates.get(i));
         }
-        appendSql("] }");
+        appendMql("] }");
     }
 
     @Override
@@ -293,28 +294,48 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
         if (negatedPredicate.isEmpty()) {
             return;
         }
-        appendSql("{ $not: ");
+        appendMql("{ $not: ");
         negatedPredicate.getPredicate().accept(this);
-        appendSql(" }");
+        appendMql(" }");
+    }
+
+    protected void appendMql(final String value) {
+        sqlBuffer.append(value);
+    }
+
+    protected void appendMql(final char fragment) {
+        sqlBuffer.append(fragment);
+    }
+
+    protected void appendMql(final int value) {
+        sqlBuffer.append(value);
+    }
+
+    protected void appendMql(final long value) {
+        sqlBuffer.append(value);
+    }
+
+    protected void appendMql(final boolean value) {
+        sqlBuffer.append(value);
     }
 
     protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
         if (inAggregateExpressionScope) {
-            appendSql("{ ");
-            appendSql(getMongoOperatorText(operator));
-            appendSql(": [ ");
+            appendMql("{ ");
+            appendMql(getMongoOperatorText(operator));
+            appendMql(": [ ");
             lhs.accept(this);
-            appendSql(", ");
+            appendMql(", ");
             rhs.accept(this);
-            appendSql(" ] }");
+            appendMql(" ] }");
         } else {
-            appendSql("{ ");
+            appendMql("{ ");
             lhs.accept(this);
-            appendSql(": { ");
-            appendSql(getMongoOperatorText(operator));
-            appendSql(": ");
+            appendMql(": { ");
+            appendMql(getMongoOperatorText(operator));
+            appendMql(": ");
             rhs.accept(this);
-            appendSql(" } }");
+            appendMql(" } }");
         }
     }
 

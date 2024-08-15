@@ -322,7 +322,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     protected final SessionFactoryImplementor sessionFactory;
 
     // In-flight state
-    private final StringBuilder sqlBuffer = new StringBuilder();
+    protected final StringBuilder sqlBuffer = new StringBuilder();
 
     private final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
     private final JdbcParametersImpl jdbcParameters = new JdbcParametersImpl();
