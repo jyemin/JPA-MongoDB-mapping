@@ -15,21 +15,30 @@
  */
 package org.hibernate.omm.jdbc;
 
-import com.mongodb.assertions.Assertions;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
+import org.bson.BsonArray;
+import org.bson.BsonBinary;
+import org.bson.BsonBoolean;
+import org.bson.BsonDateTime;
+import org.bson.BsonDecimal128;
+import org.bson.BsonDocument;
+import org.bson.BsonDouble;
+import org.bson.BsonInt32;
+import org.bson.BsonInt64;
+import org.bson.BsonNull;
+import org.bson.BsonObjectId;
+import org.bson.BsonString;
+import org.bson.BsonType;
+import org.bson.BsonValue;
+import org.bson.types.Decimal128;
 import org.bson.types.ObjectId;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.omm.util.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.CharArrayWriter;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -39,14 +48,13 @@ import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.NClob;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,10 +71,8 @@ import java.util.Map;
 public class MongoPreparedStatement extends MongoStatement
         implements PreparedStatementAdapter {
 
-    private static final Logger LOG = LoggerFactory.getLogger(MongoPreparedStatement.class);
-
     private final String parameterizedCommandJson;
-    private final Map<Integer, String> parameters;
+    private final Map<Integer, BsonValue> parameters;
 
     public MongoPreparedStatement(
             final MongoDatabase mongoDatabase,
@@ -80,17 +86,17 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public ResultSet executeQuery() throws SimulatedSQLException {
-        return executeQuery(getDeParameterizedBsonCommand());
+        return executeQuery(parameterizedCommandJson);
     }
 
     @Override
     public int executeUpdate() throws SimulatedSQLException {
-        return executeUpdate(getDeParameterizedBsonCommand());
+        return executeUpdate(parameterizedCommandJson);
     }
 
     @Override
     public boolean execute() throws SimulatedSQLException {
-        return execute(getDeParameterizedBsonCommand());
+        return execute(parameterizedCommandJson);
     }
 
     @Override
@@ -100,147 +106,110 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setNull(final int parameterIndex, final int sqlType) {
-        parameters.put(parameterIndex, "null");
+        parameters.put(parameterIndex, BsonNull.VALUE);
     }
 
     @Override
     public void setBoolean(final int parameterIndex, final boolean x) {
-        parameters.put(parameterIndex, Boolean.toString(x));
+        parameters.put(parameterIndex, BsonBoolean.valueOf(x));
     }
 
     @Override
     public void setByte(final int parameterIndex, final byte x) {
-        parameters.put(parameterIndex, Byte.toString(x));
+        parameters.put(parameterIndex, new BsonInt32(x));
     }
 
     @Override
     public void setShort(final int parameterIndex, final short x) {
-        parameters.put(parameterIndex, Short.toString(x));
+        parameters.put(parameterIndex, new BsonInt32(x));
     }
 
     @Override
     public void setInt(final int parameterIndex, final int x) {
-        parameters.put(parameterIndex, "{ \"$numberInt\": \"" + x + "\" }");
+        parameters.put(parameterIndex, new BsonInt32(x));
     }
 
     @Override
     public void setLong(final int parameterIndex, final long x) {
-        parameters.put(parameterIndex, "{ \"$numberLong\": \"" + x + "\" }");
+        parameters.put(parameterIndex, new BsonInt64(x));
     }
 
     @Override
     public void setFloat(final int parameterIndex, final float x) {
-        parameters.put(parameterIndex, Float.toString(x));
+        parameters.put(parameterIndex, new BsonDouble(x));
     }
 
     @Override
     public void setDouble(final int parameterIndex, final double x) {
-        parameters.put(parameterIndex, "{ \"$numberDouble\": \"" + x + "\" }");
+        parameters.put(parameterIndex, new BsonDouble(x));
     }
 
     @Override
-    public void setBigDecimal(final int parameterIndex, @Nullable final BigDecimal x) {
-        parameters.put(parameterIndex, x == null ? "null" : "{ \"$numberDecimal\": \"" + x + "\" }");
+    public void setBigDecimal(final int parameterIndex, final BigDecimal x) {
+        parameters.put(parameterIndex, new BsonDecimal128(new Decimal128(x)));
     }
 
     @Override
-    public void setString(final int parameterIndex, @Nullable final String x) {
-        parameters.put(parameterIndex, x == null ? "null" : StringUtil.writeStringHelper(x));
+    public void setString(final int parameterIndex, final String x) {
+        parameters.put(parameterIndex, new BsonString(x));
     }
 
     @Override
-    public void setBytes(final int parameterIndex, @Nullable final byte[] x) {
-        parameters.put(parameterIndex, x == null ? "null" : "\"$binary\": {\"base64\": \"" + Base64.getEncoder().encodeToString(x) + "\", \"subType\": \"0\"}");
+    public void setBytes(final int parameterIndex, final byte[] x) {
+        parameters.put(parameterIndex, new BsonBinary(x));
     }
 
     @Override
-    public void setDate(final int parameterIndex, @Nullable final Date x) {
-        parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
+    public void setDate(final int parameterIndex, final Date x) {
+        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli()));
     }
 
     @Override
-    public void setTime(final int parameterIndex, @Nullable final Time x) {
-        parameters.put(parameterIndex, x == null ? "null" : "{\"$date\": {\"$numberLong\": \"" + x.toInstant().getEpochSecond() + "\"}}");
+    public void setTime(final int parameterIndex, final Time x) {
+        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli()));
     }
 
     @Override
-    public void setTimestamp(final int parameterIndex, @Nullable final Timestamp x) {
-        parameters.put(
-                parameterIndex,
-                x == null ? "null" : "{\"$timestamp\": {\"" + x.toInstant().getEpochSecond() + "\": <t>, \"i\": 1}}"
+    public void setTimestamp(final int parameterIndex, final Timestamp x) {
+        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli())
+
         );
     }
 
     @Override
-    public void setObject(final int parameterIndex, @Nullable final Object x, final int targetSqlType)
+    public void setObject(final int parameterIndex, final Object x, final int targetSqlType)
             throws SimulatedSQLException {
-        if (x == null) {
-            parameters.put(parameterIndex, "null");
-        } else {
-            switch (targetSqlType) {
-                case 3_000:
-                    ObjectId objectId = (ObjectId) x;
-                    parameters.put(parameterIndex, "{ \"$oid\": \"" + objectId.toHexString() + "\" }");
-                    break;
-                default:
-                    throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
-            }
+        switch (targetSqlType) {
+            case 3_000:
+                parameters.put(parameterIndex, new BsonObjectId((ObjectId) x));
+                break;
+            default:
+                throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
         }
     }
 
     @Override
     public void setArray(final int parameterIndex, final Array x) throws SimulatedSQLException {
-        Assertions.notNull("x", x);
-
         try {
-            Iterable<?> iterable;
-            if (x.getArray().getClass().isArray()) {
-                iterable = Arrays.asList((Object[]) x.getArray());
-            } else {
-                iterable = ((Iterable<?>) x.getArray());
+            Object[] objectArray = (Object[]) x.getArray();
+            BsonArray bsonArray = new BsonArray(objectArray.length);
+            for (int i = 0; i < objectArray.length; i++) {
+                Object objectValue = objectArray[i];
+                BsonValue bsonValue;
+                if (objectValue instanceof String) {
+                    bsonValue = new BsonString((String) objectValue);
+                } else if (objectValue instanceof Integer) {
+                    bsonValue = new BsonInt32((Integer) objectValue);
+                } else {
+                    // TODO: support the rest of the types
+                    throw new NotSupportedSQLException("Unsupported type in SQL ARRAY: " + objectValue.getClass().getName());
+                }
+                bsonArray.add(bsonValue);
             }
-            parameters.put(parameterIndex, getArrayJson(iterable));
-        } catch (SQLException | IOException cause) {
+            parameters.put(parameterIndex, bsonArray);
+        } catch (SQLException cause) {
             throw new SimulatedSQLException(cause.getMessage(), cause);
         }
-    }
-
-    private String getArrayJson(final Iterable<?> iterable) throws IOException {
-        var stringWriter = new CharArrayWriter();
-        stringWriter.write("[ ");
-        var first = true;
-        for (Object obj : iterable) {
-            if (!first) {
-                stringWriter.write(", ");
-            } else {
-                first = false;
-            }
-            stringWriter.write(obj instanceof String aStr
-                    ? StringUtil.writeStringHelper(aStr)
-                    : obj == null ? "null" : obj.toString());
-        }
-        stringWriter.write(" ]");
-        return stringWriter.toString();
-    }
-
-    private String getDeParameterizedBsonCommand() {
-        int parameterIndex = 1;
-        int lastIndex = -1;
-        int index;
-        var sb = new StringBuilder();
-
-        while ((index = parameterizedCommandJson.indexOf('?', lastIndex + 1)) != -1) {
-            sb.append(parameterizedCommandJson, lastIndex + 1, index);
-            String parameterValue = parameters.get(parameterIndex++);
-            sb.append(parameterValue);
-            lastIndex = index;
-        }
-        sb.append(parameterizedCommandJson.substring(lastIndex + 1));
-        var command = sb.toString();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("BSON command generated: {}", command);
-        }
-        return command;
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -332,4 +301,37 @@ public class MongoPreparedStatement extends MongoStatement
         throw new NotYetImplementedException();
     }
 
+    @Override
+    protected void replaceParameterMarkers(final BsonDocument command) {
+        recursivelyReplaceParameterMarkers(command, 1);
+    }
+
+    private int recursivelyReplaceParameterMarkers(BsonDocument command, int curParameterIndex) {
+        for (Map.Entry<String, BsonValue> entry : command.entrySet()) {
+            if (entry.getValue().getBsonType() == BsonType.UNDEFINED) {
+                entry.setValue(parameters.get(curParameterIndex));
+                curParameterIndex++;
+            } else if (entry.getValue().isDocument()) {
+                curParameterIndex = recursivelyReplaceParameterMarkers(entry.getValue().asDocument(), curParameterIndex);
+            } else if (entry.getValue().isArray()) {
+                curParameterIndex = recursivelyReplaceParameterMarkers(entry.getValue().asArray(), curParameterIndex);
+            }
+        }
+        return curParameterIndex;
+    }
+
+    private int recursivelyReplaceParameterMarkers(BsonArray array, int curParameterIndex) {
+        for (int i = 0; i < array.size(); i++) {
+            BsonValue value = array.get(i);
+            if (value.getBsonType() == BsonType.UNDEFINED) {
+                array.set(i, parameters.get(curParameterIndex));
+                curParameterIndex++;
+            } else if (value.isDocument()) {
+                curParameterIndex = recursivelyReplaceParameterMarkers(value.asDocument(), curParameterIndex);
+            } else if (value.isArray()) {
+                curParameterIndex = recursivelyReplaceParameterMarkers(value.asArray(), curParameterIndex);
+            }
+        }
+        return curParameterIndex;
+    }
 }

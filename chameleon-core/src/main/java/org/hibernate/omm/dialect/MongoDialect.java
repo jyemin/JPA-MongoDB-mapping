@@ -28,7 +28,9 @@ import org.hibernate.omm.type.ObjectIdJdbcType;
 import org.hibernate.omm.util.StringUtil;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
+import org.hibernate.sql.ast.spi.ParameterMarkerStrategy;
 import org.hibernate.sql.ast.spi.SqlAppender;
+import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.spi.TypeConfiguration;
 
 import static org.hibernate.type.SqlTypes.ARRAY;
@@ -96,4 +98,20 @@ public class MongoDialect extends Dialect {
         functionRegistry.register("array_includes", new MongoArrayIncludesFunction(typeConfiguration));
     }
 
+    @Override
+    public ParameterMarkerStrategy getNativeParameterMarkerStrategy() {
+        return MongoParameterMarkerStrategy.INSTANCE;
+    }
+
+    private static class MongoParameterMarkerStrategy implements ParameterMarkerStrategy {
+        /**
+         * Singleton access
+         */
+        public static final MongoParameterMarkerStrategy INSTANCE = new MongoParameterMarkerStrategy();
+
+        @Override
+        public String createMarker(int position, JdbcType jdbcType) {
+            return "{$undefined: true}";
+        }
+    }
 }
