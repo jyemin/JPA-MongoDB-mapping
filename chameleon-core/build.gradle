@@ -6,8 +6,7 @@
  */
 
 plugins {
-    id 'java-library' // we are developing library
-    id 'checkstyle'
+    id 'java-library'
     alias libs.plugins.checker.framework
 }
 
@@ -35,11 +34,6 @@ java {
 
 tasks.named('test') {
     useJUnitPlatform()
-}
-
-checkstyle {
-    toolVersion = "9.3"
-    checkstyleTest.enabled = false
 }
 
 checkerFramework {
