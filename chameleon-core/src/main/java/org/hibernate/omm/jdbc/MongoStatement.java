@@ -67,6 +67,7 @@ public class MongoStatement implements StatementAdapter {
         throwExceptionIfClosed();
 
         var command = BsonDocument.parse(sql);
+        replaceParameterMarkers(command);
         var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
                 BsonDocument.class);
         var pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
@@ -103,6 +104,8 @@ public class MongoStatement implements StatementAdapter {
         throwExceptionIfClosed();
         BsonDocument command = BsonDocument.parse(sql);
 
+        replaceParameterMarkers(command);
+
         String commandName = command.getFirstKey();
         MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
                 BsonDocument.class);
@@ -134,6 +137,9 @@ public class MongoStatement implements StatementAdapter {
             default:
                 throw new NotSupportedSQLException("unknown command: " + commandName);
         }
+    }
+
+    protected void replaceParameterMarkers(final BsonDocument command) {
     }
 
     @Override
