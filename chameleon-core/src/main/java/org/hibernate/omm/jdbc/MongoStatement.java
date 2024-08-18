@@ -31,6 +31,8 @@ import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
+import org.hibernate.omm.service.CommandRecorder;
+import org.hibernate.service.spi.ServiceRegistryImplementor;
 import org.hibernate.sql.ast.tree.select.SelectClause;
 
 import java.sql.Connection;
@@ -49,16 +51,24 @@ public class MongoStatement implements StatementAdapter {
     private final MongoDatabase mongoDatabase;
     private final ClientSession clientSession;
     private final Connection connection;
+    private final ServiceRegistryImplementor serviceRegistry;
 
     private boolean closed;
 
-    public MongoStatement(final MongoDatabase mongoDatabase, final ClientSession clientSession, final Connection connection) {
+    @Nullable
+    private final CommandRecorder commandRecorder;
+
+    public MongoStatement(final MongoDatabase mongoDatabase, final ClientSession clientSession, final Connection connection,
+            final ServiceRegistryImplementor serviceRegistry) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
         Assertions.notNull("connection", connection);
+        Assertions.notNull("serviceRegistry", serviceRegistry);
         this.mongoDatabase = mongoDatabase;
         this.clientSession = clientSession;
         this.connection = connection;
+        this.serviceRegistry = serviceRegistry;
+        this.commandRecorder = serviceRegistry.getService(CommandRecorder.class);
     }
 
     @Override
@@ -68,6 +78,8 @@ public class MongoStatement implements StatementAdapter {
 
         var command = BsonDocument.parse(sql);
         replaceParameterMarkers(command);
+        recordCommand(command);
+
         var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
                 BsonDocument.class);
         var pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
@@ -105,6 +117,7 @@ public class MongoStatement implements StatementAdapter {
         BsonDocument command = BsonDocument.parse(sql);
 
         replaceParameterMarkers(command);
+        recordCommand(command);
 
         String commandName = command.getFirstKey();
         MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
@@ -140,6 +153,12 @@ public class MongoStatement implements StatementAdapter {
     }
 
     protected void replaceParameterMarkers(final BsonDocument command) {
+    }
+
+    private void recordCommand(final BsonDocument command) {
+        if (commandRecorder != null) {
+            commandRecorder.record(command);
+        }
     }
 
     @Override
@@ -240,5 +259,9 @@ public class MongoStatement implements StatementAdapter {
         if (closed) {
             throw new StatementClosedSQLException();
         }
+    }
+
+    protected ServiceRegistryImplementor getServiceRegistry() {
+        return serviceRegistry;
     }
 }

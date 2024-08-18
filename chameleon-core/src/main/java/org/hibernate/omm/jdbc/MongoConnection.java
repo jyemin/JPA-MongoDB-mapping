@@ -25,6 +25,7 @@ import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.service.spi.ServiceRegistryImplementor;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
@@ -45,6 +46,7 @@ public class MongoConnection implements ConnectionAdapter {
 
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
+    private final ServiceRegistryImplementor serviceRegistry;
 
     private boolean autoCommit;
     private boolean closed;
@@ -52,20 +54,23 @@ public class MongoConnection implements ConnectionAdapter {
     @Nullable
     private SQLWarning sqlWarning;
 
-    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession) {
+    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession, final ServiceRegistryImplementor serviceRegistry) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
+        Assertions.notNull("clientSession", clientSession);
+        Assertions.notNull("serviceRegistry", serviceRegistry);
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
+        this.serviceRegistry = serviceRegistry;
     }
 
     @Override
     public Statement createStatement() {
-        return new MongoStatement(mongoDatabase, clientSession, this);
+        return new MongoStatement(mongoDatabase, clientSession, this, serviceRegistry);
     }
 
     @Override
     public PreparedStatement prepareStatement(final String sql) {
-        return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, serviceRegistry, sql);
     }
 
     @Override

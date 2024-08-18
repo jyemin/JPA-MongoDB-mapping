@@ -30,6 +30,8 @@ import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.omm.exception.MongoConfigMissingException;
 import org.hibernate.service.UnknownUnwrapTypeException;
 import org.hibernate.service.spi.Configurable;
+import org.hibernate.service.spi.ServiceRegistryAwareService;
+import org.hibernate.service.spi.ServiceRegistryImplementor;
 import org.hibernate.service.spi.Stoppable;
 
 import java.sql.Connection;
@@ -45,11 +47,13 @@ import static org.hibernate.internal.util.NullnessUtil.castNonNull;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable {
+public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable, ServiceRegistryAwareService {
 
     private @MonotonicNonNull MongoDatabase mongoDatabase;
 
     private @MonotonicNonNull MongoClient mongoClient;
+
+    private @MonotonicNonNull ServiceRegistryImplementor serviceRegistry;
 
     @Override
     public void configure(final Map<String, Object> configurationValues) {
@@ -98,8 +102,12 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
             throw new IllegalStateException(
                     "mongoClient instance should have been configured during Configurable mechanism");
         }
+        if (serviceRegistry == null) {
+            throw new IllegalStateException(
+                    "serviceRegistry instance should have been configured during Configurable mechanism");
+        }
         ClientSession clientSession = mongoClient.startSession();
-        return new MongoConnection(mongoDatabase, clientSession);
+        return new MongoConnection(mongoDatabase, clientSession, serviceRegistry);
     }
 
     @Override
@@ -134,4 +142,8 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         return mongoDatabase;
     }
 
+    @Override
+    public void injectServices(@NonNull final ServiceRegistryImplementor serviceRegistry) {
+        this.serviceRegistry = serviceRegistry;
+    }
 }

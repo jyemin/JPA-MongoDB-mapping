@@ -8,7 +8,10 @@ import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.omm.jdbc.MongoConnectionProvider;
+import org.hibernate.omm.service.CommandRecorder;
+import org.hibernate.omm.service.DefaultCommandRecorderImpl;
 import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -33,7 +36,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  * @author Nathn Xu
  * @since 1.0.0
  */
-class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
+class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
     private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
     private static final String DATABASE_NAME = "test";
@@ -62,14 +65,18 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration(), mongoDBContainer.getConnectionString());
         cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration(), DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
-        sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
 
+        var standardServiceRegistryBuilder = cfg.getStandardServiceRegistryBuilder();
+        standardServiceRegistryBuilder.addService(CommandRecorder.class, DefaultCommandRecorderImpl.INSTANCE);
+
+        sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
         var mongoConnectionProvider = (MongoConnectionProvider) sessionFactory.getServiceRegistry().getService(ConnectionProvider.class);
         assert mongoConnectionProvider != null;
         mongoDatabase = mongoConnectionProvider.getMongoDatabase();
 
         injectStaticFields(testClass, SessionFactoryInjected.class, SessionFactory.class, sessionFactory);
         injectStaticFields(testClass, MongoDatabaseInjected.class, MongoDatabase.class, mongoDatabase);
+        injectStaticFields(testClass, CommandRecorderInjected.class, CommandRecorder.class, DefaultCommandRecorderImpl.INSTANCE);
     }
 
     @Override
@@ -98,12 +105,23 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
                 mongoDatabase.getCollection(collectionNameIter.next()).drop();
             }
         }
+
+        var commandRecorder = DefaultCommandRecorderImpl.INSTANCE;
+        commandRecorder.clearCommandRecords();
+
         injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), SessionFactoryInjected.class,
                 SessionFactory.class,
                 sessionFactory);
         injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), MongoDatabaseInjected.class,
                 MongoDatabase.class, mongoDatabase);
+        injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), SessionFactoryInjected.class,
+                SessionFactory.class,
+                sessionFactory);
+        injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), CommandRecorderInjected.class,
+                CommandRecorder.class, commandRecorder);
     }
+
+
 
     private void injectStaticFields(Class<?> testClass, Class<? extends Annotation> annotationClass, Class<?> fieldType,
             Object injectedValue) {
@@ -130,5 +148,10 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
                         throw new RuntimeException(ex);
                     }
                 });
+    }
+
+    @Override
+    public void afterEach(final ExtensionContext extensionContext) throws Exception {
+        DefaultCommandRecorderImpl.INSTANCE.clearCommandRecords();
     }
 }

@@ -38,6 +38,7 @@ import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.service.spi.ServiceRegistryImplementor;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -78,8 +79,9 @@ public class MongoPreparedStatement extends MongoStatement
             final MongoDatabase mongoDatabase,
             final ClientSession clientSession,
             final Connection connection,
+            final ServiceRegistryImplementor serviceRegistry,
             final String parameterizedCommandJson) {
-        super(mongoDatabase, clientSession, connection);
+        super(mongoDatabase, clientSession, connection, serviceRegistry);
         this.parameterizedCommandJson = parameterizedCommandJson;
         this.parameters = new HashMap<>();
     }
