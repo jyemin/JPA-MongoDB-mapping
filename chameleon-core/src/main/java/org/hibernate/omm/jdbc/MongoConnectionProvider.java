@@ -28,6 +28,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.omm.exception.MongoConfigMissingException;
+import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.service.UnknownUnwrapTypeException;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.ServiceRegistryAwareService;
@@ -107,7 +108,8 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
                     "serviceRegistry instance should have been configured during Configurable mechanism");
         }
         ClientSession clientSession = mongoClient.startSession();
-        return new MongoConnection(mongoDatabase, clientSession, serviceRegistry);
+        CommandRecorder commandRecorder = serviceRegistry.getService(CommandRecorder.class);
+        return new MongoConnection(mongoDatabase, clientSession, commandRecorder);
     }
 
     @Override

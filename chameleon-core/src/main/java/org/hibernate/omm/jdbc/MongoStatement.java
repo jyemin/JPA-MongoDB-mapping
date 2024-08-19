@@ -32,7 +32,6 @@ import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
 import org.hibernate.omm.service.CommandRecorder;
-import org.hibernate.service.spi.ServiceRegistryImplementor;
 import org.hibernate.sql.ast.tree.select.SelectClause;
 
 import java.sql.Connection;
@@ -51,7 +50,6 @@ public class MongoStatement implements StatementAdapter {
     private final MongoDatabase mongoDatabase;
     private final ClientSession clientSession;
     private final Connection connection;
-    private final ServiceRegistryImplementor serviceRegistry;
 
     private boolean closed;
 
@@ -59,16 +57,14 @@ public class MongoStatement implements StatementAdapter {
     private final CommandRecorder commandRecorder;
 
     public MongoStatement(final MongoDatabase mongoDatabase, final ClientSession clientSession, final Connection connection,
-            final ServiceRegistryImplementor serviceRegistry) {
+            @Nullable final CommandRecorder commandRecorder) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
         Assertions.notNull("connection", connection);
-        Assertions.notNull("serviceRegistry", serviceRegistry);
         this.mongoDatabase = mongoDatabase;
         this.clientSession = clientSession;
         this.connection = connection;
-        this.serviceRegistry = serviceRegistry;
-        this.commandRecorder = serviceRegistry.getService(CommandRecorder.class);
+        this.commandRecorder = commandRecorder;
     }
 
     @Override
@@ -261,7 +257,7 @@ public class MongoStatement implements StatementAdapter {
         }
     }
 
-    protected ServiceRegistryImplementor getServiceRegistry() {
-        return serviceRegistry;
+    protected CommandRecorder getCommandRecorder() {
+        return commandRecorder;
     }
 }

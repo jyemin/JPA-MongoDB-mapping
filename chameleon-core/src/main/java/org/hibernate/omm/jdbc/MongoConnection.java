@@ -25,7 +25,7 @@ import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.service.spi.ServiceRegistryImplementor;
+import org.hibernate.omm.service.CommandRecorder;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
@@ -46,7 +46,9 @@ public class MongoConnection implements ConnectionAdapter {
 
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
-    private final ServiceRegistryImplementor serviceRegistry;
+
+    @Nullable
+    private final CommandRecorder commandRecorder;
 
     private boolean autoCommit;
     private boolean closed;
@@ -54,23 +56,23 @@ public class MongoConnection implements ConnectionAdapter {
     @Nullable
     private SQLWarning sqlWarning;
 
-    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession, final ServiceRegistryImplementor serviceRegistry) {
+    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession, final CommandRecorder commandRecorder) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
-        Assertions.notNull("serviceRegistry", serviceRegistry);
+        Assertions.notNull("commandRecorder", commandRecorder);
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
-        this.serviceRegistry = serviceRegistry;
+        this.commandRecorder = commandRecorder;
     }
 
     @Override
     public Statement createStatement() {
-        return new MongoStatement(mongoDatabase, clientSession, this, serviceRegistry);
+        return new MongoStatement(mongoDatabase, clientSession, this, commandRecorder);
     }
 
     @Override
     public PreparedStatement prepareStatement(final String sql) {
-        return new MongoPreparedStatement(mongoDatabase, clientSession, this, serviceRegistry, sql);
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, commandRecorder, sql);
     }
 
     @Override
