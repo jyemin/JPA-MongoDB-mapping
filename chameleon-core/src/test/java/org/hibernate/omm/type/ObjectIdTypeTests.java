@@ -118,14 +118,12 @@ class ObjectIdTypeTests {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", objectId);
             var book = query.getSingleResult();
-            assertThat(book.author).isEqualTo(newAuthor);
-            assertThat(book.title).isEqualTo(newTitle);
-            assertThat(book.publishYear).isEqualTo(newPublishYear);
+            assertThat(book).extracting("author", "title", "publishYear")
+                            .containsOnly(newAuthor, newTitle, newPublishYear);
         });
     }
 
     @Entity(name = "Book")
-    @Table(name = "books")
     static class Book {
 
         @Id

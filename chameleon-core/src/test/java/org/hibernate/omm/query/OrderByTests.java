@@ -20,7 +20,6 @@ package org.hibernate.omm.query;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
@@ -76,7 +75,6 @@ class OrderByTests {
     }
 
     @Entity(name = "Book")
-    @Table(name = "books")
     static class Book {
 
         @Id

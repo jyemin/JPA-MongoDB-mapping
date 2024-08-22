@@ -21,6 +21,7 @@ package org.hibernate.omm.id;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import org.bson.BsonValue;
 import org.bson.types.ObjectId;
 import org.hibernate.SessionFactory;
 import org.hibernate.omm.annotations.ObjectIdGenerator;
@@ -37,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @since 1.0.0
  */
 @MongoIntegrationTest
-public class GeneratedObjectIdTests {
+class GeneratedObjectIdTests {
 
     @SessionFactoryInjected
     SessionFactory sessionFactory;
@@ -52,14 +53,20 @@ public class GeneratedObjectIdTests {
             book.title = "Moby-Dick";
             session.persist(book);
         });
-        var commandIssued = commandRecorder.getCommandRecords();
-        assertThat(commandIssued).hasSize(1);
-        var insertedDocuments = commandIssued.get(0).getArray("documents");
-        assertThat(insertedDocuments).hasSize(1);
-        assertThat(insertedDocuments.get(0).isDocument()).isTrue();
-        var insertedDocument = insertedDocuments.get(0).asDocument();
-        assertThat(insertedDocument.containsKey("_id")).isTrue();
-        assertThat(insertedDocument.get("_id").isNull()).isFalse();
+        assertThat(commandRecorder.getCommandRecords()).hasSize(1)
+                .allSatisfy(command -> {
+                    assertThat(command.getArray("documents")).hasSize(1)
+                            .allSatisfy(doc -> {
+                                assertThat(doc.isDocument()).isTrue();
+                                assertThat(doc.asDocument())
+                                        .overridingErrorMessage(() -> "'_id' field with ObjectId type should have been generated")
+                                        .containsKey("_id")
+                                        .extractingByKey("_id")
+                                        .isNotNull()
+                                        .extracting(BsonValue::asObjectId)
+                                        .isNotNull();
+                            });
+                });
     }
 
     @Entity(name = "Book")

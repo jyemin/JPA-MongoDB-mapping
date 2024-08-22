@@ -3,7 +3,6 @@ package org.hibernate.omm.join;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
@@ -49,11 +48,9 @@ class SimpleJoinTests {
         sessionFactory.inTransaction(session -> session.load(city, 3));
 
         assertThat(city.province).usingRecursiveComparison().isEqualTo(province);
-        assertThat(city.province.country).usingRecursiveComparison().isEqualTo(country);
     }
 
     @Entity(name = "Country")
-    @Table(name = "countries")
     static class Country {
         @Id
         int id;
@@ -61,7 +58,6 @@ class SimpleJoinTests {
     }
 
     @Entity(name = "Province")
-    @Table(name = "province")
     static class Province {
         @Id
         int id;
@@ -72,7 +68,6 @@ class SimpleJoinTests {
     }
 
     @Entity(name = "City")
-    @Table(name = "cities")
     static class City {
         @Id
         int id;
