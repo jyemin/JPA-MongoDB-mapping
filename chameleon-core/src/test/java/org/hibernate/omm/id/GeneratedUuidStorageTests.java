@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @since 1.0.0
  */
 @MongoIntegrationTest
-class UuidSotrageTests {
+class GeneratedUuidStorageTests {
 
     @SessionFactoryInjected
     SessionFactory sessionFactory;
@@ -55,16 +55,14 @@ class UuidSotrageTests {
             session.persist(book);
         });
 
-        assertThat(commandRecorder.getCommandRecords()).hasSize(1)
-                .allSatisfy(command -> {
-                   assertThat(command.getArray("documents")).hasSize(1)
-                           .allSatisfy(doc -> {
-                               assertThat(doc.isDocument()).isTrue();
-                               assertThat(doc.asDocument().get("_id").isString())
-                                       .overridingErrorMessage("UUID value of String format instead of binary format should be stored")
-                                       .isTrue();
-                           });
-                });
+        assertThat(commandRecorder.getCommandRecords()).singleElement().satisfies(command -> {
+            assertThat(command.getArray("documents")).singleElement().satisfies(doc -> {
+                assertThat(doc.isDocument()).isTrue();
+                assertThat(doc.asDocument().get("_id").isString())
+                        .overridingErrorMessage("UUID value of String format instead of binary format should be stored")
+                        .isTrue();
+            });
+        });
     }
 
     @Entity(name = "Book")

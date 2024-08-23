@@ -53,20 +53,18 @@ class GeneratedObjectIdTests {
             book.title = "Moby-Dick";
             session.persist(book);
         });
-        assertThat(commandRecorder.getCommandRecords()).hasSize(1)
-                .allSatisfy(command -> {
-                    assertThat(command.getArray("documents")).hasSize(1)
-                            .allSatisfy(doc -> {
-                                assertThat(doc.isDocument()).isTrue();
-                                assertThat(doc.asDocument())
-                                        .overridingErrorMessage(() -> "'_id' field with ObjectId type should have been generated")
-                                        .containsKey("_id")
-                                        .extractingByKey("_id")
-                                        .isNotNull()
-                                        .extracting(BsonValue::asObjectId)
-                                        .isNotNull();
-                            });
-                });
+        assertThat(commandRecorder.getCommandRecords()).singleElement().satisfies(command -> {
+            assertThat(command.getArray("documents")).singleElement().satisfies(doc -> {
+                assertThat(doc.isDocument()).isTrue();
+                assertThat(doc.asDocument())
+                        .overridingErrorMessage("'_id' field with ObjectId type should have been generated")
+                        .containsKey("_id")
+                        .extractingByKey("_id")
+                        .isNotNull()
+                        .extracting(BsonValue::asObjectId)
+                        .isNotNull();
+            });
+        });
     }
 
     @Entity(name = "Book")
