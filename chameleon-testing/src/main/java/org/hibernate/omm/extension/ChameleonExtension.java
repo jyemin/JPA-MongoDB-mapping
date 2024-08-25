@@ -20,8 +20,8 @@ import org.testcontainers.containers.MongoDBContainer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.function.Predicate;
 
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatedFields;
@@ -47,12 +47,15 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
 
     @Override
     public void beforeAll(final ExtensionContext context) {
-        var testClass = context.getRequiredTestClass();
+        final var testClass = context.getRequiredTestClass();
 
-        var annotatedClasses = new ArrayList<Class<?>>();
+        final var annotatedClasses = new HashSet<Class<?>>();
         Arrays.stream(testClass.getDeclaredClasses())
                 .filter(clazz -> clazz.getAnnotation(Entity.class) != null)
                 .forEach(annotatedClasses::add);
+
+        final var mongoIntegrationTestAnnotation = testClass.getAnnotation(MongoIntegrationTest.class);
+        annotatedClasses.addAll(Arrays.asList(mongoIntegrationTestAnnotation.externalEntities()));
 
         if (annotatedClasses.isEmpty()) {
             throw new IllegalStateException("No Entity inner static class found within the testing class: " + testClass.getName());
@@ -61,7 +64,8 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
         mongoDBContainer.start();
 
-        var cfg = new Configuration();
+        final var cfg = new Configuration();
+
         cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration(), mongoDBContainer.getConnectionString());
         cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration(), DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
@@ -69,8 +73,13 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         var standardServiceRegistryBuilder = cfg.getStandardServiceRegistryBuilder();
         standardServiceRegistryBuilder.addService(CommandRecorder.class, DefaultCommandRecorderImpl.INSTANCE);
 
+        Arrays.stream(mongoIntegrationTestAnnotation.hibernateProperties()).forEach(prop -> {
+            cfg.setProperty(prop.key(), prop.value());
+        });
+
         sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
-        var mongoConnectionProvider = (MongoConnectionProvider) sessionFactory.getServiceRegistry().getService(ConnectionProvider.class);
+        final var mongoConnectionProvider =
+                (MongoConnectionProvider) sessionFactory.getServiceRegistry().getService(ConnectionProvider.class);
         assert mongoConnectionProvider != null;
         mongoDatabase = mongoConnectionProvider.getMongoDatabase();
 
