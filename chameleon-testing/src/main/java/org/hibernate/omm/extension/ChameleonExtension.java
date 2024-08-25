@@ -116,7 +116,6 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         }
 
         var commandRecorder = DefaultCommandRecorderImpl.INSTANCE;
-        commandRecorder.clearCommandRecords();
 
         injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), SessionFactoryInjected.class,
                 SessionFactory.class,

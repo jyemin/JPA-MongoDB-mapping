@@ -115,7 +115,9 @@ public class MongoConnection implements ConnectionAdapter {
     @Override
     public void commit() {
         if (!autoCommit) {
-            clientSession.commitTransaction();
+            if (clientSession.hasActiveTransaction()) {
+                clientSession.commitTransaction();
+            }
         }
     }
 

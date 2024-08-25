@@ -159,8 +159,15 @@ public class MongoStatement implements StatementAdapter {
 
     @Override
     public boolean execute(final String sql) throws SimulatedSQLException {
+        Assertions.notNull("sql", sql);
         throwExceptionIfClosed();
-        throw new NotSupportedSQLException();
+
+        var command = BsonDocument.parse(sql);
+        replaceParameterMarkers(command);
+        recordCommand(command);
+
+        var commandResult = mongoDatabase.runCommand(command);
+        return commandResult.getDouble("ok") == 1.0;
     }
 
     @Override
@@ -177,13 +184,12 @@ public class MongoStatement implements StatementAdapter {
     @Override
     public SQLWarning getWarnings() throws SimulatedSQLException {
         throwExceptionIfClosed();
-        throw new NotSupportedSQLException();
+        return null;
     }
 
     @Override
     public void clearWarnings() throws SimulatedSQLException {
         throwExceptionIfClosed();
-        throw new NotSupportedSQLException();
     }
 
     @Override
