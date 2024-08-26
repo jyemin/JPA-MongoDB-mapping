@@ -16,6 +16,9 @@
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
+import org.bson.BsonUndefined;
+import org.bson.BsonValue;
+import org.bson.json.JsonWriter;
 import org.hibernate.Internal;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
@@ -49,6 +52,7 @@ import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
+import org.hibernate.omm.mongoast.AstNode;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -223,6 +227,7 @@ import org.hibernate.type.descriptor.sql.DdlType;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
 
+import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -323,6 +328,9 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
 
     // In-flight state
     protected final StringBuilder sqlBuffer = new StringBuilder();
+
+    protected AstNode root;
+    protected BsonValue curValue;
 
     private final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
     private final JdbcParametersImpl jdbcParameters = new JdbcParametersImpl();
@@ -498,7 +506,14 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // for tests, for now
     public String getSql() {
-        return sqlBuffer.toString();
+        if (root == null) {
+            return sqlBuffer.toString();
+        } else {
+            StringWriter writer = new StringWriter();
+            JsonWriter jsonWriter = new JsonWriter(writer);
+            root.render(jsonWriter);
+            return writer.toString();
+        }
     }
 
     // For Blaze-Persistence until its function rendering code doesn't depend on SQL fragments anymore
@@ -6911,6 +6926,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
         assert jdbcType != null;
         final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
         jdbcType.appendWriteExpression(parameterMarker, this, dialect);
+        curValue = new BsonUndefined();
     }
 
     @Override

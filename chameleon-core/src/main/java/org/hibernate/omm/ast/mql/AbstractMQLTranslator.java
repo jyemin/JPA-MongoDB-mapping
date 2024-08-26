@@ -61,6 +61,8 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
 
     private boolean inAggregateExpressionScope;
 
+    protected String curCollectionName;
+
     public AbstractMQLTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);
     }
@@ -89,6 +91,7 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
     @Override
     public void visitNamedTableReference(final NamedTableReference tableReference) {
         appendMql(writeStringHelper(tableReference.getTableExpression()));
+        this.curCollectionName = tableReference.getTableExpression();
     }
 
     @Override

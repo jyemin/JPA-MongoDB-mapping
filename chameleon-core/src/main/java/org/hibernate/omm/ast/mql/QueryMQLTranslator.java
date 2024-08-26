@@ -24,6 +24,18 @@ import org.hibernate.internal.util.collections.CollectionHelper;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.exception.NotYetImplementedException;
+import org.hibernate.omm.mongoast.AstAggregation;
+import org.hibernate.omm.mongoast.AstPipeline;
+import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
+import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilter;
+import org.hibernate.omm.mongoast.filters.AstFilterField;
+import org.hibernate.omm.mongoast.stages.AstMatchStage;
+import org.hibernate.omm.mongoast.stages.AstProjectStage;
+import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
+import org.hibernate.omm.mongoast.stages.AstStage;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.query.NullPrecedence;
@@ -72,6 +84,10 @@ import static org.hibernate.omm.util.StringUtil.writeStringHelper;
  */
 public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuerySelect> {
 
+    private List<AstProjectStageSpecification> curProjectStageSpecifications;
+    private String curFieldName;
+    private AstFilter curFilter;
+
     private static class PathTracker {
         private final Map<String, String> pathByQualifier = new HashMap<>();
 
@@ -107,7 +123,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             } else {
                 result = path + "." + columnReference.getColumnExpression();
             }
-            return "\"$" + result + "\"";
+            return "$" + result;
         }
     }
 
@@ -169,15 +185,24 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             }
             appendMql("{ aggregate: ");
             visitFromClause(querySpec.getFromClause());
+
+            List<AstStage> stageList = new ArrayList<>();
+
             appendMql("{ $match: ");
             visitWhereClause(querySpec.getWhereClauseRestrictions());
+            if (curFilter != null) {
+                stageList.add(new AstMatchStage(curFilter));
+            }
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
                 appendMql(" }, { $sort: ");
                 visitOrderBy(querySpec.getSortSpecifications());
             }
+
             appendMql(" }, { $project: ");
             visitSelectClause(querySpec.getSelectClause());
+            stageList.add(new AstProjectStage(curProjectStageSpecifications));
+
             //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
             //visitHavingClause( querySpec );
             visitOffsetFetchClause(querySpec);
@@ -186,6 +211,8 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             //visitForUpdateClause( querySpec );
             //}
             appendMql(" } ] }");
+            AstPipeline pipeline = new AstPipeline(stageList);
+            root = new AstAggregation(curCollectionName, pipeline);
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
@@ -281,6 +308,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
     protected void visitSqlSelections(final SelectClause selectClause) {
         final List<SqlSelection> sqlSelections = selectClause.getSqlSelections();
         final int size = sqlSelections.size();
+        List<AstProjectStageSpecification> projectStageSpecifications = new ArrayList<>(size);
         final SelectItemReferenceStrategy referenceStrategy = dialect.getGroupBySelectItemReferenceStrategy();
         // When the dialect needs to render the aliased expression and there are aliased group by items,
         // we need to inline parameters as the database would otherwise not be able to match the group by item
@@ -364,7 +392,10 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
                     appendMql("f" + i); // field name doesn't matter for Hibernate ResultSet retrieval only relies on order since v6
                     appendMql(": ");
-                    appendMql(pathTracker.renderColumnReference(columnReference));
+                    appendMql('"' + pathTracker.renderColumnReference(columnReference) + '"');
+                    projectStageSpecifications.add(
+                            AstProjectStageSpecification.Set("f" + i,
+                            new AstFieldPathExpression(pathTracker.renderColumnReference(columnReference))));
                 } else {
                     visitSqlSelection(sqlSelection);
                     appendMql(": 1");
@@ -373,6 +404,9 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 separator = ", ";
             }
             appendMql(", _id: 0");
+
+            projectStageSpecifications.add(AstProjectStageSpecification.ExcludeId());
+            this.curProjectStageSpecifications = projectStageSpecifications;
         }
     }
 
@@ -610,6 +644,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 appendMql('"');
             } else {
                 appendMql(columnReference.getColumnExpression());
+                curFieldName = columnReference.getColumnExpression();
             }
         } else {
             columnReference.appendReadExpression(this, null);
@@ -634,6 +669,9 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             appendMql(": ");
             rhs.accept(this);
             appendMql(" } }");
+            curFilter =
+                    new AstFieldOperationFilter(new AstFilterField(curFieldName),
+                            new AstComparisonFilterOperation(getComparisonFilterOperator(operator), curValue));
         }
     }
 
@@ -692,4 +730,17 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             default -> throw new NotSupportedRuntimeException("unsupported operator: " + operator.name());
         };
     }
+
+    private AstComparisonFilterOperator getComparisonFilterOperator(final ComparisonOperator operator) {
+        return switch (operator) {
+            case EQUAL -> AstComparisonFilterOperator.EQ;
+            case NOT_EQUAL -> AstComparisonFilterOperator.NE;
+            case LESS_THAN -> AstComparisonFilterOperator.LT;
+            case LESS_THAN_OR_EQUAL -> AstComparisonFilterOperator.LTE;
+            case GREATER_THAN -> AstComparisonFilterOperator.GT;
+            case GREATER_THAN_OR_EQUAL -> AstComparisonFilterOperator.GTE;
+            default -> throw new NotSupportedRuntimeException("unsupported operator: " + operator.name());
+        };
+    }
+
 }
