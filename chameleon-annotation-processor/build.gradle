@@ -1,0 +1,15 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'org.hibernate.omm'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.google.auto.service
+    annotationProcessor libs.google.auto.service
+}

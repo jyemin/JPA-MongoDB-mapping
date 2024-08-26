@@ -52,7 +52,7 @@ public class MongoArray implements ArrayAdapter {
     }
 
     @Override
-    public Object getArray(final Map<String, Class<?>> map) {
+    public Object getArray(final Map map) {
         return elements;
     }
 
@@ -62,7 +62,7 @@ public class MongoArray implements ArrayAdapter {
     }
 
     @Override
-    public Object getArray(final long index, final int count, final Map<String, Class<?>> map) {
+    public Object getArray(final long index, final int count, final Map map) {
         return elements;
     }
 }

@@ -252,7 +252,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     @Override
     @Nullable
-    public <T> T getObject(final int columnIndex, final Class<T> type) throws SimulatedSQLException {
+    public Object getObject(final int columnIndex, final Class type) throws SimulatedSQLException {
         Assertions.notNull("type", type);
         beforeAccessCurrentDocumentField();
         var value = castNonNull(currentDocument).get(getKey(columnIndex));

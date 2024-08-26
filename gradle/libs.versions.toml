@@ -11,6 +11,7 @@ assertj = "3.26.3"
 slf4j-api = "2.0.13"
 spotbugs-annotations = "4.8.6"
 checker-framework = "0.6.42"
+google-auto-service = "1.1.1"
 
 [libraries]
 hibernate-orm-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate-orm-core" }
@@ -21,6 +22,7 @@ logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "lo
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 sl4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j-api" }
 spotbugs-annotations = { module = "com.github.spotbugs:spotbugs-annotations", version.ref = "spotbugs-annotations" }
+google-auto-service = { module = "com.google.auto.service:auto-service", version.ref = "google-auto-service" }
 
 [plugins]
 checker-framework = { id = "org.checkerframework", version.ref = "checker-framework" }
