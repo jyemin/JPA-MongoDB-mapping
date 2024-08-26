@@ -18,6 +18,7 @@
 package org.hibernate.omm.ast.mql;
 
 import com.mongodb.lang.Nullable;
+import org.bson.BsonValue;
 import org.hibernate.dialect.SelectItemReferenceStrategy;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.util.collections.CollectionHelper;
@@ -30,7 +31,6 @@ import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
-import org.hibernate.omm.mongoast.filters.AstFilter;
 import org.hibernate.omm.mongoast.filters.AstFilterField;
 import org.hibernate.omm.mongoast.stages.AstMatchStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStage;
@@ -83,10 +83,6 @@ import static org.hibernate.omm.util.StringUtil.writeStringHelper;
  * @since 1.0.0
  */
 public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuerySelect> {
-
-    private List<AstProjectStageSpecification> curProjectStageSpecifications;
-    private String curFieldName;
-    private AstFilter curFilter;
 
     private static class PathTracker {
         private final Map<String, String> pathByQualifier = new HashMap<>();
@@ -185,13 +181,14 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             }
             appendMql("{ aggregate: ");
             visitFromClause(querySpec.getFromClause());
+            String collectionName = mqlAstState.detach(AttachmentKeys.collectionName());
 
             List<AstStage> stageList = new ArrayList<>();
 
             appendMql("{ $match: ");
             visitWhereClause(querySpec.getWhereClauseRestrictions());
-            if (curFilter != null) {
-                stageList.add(new AstMatchStage(curFilter));
+            if (mqlAstState.hasAttachment()) {
+                stageList.add(new AstMatchStage(mqlAstState.detach(AttachmentKeys.filter())));
             }
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
@@ -201,7 +198,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
 
             appendMql(" }, { $project: ");
             visitSelectClause(querySpec.getSelectClause());
-            stageList.add(new AstProjectStage(curProjectStageSpecifications));
+            stageList.add(new AstProjectStage(mqlAstState.detach(AttachmentKeys.projectStageSpecifications())));
 
             //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
             //visitHavingClause( querySpec );
@@ -212,7 +209,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             //}
             appendMql(" } ] }");
             AstPipeline pipeline = new AstPipeline(stageList);
-            root = new AstAggregation(curCollectionName, pipeline);
+            root = new AstAggregation(collectionName, pipeline);
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
@@ -406,7 +403,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             appendMql(", _id: 0");
 
             projectStageSpecifications.add(AstProjectStageSpecification.ExcludeId());
-            this.curProjectStageSpecifications = projectStageSpecifications;
+            mqlAstState.attach(AttachmentKeys.projectStageSpecifications(), projectStageSpecifications);
         }
     }
 
@@ -644,7 +641,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 appendMql('"');
             } else {
                 appendMql(columnReference.getColumnExpression());
-                curFieldName = columnReference.getColumnExpression();
+                mqlAstState.attach(AttachmentKeys.fieldName(), columnReference.getColumnExpression());
             }
         } else {
             columnReference.appendReadExpression(this, null);
@@ -664,14 +661,16 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
         } else {
             appendMql("{ ");
             lhs.accept(this);
+            String fieldName = mqlAstState.detach(AttachmentKeys.fieldName());
             appendMql(": { ");
             appendMql(getMongoOperatorText(operator));
             appendMql(": ");
             rhs.accept(this);
+            BsonValue value = mqlAstState.detach(AttachmentKeys.fieldValue());
             appendMql(" } }");
-            curFilter =
-                    new AstFieldOperationFilter(new AstFilterField(curFieldName),
-                            new AstComparisonFilterOperation(getComparisonFilterOperator(operator), curValue));
+            mqlAstState.attach(AttachmentKeys.filter(),
+                    new AstFieldOperationFilter(new AstFilterField(fieldName),
+                            new AstComparisonFilterOperation(getComparisonFilterOperator(operator), value)));
         }
     }
 
