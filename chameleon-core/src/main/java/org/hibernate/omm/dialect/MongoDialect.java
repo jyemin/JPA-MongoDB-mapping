@@ -26,7 +26,6 @@ import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.internal.util.collections.ArrayHelper;
-import org.hibernate.mapping.Column;
 import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Selectable;
@@ -154,8 +153,12 @@ public class MongoDialect extends Dialect {
             }
 
             @Override
-            public String[] getSqlDropStrings(final Index exportable, final Metadata metadata, final SqlStringGenerationContext context) {
-                return ArrayHelper.EMPTY_STRING_ARRAY;
+            public String[] getSqlDropStrings(final Index index, final Metadata metadata, final SqlStringGenerationContext context) {
+                final var collectionName = index.getTable().getName();
+                final var keys = MongoIndexCommandUtil.getKeys(index);
+                return new String[] {
+                        MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, index.getName(), keys).toJson()
+                };
             }
         };
     }
@@ -166,18 +169,19 @@ public class MongoDialect extends Dialect {
             @Override
             public String[] getSqlCreateStrings(final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
                 final var collectionName = constraint.getTable().getName();
-                final var keys = new BsonDocument();
-                for (Column column : constraint.getColumns()) {
-                    keys.put(column.getName(), new BsonInt32(1));
-                }
+                final var keys = MongoIndexCommandUtil.getKeys(constraint);
                 return new String[]{
                         MongoIndexCommandUtil.getIndexCreationCommand(collectionName, constraint.getName(), keys, true).toJson()
                 };
             }
 
             @Override
-            public String[] getSqlDropStrings(final Constraint exportable, final Metadata metadata, final SqlStringGenerationContext context) {
-                return ArrayHelper.EMPTY_STRING_ARRAY;
+            public String[] getSqlDropStrings(final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
+                final var collectionName = constraint.getTable().getName();
+                final var keys = MongoIndexCommandUtil.getKeys(constraint);
+                return new String[] {
+                        MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, constraint.getName(), keys).toJson()
+                };
             }
         };
     }

@@ -18,11 +18,11 @@
 
 package org.hibernate.omm.index;
 
-import org.bson.BsonDocument;
 import org.hibernate.omm.extension.CommandRecorderInjected;
 import org.hibernate.omm.extension.HibernateProperty;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.service.CommandRecorder;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,27 +32,27 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @since 1.0.0
  */
 
-@MongoIntegrationTest(
+/*@MongoIntegrationTest(
         externalEntities = Book.class,
         hibernateProperties = {
-                @HibernateProperty(key = "hibernate.hbm2ddl.auto", value = "create")
+                @HibernateProperty(key = "hibernate.hbm2ddl.auto", value = "update")
         }
-)
-class CollectionIndexCreationTests {
+)*/
+class CollectionIndexDeletionTests {
 
     @CommandRecorderInjected
     CommandRecorder commandRecorder;
 
+    @Disabled("need more work to return collection in DatabaseMetadata")
     @Test
-    void test_index_created() {
+    void test_indexes_dropped() {
         final var commands = commandRecorder.getCommandRecords();
-        assertThat(commands).allSatisfy(command -> assertThat(command.getString("createIndexes").getValue()).isEqualTo("books"));
-        assertThat(commands).extracting(command -> command.getArray("indexes")).allSatisfy(indexes -> assertThat(indexes).hasSize(1));
-        assertThat(commands).flatExtracting(command -> command.getArray("indexes")).contains(
-                BsonDocument.parse("{ name: \"idx_on_single_col\", key: {publishYear: 1}, unique: false}"),
-                BsonDocument.parse("{ name: \"idx_on_multi_cols\", key: {publisher: 1, author: 1}, unique: false}"),
-                BsonDocument.parse("{ name: \"uniq_idx_on_single_col\", key: {isbn: 1}, unique: true}"),
-                BsonDocument.parse("{ name: \"uniq_idx_on_multi_cols\", key: {publisher: 1, title: 1}, unique: true}")
+        assertThat(commands).allSatisfy(command -> assertThat(command.getString("dropIndexes").getValue()).isEqualTo("books"));
+        assertThat(commands).extracting(command -> command.getString("index").getValue()).containsExactlyInAnyOrder(
+                "idx_on_single_col",
+                "idx_on_multi_cols",
+                "uniq_idx_on_single_col",
+                "uniq_idx_on_multi_cols"
         );
     }
 }
