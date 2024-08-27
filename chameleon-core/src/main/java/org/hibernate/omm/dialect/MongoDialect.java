@@ -24,6 +24,8 @@ import org.hibernate.boot.model.relational.Exportable;
 import org.hibernate.boot.model.relational.SqlStringGenerationContext;
 import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
+import org.hibernate.dialect.aggregate.AggregateSupport;
+import org.hibernate.dialect.aggregate.PostgreSQLAggregateSupport;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.internal.util.collections.ArrayHelper;
 import org.hibernate.mapping.Constraint;
@@ -32,6 +34,8 @@ import org.hibernate.mapping.Selectable;
 import org.hibernate.mapping.Table;
 import org.hibernate.omm.array.function.MongoArrayContainsFunction;
 import org.hibernate.omm.array.function.MongoArrayIncludesFunction;
+import org.hibernate.omm.array.type.MongoSQLArrayJdbcTypeConstructor;
+import org.hibernate.omm.array.type.MongoSQLStructCastingJdbcType;
 import org.hibernate.omm.ast.MQLAstTranslatorFactory;
 import org.hibernate.omm.dialect.exporter.MongoIndexCommandUtil;
 import org.hibernate.omm.type.ObjectIdJavaType;
@@ -43,7 +47,6 @@ import org.hibernate.sql.ast.spi.ParameterMarkerStrategy;
 import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
-import org.hibernate.type.spi.TypeConfiguration;
 
 import static org.hibernate.type.SqlTypes.ARRAY;
 
@@ -69,8 +72,6 @@ public class MongoDialect extends Dialect {
             return ArrayHelper.EMPTY_STRING_ARRAY;
         }
     }
-
-    ;
 
     public MongoDialect() {
         this(MINIMUM_VERSION);
@@ -111,10 +112,24 @@ public class MongoDialect extends Dialect {
 
     @Override
     public void contribute(final TypeContributions typeContributions, final ServiceRegistry serviceRegistry) {
-        contributeTypes(typeContributions, serviceRegistry);
-        TypeConfiguration typeConfiguration = typeContributions.getTypeConfiguration();
-        typeConfiguration.getJavaTypeRegistry().addDescriptor(ObjectIdJavaType.getInstance());
-        typeConfiguration.getJdbcTypeRegistry().addDescriptor(ObjectIdJdbcType.getInstance());
+        super.contribute(typeContributions, serviceRegistry);
+        contributeMongoTypes(typeContributions);
+    }
+
+    protected void contributeMongoTypes(TypeContributions typeContributions) {
+        final var javaTypeRegistry = typeContributions.getTypeConfiguration().getJavaTypeRegistry();
+        final var jdbcTypeRegistry = typeContributions.getTypeConfiguration()
+                .getJdbcTypeRegistry();
+
+        // Struct
+        jdbcTypeRegistry.addDescriptor( MongoSQLStructCastingJdbcType.INSTANCE );
+
+        // array
+        jdbcTypeRegistry.addTypeConstructor( MongoSQLArrayJdbcTypeConstructor.INSTANCE );
+
+        // ObjectId
+        javaTypeRegistry.addDescriptor(ObjectIdJavaType.getInstance());
+        jdbcTypeRegistry.addDescriptor(ObjectIdJdbcType.getInstance());
     }
 
     @Override
@@ -123,6 +138,11 @@ public class MongoDialect extends Dialect {
         var typeConfiguration = functionContributions.getTypeConfiguration();
         functionRegistry.register("array_contains", new MongoArrayContainsFunction(typeConfiguration));
         functionRegistry.register("array_includes", new MongoArrayIncludesFunction(typeConfiguration));
+    }
+
+    @Override
+    public AggregateSupport getAggregateSupport() {
+        return PostgreSQLAggregateSupport.valueOf(this);
     }
 
     @Override

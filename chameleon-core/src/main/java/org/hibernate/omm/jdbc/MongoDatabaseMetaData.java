@@ -87,6 +87,16 @@ public class MongoDatabaseMetaData implements DatabaseMetaDataAdapter {
     }
 
     @Override
+    public int getJDBCMajorVersion() {
+        return 4;
+    }
+
+    @Override
+    public int getJDBCMinorVersion() {
+        return 3;
+    }
+
+    @Override
     public String getSQLKeywords() {
         return "";
     }
