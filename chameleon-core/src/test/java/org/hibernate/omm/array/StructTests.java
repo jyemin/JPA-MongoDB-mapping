@@ -21,17 +21,20 @@ package org.hibernate.omm.array;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import org.bson.BsonDocument;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.Struct;
-import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.omm.extension.CommandRecorderInjected;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
+import org.hibernate.omm.service.CommandRecorder;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -44,6 +47,9 @@ class StructTests {
     @SessionFactoryInjected
     SessionFactory sessionFactory;
 
+    @CommandRecorderInjected
+    CommandRecorder commandRecorder;
+
     @Test
     void test_persist() {
         sessionFactory.inTransaction(session -> {
@@ -51,17 +57,32 @@ class StructTests {
             tag.author = "Nathan";
             tag.tags = List.of("comedy", "drama");
             var movie = new Movie();
+            movie.id = 1;
             movie.title = "Forrest Gump";
             movie.tagsByAuthor = List.of(tag);
             session.persist(movie);
         });
+        assertThat(commandRecorder.getCommandRecords()).singleElement().satisfies(
+                command -> {
+                    assertThat(command.getFirstKey()).isEqualTo("insert");
+                    assertThat(command.getString(command.getFirstKey()).getValue()).isEqualTo("movies");
+                    assertThat(command.getArray("documents").getValues()).singleElement().satisfies(
+                            document -> {
+                                final var expectedJson = """
+                                        {"tagsByAuthor": [{"commenter": "Nathan", "tags": ["comedy", "drama"]}], "title": "Forrest Gump", "_id": 1}
+                                        """;
+                                assertThat(document).isEqualTo(BsonDocument.parse(expectedJson));
+                            }
+                    );
+                }
+        );
     }
 
     @Entity(name = "Movie")
+    @Table(name = "movies")
     static class Movie {
-        @Id @GeneratedValue
-        @UuidGenerator
-        UUID id;
+        @Id
+        int id;
 
         String title;
 

@@ -35,6 +35,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.TimeZone;
 
+import org.bson.BsonDocument;
 import org.hibernate.dialect.StructAttributeValues;
 import org.hibernate.dialect.StructHelper;
 import org.hibernate.internal.util.CharSequenceHelper;
@@ -43,6 +44,7 @@ import org.hibernate.metamodel.mapping.JdbcMapping;
 import org.hibernate.metamodel.mapping.MappingType;
 import org.hibernate.metamodel.mapping.SelectableMapping;
 import org.hibernate.metamodel.mapping.ValuedModelPart;
+import org.hibernate.omm.util.TypeUtil;
 import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.sql.ast.spi.StringBuilderSqlAppender;
 import org.hibernate.type.BasicPluralType;
@@ -1170,9 +1172,25 @@ public abstract class AbstractMongoSQLStructJdbcType implements StructJdbcType {
     @Override
     public Object createJdbcValue(Object domainValue, WrapperOptions options) throws SQLException {
         assert embeddableMappingType != null;
-        final StringBuilder sb = new StringBuilder();
-        serializeStructTo( new MongoSQLAppender( sb ), domainValue, options );
-        return sb.toString();
+        final var document = new BsonDocument();
+        serializeStructToBsonDocument( document, domainValue, options );
+        return document;
+    }
+
+    private void serializeStructToBsonDocument(BsonDocument bsonDocument, Object domainValue, WrapperOptions options) throws SQLException {
+        final Object[] jdbcValues = embeddableMappingType.getValues( domainValue );
+        if ( orderMapping != null ) {
+            final Object[] originalValues = jdbcValues.clone();
+            for ( int i = 0; i < orderMapping.length; i++ ) {
+                jdbcValues[i] = originalValues[orderMapping[i]];
+            }
+        }
+        for ( int i = 0; i < jdbcValues.length; i++ ) {
+            final SelectableMapping selectableMapping = orderMapping == null ?
+                    embeddableMappingType.getJdbcValueSelectable( i ) :
+                    embeddableMappingType.getJdbcValueSelectable( orderMapping[i] );
+            bsonDocument.put(selectableMapping.getSelectableName(), TypeUtil.wrap(jdbcValues[i]));
+        }
     }
 
     @Override

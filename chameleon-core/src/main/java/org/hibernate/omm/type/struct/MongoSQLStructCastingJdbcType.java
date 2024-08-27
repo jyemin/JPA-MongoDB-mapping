@@ -32,6 +32,7 @@ import org.hibernate.type.descriptor.jdbc.BasicBinder;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 
 public class MongoSQLStructCastingJdbcType extends AbstractMongoSQLStructJdbcType {
     public static final MongoSQLStructCastingJdbcType INSTANCE = new MongoSQLStructCastingJdbcType();
@@ -80,12 +81,8 @@ public class MongoSQLStructCastingJdbcType extends AbstractMongoSQLStructJdbcTyp
             @Override
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options)
                     throws SQLException {
-                final String stringValue = ( (MongoSQLStructCastingJdbcType) getJdbcType() ).toString(
-                        value,
-                        getJavaType(),
-                        options
-                );
-                st.setString( index, stringValue );
+                final var jdbcValue = ( (MongoSQLStructCastingJdbcType) getJdbcType() ).createJdbcValue(value, options);
+                st.setObject( index, jdbcValue, Types.STRUCT );
             }
 
             @Override

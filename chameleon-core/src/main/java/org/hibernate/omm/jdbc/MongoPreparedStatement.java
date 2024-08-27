@@ -46,6 +46,7 @@ import java.sql.SQLException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -170,11 +171,14 @@ public class MongoPreparedStatement extends MongoStatement
     public void setObject(final int parameterIndex, final Object x, final int targetSqlType)
             throws SimulatedSQLException {
         switch (targetSqlType) {
+            case Types.STRUCT:
+                parameters.put(parameterIndex, (BsonDocument) x);
+                break;
             case 3_000:
                 parameters.put(parameterIndex, new BsonObjectId((ObjectId) x));
                 break;
             default:
-                throw new NotSupportedSQLException("unknown MongoSqlType: " + targetSqlType);
+                throw new NotSupportedSQLException("unknown SQL type: " + targetSqlType);
         }
     }
 

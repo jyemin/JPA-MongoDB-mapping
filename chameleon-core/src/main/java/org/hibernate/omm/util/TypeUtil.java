@@ -65,45 +65,48 @@ public final class TypeUtil {
         };
     }
 
-    public static BsonValue wrap(@Nullable Object jdbcValue) {
-        if (jdbcValue == null) {
+    public static BsonValue wrap(@Nullable Object value) {
+        if (value == null) {
             return BsonNull.VALUE;
         }
-        if (jdbcValue instanceof Boolean boolValue) {
+        if (value instanceof BsonValue bsonValue) {
+            return bsonValue;
+        }
+        if (value instanceof Boolean boolValue) {
             return BsonBoolean.valueOf(boolValue);
         }
-        if (jdbcValue instanceof Float floatValue) {
+        if (value instanceof Float floatValue) {
             return new BsonDouble(floatValue);
         }
-        if (jdbcValue instanceof Double doubleValue) {
+        if (value instanceof Double doubleValue) {
             return new BsonDouble(doubleValue);
         }
-        if (jdbcValue instanceof Byte byteValue) {
+        if (value instanceof Byte byteValue) {
             return new BsonInt32(byteValue);
         }
-        if (jdbcValue instanceof Short shortValue) {
+        if (value instanceof Short shortValue) {
             return new BsonInt32(shortValue);
         }
-        if (jdbcValue instanceof Integer intValue) {
+        if (value instanceof Integer intValue) {
             return new BsonInt32(intValue);
         }
-        if (jdbcValue instanceof Long longValue) {
+        if (value instanceof Long longValue) {
             return new BsonInt64(longValue);
         }
-        if (jdbcValue instanceof BigDecimal bigDecimalValue) {
+        if (value instanceof BigDecimal bigDecimalValue) {
             return new BsonDecimal128(new Decimal128(bigDecimalValue));
         }
-        if (jdbcValue instanceof String stringValue) {
+        if (value instanceof String stringValue) {
             return new BsonString(stringValue);
         }
-        if (jdbcValue instanceof byte[] bytesValue) {
+        if (value instanceof byte[] bytesValue) {
             return new BsonBinary(bytesValue);
         }
-        if (jdbcValue instanceof Date dateValue) {
+        if (value instanceof Date dateValue) {
             return new BsonDateTime(dateValue.toInstant().toEpochMilli());
         }
-        if (jdbcValue.getClass().isArray() || Iterable.class.isAssignableFrom(jdbcValue.getClass())) {
-            final var iterable = jdbcValue.getClass().isArray() ? Arrays.asList((Object[]) jdbcValue) : (Iterable<?>) jdbcValue;
+        if (value.getClass().isArray() || Iterable.class.isAssignableFrom(value.getClass())) {
+            final var iterable = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Iterable<?>) value;
             final var iterator = iterable.iterator();
 
             final List<BsonValue> elements = new ArrayList<>();
@@ -112,7 +115,7 @@ public final class TypeUtil {
             }
             return new BsonArray(elements);
         }
-        throw new NotSupportedRuntimeException("unknown JDBC type: " + jdbcValue.getClass());
+        throw new NotSupportedRuntimeException("unknown JDBC type: " + value.getClass());
     }
 
     @Nullable
