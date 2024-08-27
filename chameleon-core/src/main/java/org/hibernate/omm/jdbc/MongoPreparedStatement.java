@@ -19,26 +19,17 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
 import org.bson.BsonArray;
-import org.bson.BsonBinary;
-import org.bson.BsonBoolean;
-import org.bson.BsonDateTime;
-import org.bson.BsonDecimal128;
 import org.bson.BsonDocument;
-import org.bson.BsonDouble;
-import org.bson.BsonInt32;
-import org.bson.BsonInt64;
-import org.bson.BsonNull;
 import org.bson.BsonObjectId;
-import org.bson.BsonString;
 import org.bson.BsonType;
 import org.bson.BsonValue;
-import org.bson.types.Decimal128;
 import org.bson.types.ObjectId;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.PreparedStatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.service.CommandRecorder;
+import org.hibernate.omm.util.TypeUtil;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -107,74 +98,72 @@ public class MongoPreparedStatement extends MongoStatement
 
     @Override
     public void setNull(final int parameterIndex, final int sqlType) {
-        parameters.put(parameterIndex, BsonNull.VALUE);
+        parameters.put(parameterIndex, TypeUtil.wrap(null));
     }
 
     @Override
     public void setBoolean(final int parameterIndex, final boolean x) {
-        parameters.put(parameterIndex, BsonBoolean.valueOf(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setByte(final int parameterIndex, final byte x) {
-        parameters.put(parameterIndex, new BsonInt32(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setShort(final int parameterIndex, final short x) {
-        parameters.put(parameterIndex, new BsonInt32(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setInt(final int parameterIndex, final int x) {
-        parameters.put(parameterIndex, new BsonInt32(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setLong(final int parameterIndex, final long x) {
-        parameters.put(parameterIndex, new BsonInt64(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setFloat(final int parameterIndex, final float x) {
-        parameters.put(parameterIndex, new BsonDouble(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setDouble(final int parameterIndex, final double x) {
-        parameters.put(parameterIndex, new BsonDouble(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setBigDecimal(final int parameterIndex, final BigDecimal x) {
-        parameters.put(parameterIndex, new BsonDecimal128(new Decimal128(x)));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setString(final int parameterIndex, final String x) {
-        parameters.put(parameterIndex, new BsonString(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setBytes(final int parameterIndex, final byte[] x) {
-        parameters.put(parameterIndex, new BsonBinary(x));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setDate(final int parameterIndex, final Date x) {
-        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli()));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setTime(final int parameterIndex, final Time x) {
-        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli()));
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
     public void setTimestamp(final int parameterIndex, final Timestamp x) {
-        parameters.put(parameterIndex, new BsonDateTime(x.toInstant().toEpochMilli())
-
-        );
+        parameters.put(parameterIndex, TypeUtil.wrap(x));
     }
 
     @Override
@@ -190,27 +179,8 @@ public class MongoPreparedStatement extends MongoStatement
     }
 
     @Override
-    public void setArray(final int parameterIndex, final Array x) throws SimulatedSQLException {
-        try {
-            Object[] objectArray = (Object[]) x.getArray();
-            BsonArray bsonArray = new BsonArray(objectArray.length);
-            for (int i = 0; i < objectArray.length; i++) {
-                Object objectValue = objectArray[i];
-                BsonValue bsonValue;
-                if (objectValue instanceof String) {
-                    bsonValue = new BsonString((String) objectValue);
-                } else if (objectValue instanceof Integer) {
-                    bsonValue = new BsonInt32((Integer) objectValue);
-                } else {
-                    // TODO: support the rest of the types
-                    throw new NotSupportedSQLException("Unsupported type in SQL ARRAY: " + objectValue.getClass().getName());
-                }
-                bsonArray.add(bsonValue);
-            }
-            parameters.put(parameterIndex, bsonArray);
-        } catch (SQLException cause) {
-            throw new SimulatedSQLException(cause.getMessage(), cause);
-        }
+    public void setArray(final int parameterIndex, final Array x) throws SQLException {
+        parameters.put(parameterIndex, TypeUtil.wrap(x.getArray()));
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

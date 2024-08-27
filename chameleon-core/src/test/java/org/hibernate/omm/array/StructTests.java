@@ -31,7 +31,6 @@ import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
