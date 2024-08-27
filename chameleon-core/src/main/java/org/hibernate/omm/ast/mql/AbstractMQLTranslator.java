@@ -21,6 +21,7 @@ import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.mongoast.filters.AstMatchesEverythingFilter;
 import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.query.sqm.sql.internal.SqmParameterInterpretation;
 import org.hibernate.sql.ast.Clause;
@@ -122,6 +123,7 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
             }
         } else {
             appendMql("{ }");
+            mqlAstState.attach(AttachmentKeys.filter(), new AstMatchesEverythingFilter());
         }
     }
 

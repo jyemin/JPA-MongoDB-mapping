@@ -31,6 +31,7 @@ import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilter;
 import org.hibernate.omm.mongoast.filters.AstFilterField;
 import org.hibernate.omm.mongoast.stages.AstMatchStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStage;
@@ -180,16 +181,15 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 throw new NotSupportedRuntimeException("query group not supported");
             }
             appendMql("{ aggregate: ");
-            visitFromClause(querySpec.getFromClause());
-            String collectionName = mqlAstState.detach(AttachmentKeys.collectionName());
+            String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () ->
+                    visitFromClause(querySpec.getFromClause()));
 
             List<AstStage> stageList = new ArrayList<>();
 
             appendMql("{ $match: ");
-            visitWhereClause(querySpec.getWhereClauseRestrictions());
-            if (mqlAstState.hasAttachment()) {
-                stageList.add(new AstMatchStage(mqlAstState.detach(AttachmentKeys.filter())));
-            }
+            AstFilter filter = mqlAstState.expect(AttachmentKeys.filter(), () ->
+                    visitWhereClause(querySpec.getWhereClauseRestrictions()));
+            stageList.add(new AstMatchStage(filter));
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
                 appendMql(" }, { $sort: ");
@@ -197,8 +197,9 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             }
 
             appendMql(" }, { $project: ");
-            visitSelectClause(querySpec.getSelectClause());
-            stageList.add(new AstProjectStage(mqlAstState.detach(AttachmentKeys.projectStageSpecifications())));
+            List<AstProjectStageSpecification> projectStageSpecifications =
+                    mqlAstState.expect(AttachmentKeys.projectStageSpecifications(), () -> visitSelectClause(querySpec.getSelectClause()));
+            stageList.add(new AstProjectStage(projectStageSpecifications));
 
             //visitGroupByClause( querySpec, dialect.getGroupBySelectItemReferenceStrategy() );
             //visitHavingClause( querySpec );
@@ -660,13 +661,11 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             appendMql(" ] }");
         } else {
             appendMql("{ ");
-            lhs.accept(this);
-            String fieldName = mqlAstState.detach(AttachmentKeys.fieldName());
+            String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> lhs.accept(this));
             appendMql(": { ");
             appendMql(getMongoOperatorText(operator));
             appendMql(": ");
-            rhs.accept(this);
-            BsonValue value = mqlAstState.detach(AttachmentKeys.fieldValue());
+            BsonValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> rhs.accept(this));
             appendMql(" } }");
             mqlAstState.attach(AttachmentKeys.filter(),
                     new AstFieldOperationFilter(new AstFilterField(fieldName),
