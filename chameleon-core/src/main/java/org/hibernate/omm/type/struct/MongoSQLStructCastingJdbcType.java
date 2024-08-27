@@ -16,11 +16,10 @@
  *
  */
 
-package org.hibernate.omm.array.type;
+package org.hibernate.omm.type.struct;
 
 import org.hibernate.boot.model.naming.Identifier;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.PostgreSQLStructCastingJdbcType;
 import org.hibernate.metamodel.mapping.EmbeddableMappingType;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
 import org.hibernate.sql.ast.spi.SqlAppender;

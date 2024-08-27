@@ -16,7 +16,7 @@
  *
  */
 
-package org.hibernate.omm.array.type;
+package org.hibernate.omm.type.array;
 
 import org.hibernate.dialect.Dialect;
 import org.hibernate.tool.schema.extract.spi.ColumnTypeInformation;

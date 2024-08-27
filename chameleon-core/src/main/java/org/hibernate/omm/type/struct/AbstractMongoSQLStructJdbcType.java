@@ -16,7 +16,7 @@
  *
  */
 
-package org.hibernate.omm.array.type;
+package org.hibernate.omm.type.struct;
 
 import java.lang.reflect.Array;
 import java.sql.CallableStatement;
