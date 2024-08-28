@@ -51,17 +51,15 @@ class StructTests {
     CommandRecorder commandRecorder;
 
     @Test
-    void test_persist_then_load() {
-        var tag = new TagsByAuthor();
-        tag.author = "Nathan";
-        tag.tags = List.of("comedy", "drama");
+    void test_persist() {
+        var tagsByAuthor = new TagsByAuthor();
+        tagsByAuthor.author = "Nathan";
+        tagsByAuthor.tags = List.of("comedy", "drama");
         var movie = new Movie();
         movie.id = 1;
         movie.title = "Forrest Gump";
-        movie.tagsByAuthor = List.of(tag);
-        sessionFactory.inTransaction(session -> {
-            session.persist(movie);
-        });
+        movie.tagsByAuthorList = new TagsByAuthor[] { tagsByAuthor };
+        sessionFactory.inTransaction(session -> session.persist(movie));
         assertThat(commandRecorder.getCommandsRecorded()).singleElement().satisfies(
                 command -> {
                     assertThat(command.getFirstKey()).isEqualTo("insert");
@@ -69,17 +67,28 @@ class StructTests {
                     assertThat(command.getArray("documents").getValues()).singleElement().satisfies(
                             document -> {
                                 final var expectedJson = """
-                                        {"tagsByAuthor": [{"commenter": "Nathan", "tags": ["comedy", "drama"]}], "title": "Forrest Gump", "_id": 1}
+                                        {"tagsByAuthorList": [{"commenter": "Nathan", "tags": ["comedy", "drama"]}], "title": "Forrest Gump", "_id": 1}
                                         """;
                                 assertThat(document).isEqualTo(BsonDocument.parse(expectedJson));
                             }
                     );
                 }
         );
+    }
+
+    @Test
+    void test_query() {
+        var tagsByAuthor = new TagsByAuthor();
+        tagsByAuthor.author = "Nathan";
+        tagsByAuthor.tags = List.of("comedy", "drama");
+        var movie = new Movie();
+        movie.id = 1;
+        movie.title = "Forrest Gump";
+        movie.tagsByAuthorList = new TagsByAuthor[] { tagsByAuthor };
+        sessionFactory.inTransaction(session -> session.persist(movie));
         sessionFactory.inTransaction(session -> {
-            final var loadedMovie = new Movie();
-            session.load(loadedMovie, 1);
-            assertThat(loadedMovie).usingRecursiveComparison().isEqualTo(movie);
+            final var fetchedMovie = session.createQuery("from Movie where id = :id", Movie.class).setParameter("id", 1).getSingleResult();
+            assertThat(fetchedMovie).usingRecursiveComparison().isEqualTo(movie);
         });
     }
 
@@ -91,7 +100,7 @@ class StructTests {
 
         String title;
 
-        List<TagsByAuthor> tagsByAuthor;
+        TagsByAuthor[] tagsByAuthorList;
     }
 
     @Embeddable

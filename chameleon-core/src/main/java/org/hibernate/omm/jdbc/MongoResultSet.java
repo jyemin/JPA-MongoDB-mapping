@@ -35,6 +35,8 @@ import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.omm.util.TypeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -52,6 +54,8 @@ import static org.hibernate.internal.util.NullnessUtil.castNonNull;
  * @since 1.0.0
  */
 public class MongoResultSet implements ResultSetAdapter {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoResultSet.class);
 
     private final MongoCursor<BsonDocument> cursor;
 
@@ -79,6 +83,9 @@ public class MongoResultSet implements ResultSetAdapter {
         }
         if (cursor.hasNext()) {
             currentDocument = cursor.next().toBsonDocument();
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(castNonNull(currentDocument).toJson());
+            }
             return true;
         } else {
             return false;

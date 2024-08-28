@@ -25,21 +25,21 @@ import org.hibernate.boot.model.relational.SqlStringGenerationContext;
 import org.hibernate.dialect.DatabaseVersion;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.aggregate.AggregateSupport;
-import org.hibernate.dialect.aggregate.PostgreSQLAggregateSupport;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.internal.util.collections.ArrayHelper;
 import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Selectable;
 import org.hibernate.mapping.Table;
-import org.hibernate.omm.type.array.function.MongoArrayContainsFunction;
-import org.hibernate.omm.type.array.function.MongoArrayIncludesFunction;
-import org.hibernate.omm.type.array.MongoSQLArrayJdbcTypeConstructor;
-import org.hibernate.omm.type.struct.MongoSQLStructCastingJdbcType;
 import org.hibernate.omm.ast.MQLAstTranslatorFactory;
 import org.hibernate.omm.dialect.exporter.MongoIndexCommandUtil;
 import org.hibernate.omm.type.ObjectIdJavaType;
 import org.hibernate.omm.type.ObjectIdJdbcType;
+import org.hibernate.omm.type.array.MongoSQLArrayJdbcTypeConstructor;
+import org.hibernate.omm.type.array.function.MongoArrayContainsFunction;
+import org.hibernate.omm.type.array.function.MongoArrayIncludesFunction;
+import org.hibernate.omm.type.struct.MongoSQLAggregateSupport;
+import org.hibernate.omm.type.struct.MongoSQLStructJdbcType;
 import org.hibernate.omm.util.StringUtil;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
@@ -122,7 +122,7 @@ public class MongoDialect extends Dialect {
                 .getJdbcTypeRegistry();
 
         // Struct
-        jdbcTypeRegistry.addDescriptor( MongoSQLStructCastingJdbcType.INSTANCE );
+        jdbcTypeRegistry.addDescriptor( MongoSQLStructJdbcType.INSTANCE );
 
         // array
         jdbcTypeRegistry.addTypeConstructor( MongoSQLArrayJdbcTypeConstructor.INSTANCE );
@@ -142,7 +142,7 @@ public class MongoDialect extends Dialect {
 
     @Override
     public AggregateSupport getAggregateSupport() {
-        return PostgreSQLAggregateSupport.valueOf(this);
+        return MongoSQLAggregateSupport.INSTANCE;
     }
 
     @Override
