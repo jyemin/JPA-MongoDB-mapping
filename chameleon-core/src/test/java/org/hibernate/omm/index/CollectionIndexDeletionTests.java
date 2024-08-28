@@ -19,8 +19,6 @@
 package org.hibernate.omm.index;
 
 import org.hibernate.omm.extension.CommandRecorderInjected;
-import org.hibernate.omm.extension.HibernateProperty;
-import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.service.CommandRecorder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -46,7 +44,7 @@ class CollectionIndexDeletionTests {
     @Disabled("need more work to return collection in DatabaseMetadata")
     @Test
     void test_indexes_dropped() {
-        final var commands = commandRecorder.getCommandRecords();
+        final var commands = commandRecorder.getCommandsRecorded();
         assertThat(commands).allSatisfy(command -> assertThat(command.getString("dropIndexes").getValue()).isEqualTo("books"));
         assertThat(commands).extracting(command -> command.getString("index").getValue()).containsExactlyInAnyOrder(
                 "idx_on_single_col",

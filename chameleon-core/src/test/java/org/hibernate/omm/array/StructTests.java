@@ -62,7 +62,7 @@ class StructTests {
             movie.tagsByAuthor = List.of(tag);
             session.persist(movie);
         });
-        assertThat(commandRecorder.getCommandRecords()).singleElement().satisfies(
+        assertThat(commandRecorder.getCommandsRecorded()).singleElement().satisfies(
                 command -> {
                     assertThat(command.getFirstKey()).isEqualTo("insert");
                     assertThat(command.getString(command.getFirstKey()).getValue()).isEqualTo("movies");

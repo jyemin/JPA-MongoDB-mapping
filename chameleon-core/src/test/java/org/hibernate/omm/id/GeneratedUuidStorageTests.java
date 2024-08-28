@@ -55,7 +55,7 @@ class GeneratedUuidStorageTests {
             session.persist(book);
         });
 
-        assertThat(commandRecorder.getCommandRecords()).singleElement().satisfies(command -> {
+        assertThat(commandRecorder.getCommandsRecorded()).singleElement().satisfies(command -> {
             assertThat(command.getArray("documents")).singleElement().satisfies(doc -> {
                 assertThat(doc.isDocument()).isTrue();
                 assertThat(doc.asDocument().get("_id").isString())

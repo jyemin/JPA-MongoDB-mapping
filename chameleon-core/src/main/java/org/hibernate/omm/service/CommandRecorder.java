@@ -36,20 +36,20 @@ import java.util.List;
 public interface CommandRecorder extends Service {
 
     /**
-     * Record a complet4e Bson command issued to Mongo
+     * Record a complete Bson command issued to Mongo
      *
-     * @param command a de-parameterized Bson command
+     * @param command a de-parameterized BSON command
      */
     void record(BsonDocument command);
 
     /**
-     * Return immutable accumulated command recorded.
-     * @return previous accumulated records
+     * Return all recorded commands.
+     * @return previous accumulated commands
      */
-    List<BsonDocument> getCommandRecords();
+    List<BsonDocument> getCommandsRecorded();
 
     /**
-     * empty accumulated command records
+     * empty recorded commands
      */
-    void clearCommandRecords();
+    void clearCommandsRecorded();
 }
