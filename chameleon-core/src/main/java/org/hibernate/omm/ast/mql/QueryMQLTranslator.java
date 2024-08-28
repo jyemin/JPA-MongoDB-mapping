@@ -37,11 +37,15 @@ import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
 import org.hibernate.omm.mongoast.filters.AstFilter;
 import org.hibernate.omm.mongoast.filters.AstFilterField;
+import org.hibernate.omm.mongoast.stages.AstLookupStage;
+import org.hibernate.omm.mongoast.stages.AstLookupStageEqualityMatch;
+import org.hibernate.omm.mongoast.stages.AstLookupStageMatch;
 import org.hibernate.omm.mongoast.stages.AstMatchStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
 import org.hibernate.omm.mongoast.stages.AstSortStage;
 import org.hibernate.omm.mongoast.stages.AstStage;
+import org.hibernate.omm.mongoast.stages.AstUnwindStage;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.query.NullPrecedence;
@@ -186,10 +190,10 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 throw new NotSupportedRuntimeException("query group not supported");
             }
             appendMql("{ aggregate: ");
-            String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () ->
+            CollectionNameAndJoinStages collectionNameAndJoinStages = mqlAstState.expect(AttachmentKeys.collectionNameAndJoinStages(), () ->
                     visitFromClause(querySpec.getFromClause()));
 
-            List<AstStage> stageList = new ArrayList<>();
+            List<AstStage> stageList = new ArrayList<>(collectionNameAndJoinStages.joinStages());
 
             appendMql("{ $match: ");
             AstFilter filter = mqlAstState.expect(AttachmentKeys.filter(), () ->
@@ -217,7 +221,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             //}
             appendMql(" } ] }");
             AstPipeline pipeline = new AstPipeline(stageList);
-            root = new AstAggregation(collectionName, pipeline);
+            root = new AstAggregation(collectionNameAndJoinStages.collectionName(), pipeline);
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;
@@ -269,9 +273,12 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
         if (tableGroupJoinCollector != null) {
             tableGroupJoinCollector.addAll(tableGroup.getTableGroupJoins());
         } else {
-            tableGroup.getPrimaryTableReference().accept(this);
+            String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () ->
+                    tableGroup.getPrimaryTableReference().accept(this));
             appendMql(", pipeline: [ ");
-            processTableGroupJoins(tableGroup);
+            List<AstStage> joinStages = mqlAstState.expect(AttachmentKeys.joinStages(), () ->
+                    processTableGroupJoins(tableGroup));
+            mqlAstState.attach(AttachmentKeys.collectionNameAndJoinStages(), new CollectionNameAndJoinStages(collectionName, joinStages));
         }
         ModelPartContainer modelPart = tableGroup.getModelPart();
         if (modelPart instanceof AbstractEntityPersister) {
@@ -291,6 +298,8 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                     appendMql(", ");
                 }
             }
+        } else {
+            mqlAstState.attach(AttachmentKeys.joinStages(), List.of());
         }
     }
 
@@ -509,7 +518,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             tableGroupJoins = null;
         }
 
-        simulateTableJoining(source, tableGroup, predicate);
+        AstLookupStage lookupStage = mqlAstState.expect(AttachmentKeys.lookupStage(), () -> simulateTableJoining(source, tableGroup, predicate));
 
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
             final Predicate lateralEmulationPredicate = determineLateralEmulationPredicate(tableGroup);
@@ -537,13 +546,16 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             }
             if (!tableGroup.getTableGroupJoins().isEmpty()) {
                 appendMql(", pipeline: [");
-                processTableGroupJoins(tableGroup);
+                List<AstStage> joinStages = mqlAstState.expect(AttachmentKeys.joinStages(), () ->
+                        processTableGroupJoins(tableGroup));
+                lookupStage = lookupStage.addPipeline(joinStages);
                 appendMql(" ]");
             }
         }
 
         appendMql(" } }, { $unwind: " + writeStringHelper("$" + tableGroup.getPrimaryTableReference().getIdentificationVariable()) + " }");
 
+        mqlAstState.attach(AttachmentKeys.joinStages(), List.of(lookupStage, new AstUnwindStage(tableGroup.getPrimaryTableReference().getIdentificationVariable())));
         ModelPartContainer modelPart = tableGroup.getModelPart();
         if (modelPart instanceof AbstractEntityPersister) {
             String[] querySpaces = (String[]) ((AbstractEntityPersister) modelPart).getQuerySpaces();
@@ -577,11 +589,14 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                     sourceColumnReference = leftHandColumnReference;
                     targetColumnReference = rightHandColumnReference;
                 }
+                AstLookupStageMatch lookupStageMatch;
                 if (sourceColumnReference != null && targetColumnReference != null) {
                     appendMql(", localField: ");
                     appendMql(writeStringHelper(sourceColumnReference.getColumnExpression()));
                     appendMql(", foreignField: ");
                     appendMql(writeStringHelper(targetColumnReference.getColumnExpression()));
+                    lookupStageMatch = new AstLookupStageEqualityMatch(sourceColumnReference.getColumnExpression(),
+                            targetColumnReference.getColumnExpression());
                 } else {
                     var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceQualifier);
                     if (!sourceColumnsInPredicate.isEmpty()) {
@@ -606,9 +621,13 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                         setInAggregateExpressionScope(false);
                         this.targetQualifier = null;
                     }
+                    throw new NotYetImplementedException("This appears to be untested code, so haven't added MQL AST support yet");
                 }
                 appendMql(", as: ");
                 appendMql(writeStringHelper(targetQualifier));
+
+                mqlAstState.attach(AttachmentKeys.lookupStage(),
+                        new AstLookupStage(namedTargetTableReference.getTableExpression(), targetQualifier, lookupStageMatch, List.of()));
             } else {
                 throw new NotYetImplementedException("currently only comparison predicate supported for table joining");
             }

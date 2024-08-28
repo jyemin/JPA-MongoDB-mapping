@@ -3,7 +3,9 @@ package org.hibernate.omm.ast.mql;
 import org.bson.BsonValue;
 import org.hibernate.omm.mongoast.AstSortField;
 import org.hibernate.omm.mongoast.filters.AstFilter;
+import org.hibernate.omm.mongoast.stages.AstLookupStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
+import org.hibernate.omm.mongoast.stages.AstStage;
 
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +23,9 @@ public class AttachmentKeys {
     private static final AttachmentKey<AstFilter> FILTER = new DefaultAttachmentKey<>("filter");
     private static final AttachmentKey<List<AstSortField>> SORT_FIELDS = new DefaultAttachmentKey<>("sortFields");
     private static final AttachmentKey<AstSortField> SORT_FIELD = new DefaultAttachmentKey<>("sortField");
+    private static final AttachmentKey<List<AstStage>> JOIN_STAGES = new DefaultAttachmentKey<>("joinStages");
+    private static final AttachmentKey<AstLookupStage> LOOKUP_STAGE = new DefaultAttachmentKey<>("lookupStage");
+    private static final AttachmentKey<CollectionNameAndJoinStages> COLLECTION_NAME_AND_JOIN_STAGES = new DefaultAttachmentKey<>("collectionNameAndJoinStages");
 
     public static AttachmentKey<String> collectionName() {
        return COLLECTION_NAME;
@@ -48,6 +53,18 @@ public class AttachmentKeys {
 
     public static AttachmentKey<AstSortField> sortField() {
         return SORT_FIELD;
+    }
+
+    public static AttachmentKey<List<AstStage>> joinStages() {
+        return JOIN_STAGES;
+    }
+
+    public static AttachmentKey<AstLookupStage> lookupStage() {
+        return LOOKUP_STAGE;
+    }
+
+    public static AttachmentKey<CollectionNameAndJoinStages> collectionNameAndJoinStages() {
+        return COLLECTION_NAME_AND_JOIN_STAGES;
     }
 
     private static final class DefaultAttachmentKey<V> implements AttachmentKey<V> {
