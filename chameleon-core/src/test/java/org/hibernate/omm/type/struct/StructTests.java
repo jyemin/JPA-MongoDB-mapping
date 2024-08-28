@@ -16,7 +16,7 @@
  *
  */
 
-package org.hibernate.omm.array;
+package org.hibernate.omm.type.struct;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -51,15 +51,15 @@ class StructTests {
     CommandRecorder commandRecorder;
 
     @Test
-    void test_persist() {
+    void test_persist_then_load() {
+        var tag = new TagsByAuthor();
+        tag.author = "Nathan";
+        tag.tags = List.of("comedy", "drama");
+        var movie = new Movie();
+        movie.id = 1;
+        movie.title = "Forrest Gump";
+        movie.tagsByAuthor = List.of(tag);
         sessionFactory.inTransaction(session -> {
-            var tag = new TagsByAuthor();
-            tag.author = "Nathan";
-            tag.tags = List.of("comedy", "drama");
-            var movie = new Movie();
-            movie.id = 1;
-            movie.title = "Forrest Gump";
-            movie.tagsByAuthor = List.of(tag);
             session.persist(movie);
         });
         assertThat(commandRecorder.getCommandsRecorded()).singleElement().satisfies(
@@ -76,6 +76,11 @@ class StructTests {
                     );
                 }
         );
+        sessionFactory.inTransaction(session -> {
+            final var loadedMovie = new Movie();
+            session.load(loadedMovie, 1);
+            assertThat(loadedMovie).usingRecursiveComparison().isEqualTo(movie);
+        });
     }
 
     @Entity(name = "Movie")

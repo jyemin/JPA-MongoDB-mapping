@@ -16,7 +16,7 @@
  *
  */
 
-package org.hibernate.omm.array;
+package org.hibernate.omm.type.aray;
 
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;

@@ -1195,17 +1195,8 @@ public abstract class AbstractMongoSQLStructJdbcType implements StructJdbcType {
 
     @Override
     public Object[] extractJdbcValues(Object rawJdbcValue, WrapperOptions options) throws SQLException {
-        assert embeddableMappingType != null;
-        final Object[] array = new Object[embeddableMappingType.getJdbcValueCount()];
-        deserializeStruct( getRawStructFromJdbcValue( rawJdbcValue ), 0, 0, array, true, options );
-        if ( inverseOrderMapping != null ) {
-            StructHelper.orderJdbcValues( embeddableMappingType, inverseOrderMapping, array.clone(), array );
-        }
-        return array;
-    }
-
-    protected String getRawStructFromJdbcValue(Object rawJdbcValue) {
-        return rawJdbcValue.toString();
+        assert rawJdbcValue instanceof BsonDocument;
+        return ((BsonDocument) rawJdbcValue).values().stream().map(TypeUtil::unwrap).toArray();
     }
 
     protected <X> String toString(X value, JavaType<X> javaType, WrapperOptions options) throws SQLException {

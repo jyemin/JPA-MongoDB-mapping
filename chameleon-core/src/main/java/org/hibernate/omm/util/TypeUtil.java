@@ -134,6 +134,7 @@ public final class TypeUtil {
             case INT64 -> ((BsonInt64) bsonValue).getValue();
             case STRING -> ((BsonString) bsonValue).getValue();
             case TIMESTAMP -> ((BsonTimestamp) bsonValue).getValue();
+            case DOCUMENT -> bsonValue;
             default -> null;
         };
     }
