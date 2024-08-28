@@ -33,6 +33,8 @@ import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
 import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.sql.ast.tree.select.SelectClause;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -46,6 +48,8 @@ import java.util.Map;
  * @since 1.0.0
  */
 public class MongoStatement implements StatementAdapter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoStatement.class);
 
     private final MongoDatabase mongoDatabase;
     private final ClientSession clientSession;
@@ -74,7 +78,7 @@ public class MongoStatement implements StatementAdapter {
 
         var command = BsonDocument.parse(sql);
         replaceParameterMarkers(command);
-        recordCommand(command);
+        logAndRecordCommand(command);
 
         var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
                 BsonDocument.class);
@@ -113,7 +117,7 @@ public class MongoStatement implements StatementAdapter {
         BsonDocument command = BsonDocument.parse(sql);
 
         replaceParameterMarkers(command);
-        recordCommand(command);
+        logAndRecordCommand(command);
 
         String commandName = command.getFirstKey();
         MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
@@ -151,7 +155,10 @@ public class MongoStatement implements StatementAdapter {
     protected void replaceParameterMarkers(final BsonDocument command) {
     }
 
-    private void recordCommand(final BsonDocument command) {
+    private void logAndRecordCommand(final BsonDocument command) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(command.toJson());
+        }
         if (commandRecorder != null) {
             commandRecorder.record(command);
         }
@@ -164,7 +171,7 @@ public class MongoStatement implements StatementAdapter {
 
         var command = BsonDocument.parse(sql);
         replaceParameterMarkers(command);
-        recordCommand(command);
+        logAndRecordCommand(command);
 
         var commandResult = mongoDatabase.runCommand(command);
         return commandResult.getDouble("ok") == 1.0;

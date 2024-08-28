@@ -45,7 +45,7 @@ class CollectionIndexCreationTests {
 
     @Test
     void test_index_created() {
-        final var commands = commandRecorder.getCommandRecords();
+        final var commands = commandRecorder.getCommandsRecorded();
         assertThat(commands).allSatisfy(command -> assertThat(command.getString("createIndexes").getValue()).isEqualTo("books"));
         assertThat(commands).extracting(command -> command.getArray("indexes")).allSatisfy(indexes -> assertThat(indexes).hasSize(1));
         assertThat(commands).flatExtracting(command -> command.getArray("indexes")).contains(

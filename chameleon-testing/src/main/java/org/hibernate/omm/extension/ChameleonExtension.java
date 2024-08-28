@@ -160,6 +160,6 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
 
     @Override
     public void afterEach(final ExtensionContext extensionContext) throws Exception {
-        DefaultCommandRecorderImpl.INSTANCE.clearCommandRecords();
+        DefaultCommandRecorderImpl.INSTANCE.clearCommandsRecorded();
     }
 }

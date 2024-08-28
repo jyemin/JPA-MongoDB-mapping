@@ -21,7 +21,6 @@ package org.hibernate.omm.service;
 import org.bson.BsonDocument;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -44,12 +43,12 @@ public class DefaultCommandRecorderImpl implements CommandRecorder {
     }
 
     @Override
-    public List<BsonDocument> getCommandRecords() {
-        return Collections.unmodifiableList(records);
+    public List<BsonDocument> getCommandsRecorded() {
+        return records;
     }
 
     @Override
-    public void clearCommandRecords() {
+    public void clearCommandsRecorded() {
         this.records.clear();
     }
 

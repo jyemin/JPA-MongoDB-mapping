@@ -16,12 +16,8 @@
  *
  */
 /**
- * Contains {@link org.bson.codecs.Codec} classes to encode/decode field values only;
- * field name will align with JPA annotation (e.g. @Column).
- * <p/>
- * We might only need to focus on simple field value types for struct or embeddable field
- * will be processed specially (e.g. encode/decode recursively)
+ * Contains various array related functions to be used in HQL/JP-QL
  * @author Nathan Xu
  * @since 1.0.0
  */
-package org.hibernate.omm.array.codec;
+package org.hibernate.omm.type.array.function;
