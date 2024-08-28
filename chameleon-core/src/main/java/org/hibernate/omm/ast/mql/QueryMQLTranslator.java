@@ -26,7 +26,11 @@ import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.mongoast.AstAggregation;
+import org.hibernate.omm.mongoast.AstAscendingSortOrder;
+import org.hibernate.omm.mongoast.AstDescendingSortOrder;
 import org.hibernate.omm.mongoast.AstPipeline;
+import org.hibernate.omm.mongoast.AstSortField;
+import org.hibernate.omm.mongoast.AstSortOrder;
 import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
@@ -36,6 +40,7 @@ import org.hibernate.omm.mongoast.filters.AstFilterField;
 import org.hibernate.omm.mongoast.stages.AstMatchStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
+import org.hibernate.omm.mongoast.stages.AstSortStage;
 import org.hibernate.omm.mongoast.stages.AstStage;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.persister.entity.AbstractEntityPersister;
@@ -193,7 +198,9 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
                 appendMql(" }, { $sort: ");
-                visitOrderBy(querySpec.getSortSpecifications());
+                List<AstSortField> sortFields = mqlAstState.expect(AttachmentKeys.sortFields(), () ->
+                        visitOrderBy(querySpec.getSortSpecifications()));
+                stageList.add(new AstSortStage(sortFields));
             }
 
             appendMql(" }, { $project: ");
@@ -675,6 +682,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
 
     @Override
     protected void renderOrderBy(final boolean addWhitespace, final List<SortSpecification> sortSpecifications) {
+        List<AstSortField> sortFields = new ArrayList<>();
         if (sortSpecifications != null && !sortSpecifications.isEmpty()) {
             if (addWhitespace) {
                 appendMql(WHITESPACE);
@@ -686,7 +694,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 String separator = NO_SEPARATOR;
                 for (SortSpecification sortSpecification : sortSpecifications) {
                     appendMql(separator);
-                    visitSortSpecification(sortSpecification);
+                    sortFields.add(mqlAstState.expect(AttachmentKeys.sortField(), () -> visitSortSpecification(sortSpecification)));
                     separator = COMMA_SEPARATOR;
                 }
             } finally {
@@ -694,6 +702,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 clauseStack.pop();
             }
         }
+        mqlAstState.attach(AttachmentKeys.sortFields(), sortFields);
     }
 
     @Override
@@ -706,15 +715,21 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             throw new NotSupportedRuntimeException("Mongo only supports 'null goes first'");
         }
 
-        renderSortExpression(sortExpression, ignoreCase);
+        String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> renderSortExpression(sortExpression, ignoreCase));
 
         appendMql(": ");
 
+        AstSortOrder astSortOrder;
         if (sortOrder == SortDirection.DESCENDING) {
             appendMql("-1");
+            astSortOrder = new AstDescendingSortOrder();
         } else if (sortOrder == SortDirection.ASCENDING) {
             appendMql("1");
+            astSortOrder = new AstAscendingSortOrder();
+        } else {
+            throw new NotYetImplementedException("Unclear if there are any other sort orders");
         }
+        mqlAstState.attach(AttachmentKeys.sortField(), new AstSortField(fieldName, astSortOrder));
     }
 
     private String getMongoOperatorText(final ComparisonOperator operator) {

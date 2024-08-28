@@ -1,6 +1,7 @@
 package org.hibernate.omm.ast.mql;
 
 import org.bson.BsonValue;
+import org.hibernate.omm.mongoast.AstSortField;
 import org.hibernate.omm.mongoast.filters.AstFilter;
 import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
 
@@ -18,6 +19,8 @@ public class AttachmentKeys {
     private static final AttachmentKey<String> FIELD_NAME = new DefaultAttachmentKey<>("fieldName");
     private static final AttachmentKey<BsonValue> FIELD_VALUE = new DefaultAttachmentKey<>("fieldValue");
     private static final AttachmentKey<AstFilter> FILTER = new DefaultAttachmentKey<>("filter");
+    private static final AttachmentKey<List<AstSortField>> SORT_FIELDS = new DefaultAttachmentKey<>("sortFields");
+    private static final AttachmentKey<AstSortField> SORT_FIELD = new DefaultAttachmentKey<>("sortField");
 
     public static AttachmentKey<String> collectionName() {
        return COLLECTION_NAME;
@@ -39,6 +42,13 @@ public class AttachmentKeys {
         return FILTER;
     }
 
+    public static AttachmentKey<List<AstSortField>> sortFields() {
+        return SORT_FIELDS;
+    }
+
+    public static AttachmentKey<AstSortField> sortField() {
+        return SORT_FIELD;
+    }
 
     private static final class DefaultAttachmentKey<V> implements AttachmentKey<V> {
         private static final Set<String> AVOID_KEY_DUPLICATION = new HashSet<>();
