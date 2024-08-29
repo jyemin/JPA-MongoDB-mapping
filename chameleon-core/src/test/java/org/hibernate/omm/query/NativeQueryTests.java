@@ -6,6 +6,7 @@ import jakarta.persistence.Table;
 import org.hibernate.SessionFactory;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,7 +21,36 @@ class NativeQueryTests {
     static SessionFactory sessionFactory;
 
     @Test
-    void testNativeQueryWithoutParameter() {
+    @Disabled("the testing will succeed only if we enable 'hibernate-overlay' project dependency")
+    void test_with_parameter() {
+        var insertedBook = sessionFactory.fromTransaction(session -> {
+            var book = new Book();
+            book.id = 1234L;
+            book.title = "War and Peace";
+            book.author = "Leo Tolstoy";
+            book.publishYear = 1869;
+            session.persist(book);
+            return book;
+        });
+
+        var nativeQuery = """
+                {
+                    aggregate: "books",
+                    pipeline: [
+                        { $match :  { _id: { $eq: ? } } },
+                        { $project: { _id: 1, publishYear: 1, title: 1, author: 1 } }
+                    ]
+                }
+                """;
+        sessionFactory.inTransaction(session -> {
+            var query = session.createNativeQuery(nativeQuery, Book.class).setParameter(1, insertedBook.id);
+            var book = query.getSingleResult();
+            assertThat(book).usingRecursiveComparison().isEqualTo(insertedBook);
+        });
+    }
+
+    @Test
+    void test_without_parameter() {
         var insertedBook = sessionFactory.fromTransaction(session -> {
             var book = new Book();
             book.id = 1234L;

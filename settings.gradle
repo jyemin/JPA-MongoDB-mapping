@@ -12,7 +12,8 @@ plugins {
 
 rootProject.name = 'jpa-mongodb-mapping'
 
-include 'chameleon-core'
-include 'chameleon-testing'
-include 'chameleon-annotation-processor'
+include ':chameleon-core'
+include ':chameleon-testing'
+include ':chameleon-annotation-processor'
+include ':hibernate-overlay'
 

@@ -21,11 +21,13 @@ dependencies {
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    api libs.hibernate.orm.core
     implementation libs.mongodb.sync.java.driver, libs.sl4j.api, libs.spotbugs.annotations
 
     annotationProcessor project(':chameleon-annotation-processor')
     implementation project(':chameleon-annotation-processor')
+
+    //implementation project(':hibernate-overlay')
+    implementation libs.hibernate.orm.core
 }
 
 java {

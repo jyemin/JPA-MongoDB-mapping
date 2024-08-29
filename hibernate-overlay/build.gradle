@@ -1,0 +1,45 @@
+plugins {
+    id 'java-library'
+    alias libs.plugins.freefair.aspectj.weaving
+}
+
+group = 'org.hibernate.omm'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    inpath libs.hibernate.orm.core
+    implementation libs.aspectj.rt
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+compileJava {
+    ajc {
+        enabled = true
+        classpath
+        options {
+            aspectpath.setFrom configurations.aspect
+            compilerArgs = ["-verbose", "-Xlint:ignore"]
+        }
+    }
+}
+compileTestJava {
+    ajc {
+        enabled = true
+        classpath
+        options {
+            aspectpath.setFrom configurations.testAspect
+            compilerArgs = ["-verbose", "-Xlint:ignore"]
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
