@@ -6,13 +6,8 @@
             </Pattern>
         </encoder>
     </appender>
-    <logger name="org.hibernate.orm" level="info" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-    <logger name="org.hibernate.omm.jdbc" level="debug" additivity="false">
-        <appender-ref ref="STDOUT"/>
-    </logger>
-
+    <logger name="org.hibernate" level="error" additivity="true"/>
+    <logger name="org.hibernate.omm" level="debug" additivity="true"/>
     <root level="info">
         <appender-ref ref="STDOUT"/>
     </root>
