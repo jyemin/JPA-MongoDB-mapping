@@ -399,6 +399,10 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
         return null;
     }
 
+    public Attachment getMqlAstState() {
+        return mqlAstState;
+    }
+
     public Dialect getDialect() {
         return dialect;
     }

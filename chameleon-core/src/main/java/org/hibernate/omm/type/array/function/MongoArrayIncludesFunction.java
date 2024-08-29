@@ -17,7 +17,15 @@
  */
 package org.hibernate.omm.type.array.function;
 
+import org.bson.BsonUndefined;
+import org.bson.BsonValue;
 import org.hibernate.dialect.function.array.AbstractArrayContainsFunction;
+import org.hibernate.omm.ast.mql.AbstractMQLTranslator;
+import org.hibernate.omm.ast.mql.Attachment;
+import org.hibernate.omm.ast.mql.AttachmentKeys;
+import org.hibernate.omm.mongoast.filters.AstAllFilterOperation;
+import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilterField;
 import org.hibernate.query.ReturnableType;
 import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -42,10 +50,16 @@ public class MongoArrayIncludesFunction extends AbstractArrayContainsFunction {
         final Expression haystackExpression = (Expression) sqlAstArguments.get(0);
         final Expression needleExpression = (Expression) sqlAstArguments.get(1);
 
+        Attachment mqlAstState = ((AbstractMQLTranslator<?>) walker).getMqlAstState();
+
         sqlAppender.append("{ ");
-        haystackExpression.accept(walker);
+        String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> haystackExpression.accept(walker));
         sqlAppender.append(": { $all: ");
-        needleExpression.accept(walker);
+        BsonValue fieldValue = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> needleExpression.accept(walker));
         sqlAppender.append(" } }");
+        // TODO: not a safe cast to BsonUndefined, but this is the only tested case now
+        // TODO: should really add an AstPlaceholder node type instead of using BsonUndefined
+        mqlAstState.attach(AttachmentKeys.filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
+                new AstAllFilterOperation((BsonUndefined) fieldValue)));
     }
 }
