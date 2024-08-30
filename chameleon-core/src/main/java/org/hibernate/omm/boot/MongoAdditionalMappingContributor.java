@@ -15,13 +15,19 @@
  */
 package org.hibernate.omm.boot;
 
+import com.mongodb.ReadConcernLevel;
 import org.hibernate.boot.ResourceStreamLocator;
 import org.hibernate.boot.spi.AdditionalMappingContributions;
 import org.hibernate.boot.spi.AdditionalMappingContributor;
 import org.hibernate.boot.spi.InFlightMetadataCollector;
 import org.hibernate.boot.spi.MetadataBuildingContext;
 import org.hibernate.mapping.PersistentClass;
+import org.hibernate.omm.annotations.ReadConcern;
+import org.hibernate.omm.annotations.WriteConcern;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.service.CollectionRWConcerns;
+
+import java.util.HashMap;
 
 /**
  * @author Nathan Xu
@@ -29,6 +35,8 @@ import org.hibernate.omm.exception.NotSupportedRuntimeException;
  */
 public class MongoAdditionalMappingContributor implements AdditionalMappingContributor {
     private static final String ID_FIELD = "_id";
+
+    public static CollectionRWConcerns collectionRWConcerns;
 
     @Override
     public String getContributorName() {
@@ -38,6 +46,21 @@ public class MongoAdditionalMappingContributor implements AdditionalMappingContr
     @Override
     public void contribute(final AdditionalMappingContributions contributions, final InFlightMetadataCollector metadata, final ResourceStreamLocator resourceStreamLocator, final MetadataBuildingContext buildingContext) {
         metadata.getEntityBindings().forEach(MongoAdditionalMappingContributor::setIdentifierColumnName);
+        final var readConcernsMap = new HashMap<String, com.mongodb.ReadConcern>();
+        final var writeConcernsMap = new HashMap<String, com.mongodb.WriteConcern>();
+        metadata.getEntityBindings().forEach(persistentClass -> {
+            final var mappedClass = persistentClass.getMappedClass();
+            final var collectionName = persistentClass.getTable().getName();
+            final var readConcernAnnotation = mappedClass.getAnnotation(ReadConcern.class);
+            final var writeConcernAnnotation = mappedClass.getAnnotation(WriteConcern.class);
+            if (readConcernAnnotation != null) {
+                readConcernsMap.put(collectionName, new com.mongodb.ReadConcern(ReadConcernLevel.fromString(readConcernAnnotation.value())));
+            }
+            if (writeConcernAnnotation != null) {
+                writeConcernsMap.put(collectionName, com.mongodb.WriteConcern.valueOf(writeConcernAnnotation.value()));
+            }
+        });
+        collectionRWConcerns = new CollectionRWConcerns(readConcernsMap, writeConcernsMap);
     }
 
     private static void setIdentifierColumnName(final PersistentClass persistentClass) {
@@ -47,4 +70,5 @@ public class MongoAdditionalMappingContributor implements AdditionalMappingContr
         }
         identifier.getColumns().get(0).setName(ID_FIELD);
     }
+
 }

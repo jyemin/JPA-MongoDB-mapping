@@ -27,10 +27,12 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
 import org.hibernate.omm.ast.mql.QueryMQLTranslator;
+import org.hibernate.omm.boot.MongoAdditionalMappingContributor;
 import org.hibernate.omm.jdbc.adapter.StatementAdapter;
 import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
 import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
+import org.hibernate.omm.service.CollectionRWConcerns;
 import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.sql.ast.tree.select.SelectClause;
 import org.slf4j.Logger;
@@ -80,6 +82,8 @@ public class MongoStatement implements StatementAdapter {
         replaceParameterMarkers(command);
         logAndRecordCommand(command);
 
+        populateCollectionReadWriteConcerns(command, true);
+
         var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
                 BsonDocument.class);
         var pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
@@ -118,6 +122,8 @@ public class MongoStatement implements StatementAdapter {
 
         replaceParameterMarkers(command);
         logAndRecordCommand(command);
+
+        populateCollectionReadWriteConcerns(command, false);
 
         String commandName = command.getFirstKey();
         MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
@@ -175,6 +181,21 @@ public class MongoStatement implements StatementAdapter {
 
         var commandResult = mongoDatabase.runCommand(command);
         return commandResult.getDouble("ok") == 1.0;
+    }
+
+    private void populateCollectionReadWriteConcerns(BsonDocument command, boolean query) {
+        final CollectionRWConcerns concerns = MongoAdditionalMappingContributor.collectionRWConcerns;
+        if (concerns != null) {
+            final var collection = command.getString(command.getFirstKey()).getValue();
+            if (query) {
+                concerns.getReadConcern(collection).ifPresent(readConcern -> command.append("readConcern",
+                        readConcern.asDocument()));
+            }
+            else {
+                concerns.getWriteConcern(collection).ifPresent(writeConcern -> command.append("writeConcern",
+                        writeConcern.asDocument()));
+            }
+        }
     }
 
     @Override
