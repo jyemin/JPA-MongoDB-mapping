@@ -19,6 +19,9 @@ package org.hibernate.omm.ast.mql;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.mongoast.AstElement;
+import org.hibernate.omm.mongoast.AstInsertCommand;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
@@ -35,6 +38,7 @@ import org.hibernate.sql.model.internal.TableDeleteStandard;
 import org.hibernate.sql.model.internal.TableInsertStandard;
 import org.hibernate.sql.model.internal.TableUpdateStandard;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.hibernate.omm.util.StringUtil.writeStringHelper;
@@ -76,16 +80,19 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
             return;
         }
         appendMql("{ insert: ");
-        renderIntoIntoAndTable(tableInsert);
+        String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () -> renderIntoIntoAndTable(tableInsert));
         appendMql(", documents: [ { ");
 
+        List<AstElement> elements = new ArrayList<>();
         tableInsert.forEachValueBinding((columnPosition, columnValueBinding) -> {
             if (columnPosition != 0) {
                 appendMql(", ");
             }
             appendMql(columnValueBinding.getColumnReference().getColumnExpression());
             appendMql(": ");
-            columnValueBinding.getValueExpression().accept(this);
+            AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                    columnValueBinding.getValueExpression().accept(this));
+            elements.add(new AstElement(columnValueBinding.getColumnReference().getColumnExpression(), value));
         });
 
         appendMql(" } ]");
@@ -94,11 +101,13 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
             appendMql(writeStringHelper(tableInsert.getMutationComment()));
         }
         appendMql(" }");
+        root = new AstInsertCommand(collectionName, elements);
     }
 
     @Override
     protected void renderIntoIntoAndTable(final TableInsertStandard tableInsert) {
         appendMql(writeStringHelper(tableInsert.getMutatingTable().getTableName()));
+        mqlAstState.attach(AttachmentKeys.collectionName(), tableInsert.getMutatingTable().getTableName());
         registerAffectedTable(tableInsert.getMutatingTable().getTableName());
     }
 

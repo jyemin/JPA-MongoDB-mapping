@@ -25,7 +25,7 @@ import org.hibernate.internal.util.collections.CollectionHelper;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.exception.NotYetImplementedException;
-import org.hibernate.omm.mongoast.AstAggregation;
+import org.hibernate.omm.mongoast.AstAggregationCommand;
 import org.hibernate.omm.mongoast.AstAscendingSortOrder;
 import org.hibernate.omm.mongoast.AstDescendingSortOrder;
 import org.hibernate.omm.mongoast.AstPipeline;
@@ -224,7 +224,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             //}
             appendMql(" } ] }");
             AstPipeline pipeline = new AstPipeline(stageList);
-            root = new AstAggregation(collectionNameAndJoinStages.collectionName(), pipeline);
+            root = new AstAggregationCommand(collectionNameAndJoinStages.collectionName(), pipeline);
         } finally {
             this.queryPartStack.pop();
             this.queryPartForRowNumbering = queryPartForRowNumbering;

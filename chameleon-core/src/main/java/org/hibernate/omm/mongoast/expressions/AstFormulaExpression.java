@@ -9,7 +9,7 @@ import org.hibernate.omm.mongoast.AstNodeType;
 public record AstFormulaExpression(BsonDocument formula) implements AstExpression {
     @Override
     public AstNodeType nodeType() {
-        return AstNodeType.formulaExpression;
+        return AstNodeType.FormulaExpression;
     }
 
     @Override

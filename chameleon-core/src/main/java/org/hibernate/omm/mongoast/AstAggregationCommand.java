@@ -2,10 +2,10 @@ package org.hibernate.omm.mongoast;
 
 import org.bson.BsonWriter;
 
-public record AstAggregation(String collection, AstPipeline pipeline) implements AstNode {
+public record AstAggregationCommand(String collection, AstPipeline pipeline) implements AstNode {
     @Override
     public AstNodeType nodeType() {
-        return AstNodeType.Aggregation;
+        return AstNodeType.AggregationCommand;
     }
 
     @Override
