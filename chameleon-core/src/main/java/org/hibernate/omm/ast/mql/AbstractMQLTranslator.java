@@ -18,11 +18,14 @@
 package org.hibernate.omm.ast.mql;
 
 import org.bson.BsonNull;
+import org.bson.json.JsonWriter;
 import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.mongoast.AstLiteralValue;
+import org.hibernate.omm.mongoast.AstNode;
+import org.hibernate.omm.mongoast.AstPlaceholder;
 import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
@@ -33,6 +36,7 @@ import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.JdbcParameter;
 import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.from.NamedTableReference;
 import org.hibernate.sql.ast.tree.predicate.ExistsPredicate;
@@ -42,6 +46,9 @@ import org.hibernate.sql.ast.tree.predicate.NegatedPredicate;
 import org.hibernate.sql.ast.tree.predicate.NullnessPredicate;
 import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
+import org.hibernate.type.descriptor.jdbc.JdbcType;
+
+import java.io.StringWriter;
 
 import static org.hibernate.omm.ast.mql.AttachmentKeys.fieldName;
 import static org.hibernate.omm.ast.mql.AttachmentKeys.filter;
@@ -60,10 +67,24 @@ import static org.hibernate.omm.ast.mql.AttachmentKeys.filter;
  */
 public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlAstTranslator<T> {
 
+    protected AstNode root;
+    protected Attachment mqlAstState = new Attachment();
     private boolean inAggregateExpressionScope;
 
     public AbstractMQLTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);
+    }
+
+    public Attachment getMqlAstState() {
+        return mqlAstState;
+    }
+
+    @Override
+    protected String getSql() {
+        StringWriter writer = new StringWriter();
+        JsonWriter jsonWriter = new JsonWriter(writer);
+        root.render(jsonWriter);
+        return writer.toString();
     }
 
     public boolean isInAggregateExpressionScope() {
@@ -88,6 +109,15 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
     @Override
     public void visitNamedTableReference(final NamedTableReference tableReference) {
         mqlAstState.attach(AttachmentKeys.collectionName(), tableReference.getTableExpression());
+    }
+
+    @Override
+    protected void renderParameterAsParameter(final int position, final JdbcParameter jdbcParameter) {
+        final JdbcType jdbcType = jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
+        assert jdbcType != null;
+        final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
+        jdbcType.appendWriteExpression(parameterMarker, this, dialect);
+        mqlAstState.attach(AttachmentKeys.fieldValue(), new AstPlaceholder());
     }
 
     @Override

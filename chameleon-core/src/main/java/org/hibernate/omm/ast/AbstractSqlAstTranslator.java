@@ -16,7 +16,6 @@
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
-import org.bson.json.JsonWriter;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.QueryException;
@@ -49,10 +48,6 @@ import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
-import org.hibernate.omm.ast.mql.Attachment;
-import org.hibernate.omm.ast.mql.AttachmentKeys;
-import org.hibernate.omm.mongoast.AstNode;
-import org.hibernate.omm.mongoast.AstPlaceholder;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -227,7 +222,6 @@ import org.hibernate.type.descriptor.sql.DdlType;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
 
-import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -329,15 +323,12 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     // In-flight state
     protected final StringBuilder sqlBuffer = new StringBuilder();
 
-    protected AstNode root;
-    protected Attachment mqlAstState = new Attachment();
-
     private final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
     private final JdbcParametersImpl jdbcParameters = new JdbcParametersImpl();
     private JdbcParameterBindings jdbcParameterBindings;
     private Map<JdbcParameter, JdbcParameterBinding> appliedParameterBindings = Collections.emptyMap();
     protected SqlAstNodeRenderingMode parameterRenderingMode = SqlAstNodeRenderingMode.DEFAULT;
-    private final ParameterMarkerStrategy parameterMarkerStrategy;
+    protected final ParameterMarkerStrategy parameterMarkerStrategy;
 
 
     protected final Stack<Clause> clauseStack = new StandardStack<>(Clause.class);
@@ -396,10 +387,6 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
             return Clause.WITH;
         }
         return null;
-    }
-
-    public Attachment getMqlAstState() {
-        return mqlAstState;
     }
 
     public Dialect getDialect() {
@@ -508,13 +495,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // for tests, for now
-    public String getSql() {
-        StringWriter writer = new StringWriter();
-        JsonWriter jsonWriter = new JsonWriter(writer);
-        root.render(jsonWriter);
-        return writer.toString();
-    }
+    protected abstract String getSql();
 
     protected void cleanup() {
         if (lazySessionWrapperOptions != null) {
@@ -6915,13 +6896,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
      * @param jdbcParameter
      * @param position
      */
-    protected void renderParameterAsParameter(int position, JdbcParameter jdbcParameter) {
-        final JdbcType jdbcType = jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
-        assert jdbcType != null;
-        final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
-        jdbcType.appendWriteExpression(parameterMarker, this, dialect);
-        mqlAstState.attach(AttachmentKeys.fieldValue(), new AstPlaceholder());
-    }
+    protected abstract void renderParameterAsParameter(int position, JdbcParameter jdbcParameter);
 
     @Override
     public void render(SqlAstNode sqlAstNode, SqlAstNodeRenderingMode renderingMode) {
