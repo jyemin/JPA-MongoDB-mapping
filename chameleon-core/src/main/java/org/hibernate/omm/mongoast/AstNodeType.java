@@ -36,6 +36,7 @@ public enum AstNodeType
     DateToPartsExpression,
     DateToStringExpression,
     DateTruncExpression,
+    DeleteCommand,
     DensifyStage,
     DerivativeOrIntegralWindowExpression,
     DocumentsStage,

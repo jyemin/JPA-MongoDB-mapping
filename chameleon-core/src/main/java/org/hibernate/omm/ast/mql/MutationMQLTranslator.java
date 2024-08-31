@@ -22,6 +22,14 @@ import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.mongoast.AstElement;
 import org.hibernate.omm.mongoast.AstInsertCommand;
 import org.hibernate.omm.mongoast.AstValue;
+import org.hibernate.omm.mongoast.DeleteCommand;
+import org.hibernate.omm.mongoast.filters.AstAndFilter;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
+import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilter;
+import org.hibernate.omm.mongoast.filters.AstFilterField;
+import org.hibernate.omm.mongoast.filters.AstMatchesEverythingFilter;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
@@ -164,7 +172,7 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
             getClauseStack().push(Clause.WHERE);
             try {
                 appendMql(", deletes: [");
-
+                List<AstFilter> filters = new ArrayList<>();
                 tableDelete.forEachKeyBinding((columnPosition, columnValueBinding) -> {
                     if (columnPosition == 0) {
                         appendMql(' ');
@@ -173,12 +181,17 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                     }
                     appendMql(" { q: { ");
                     appendMql(columnValueBinding.getColumnReference().getColumnExpression());
+                    String fieldName = columnValueBinding.getColumnReference().getColumnExpression();
                     appendMql(": { $eq: ");
-                    columnValueBinding.getValueExpression().accept(this);
+                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                            columnValueBinding.getValueExpression().accept(this));
                     appendMql(" } }, limit: 0 }");
+                    filters.add(new AstFieldOperationFilter(new AstFilterField(fieldName),
+                            new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
                 if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
+                    // TODO: untested path
                     appendMql(", ");
 
                     tableDelete.forEachOptimisticLockBinding((columnPosition, columnValueBinding) -> {
@@ -196,10 +209,12 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                 }
 
                 if (tableDelete.getWhereFragment() != null) {
+                    // TODO: untested path
                     appendMql(", { q: ");
                     appendMql(tableDelete.getWhereFragment());
                     appendMql(" }");
                 }
+                root = new DeleteCommand(tableDelete.getMutatingTable().getTableName(), new AstAndFilter(filters));
             } finally {
                 appendMql(" ]");
                 if (tableDelete.getMutationComment() != null) {
@@ -227,12 +242,15 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
         }
         renderDeleteClause(statement);
         appendMql(", deletes: [ { q: ");
+        AstFilter filter;
         if (statement.getRestriction() != null) {
-            visitWhereClause(statement.getRestriction());
+            filter = mqlAstState.expect(AttachmentKeys.filter(), () -> visitWhereClause(statement.getRestriction()));
         } else {
             appendMql("{ }");
+            filter = new AstMatchesEverythingFilter();
         }
         appendMql(", limit: 0 } ] }");
+        root = new DeleteCommand(statement.getTargetTable().getTableExpression(), filter);
     }
 
     @Override
