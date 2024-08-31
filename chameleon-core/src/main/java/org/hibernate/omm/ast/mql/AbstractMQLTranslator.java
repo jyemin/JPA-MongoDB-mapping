@@ -23,6 +23,7 @@ import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.mongoast.AstLiteralValue;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
@@ -102,8 +103,9 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
                     whereClauseRestrictions.accept(this);
                 }
                 if (additionalWherePredicate != null) {
-                    this.additionalWherePredicate = null;
-                    additionalWherePredicate.accept(this);
+                    throw new UnsupportedOperationException();
+//                    this.additionalWherePredicate = null;
+//                    additionalWherePredicate.accept(this);
                 }
             } finally {
                 getClauseStack().pop();
@@ -149,9 +151,40 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
     }
 
     protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
-        throw new NotSupportedRuntimeException();
-//        if (inAggregateExpressionScope) {
-//        } else {
-//        }
+        if (inAggregateExpressionScope) {
+            throw new NotSupportedRuntimeException();
+        }
+        String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> lhs.accept(this));
+
+        AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                rhs.accept(this));
+        mqlAstState.attach(AttachmentKeys.filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
+                new AstComparisonFilterOperation(convertOperator(operator), value)));
+    }
+
+    AstComparisonFilterOperator convertOperator(final ComparisonOperator operator) {
+        switch (operator) {
+            case EQUAL -> {
+                return AstComparisonFilterOperator.EQ;
+            }
+            case NOT_EQUAL -> {
+                return AstComparisonFilterOperator.NE;
+            }
+            case LESS_THAN -> {
+                return AstComparisonFilterOperator.LT;
+            }
+            case LESS_THAN_OR_EQUAL -> {
+                return AstComparisonFilterOperator.LTE;
+            }
+            case GREATER_THAN -> {
+                return AstComparisonFilterOperator.GT;
+            }
+            case GREATER_THAN_OR_EQUAL -> {
+                return AstComparisonFilterOperator.GTE;
+            }
+            default -> {
+                throw new NotSupportedRuntimeException();
+            }
+        }
     }
 }
