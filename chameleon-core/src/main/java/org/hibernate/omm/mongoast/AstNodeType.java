@@ -93,6 +93,7 @@ public enum AstNodeType
     PickAccumulatorExpression,
     PickExpression,
     Pipeline,
+    Placeholder,
     PlanCacheStatsStage,
     ProjectStage,
     ProjectStageExcludeFieldSpecification,

@@ -1,7 +1,7 @@
 package org.hibernate.omm.ast.mql;
 
-import org.bson.BsonValue;
 import org.hibernate.omm.mongoast.AstSortField;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstFilter;
 import org.hibernate.omm.mongoast.stages.AstLookupStage;
 import org.hibernate.omm.mongoast.stages.AstProjectStageSpecification;
@@ -19,7 +19,7 @@ public class AttachmentKeys {
     private static final AttachmentKey<List<AstProjectStageSpecification>> PROJECT_STAGE_SPECIFICATIONS =
             new DefaultAttachmentKey<>("projectStageSpecifications");
     private static final AttachmentKey<String> FIELD_NAME = new DefaultAttachmentKey<>("fieldName");
-    private static final AttachmentKey<BsonValue> FIELD_VALUE = new DefaultAttachmentKey<>("fieldValue");
+    private static final AttachmentKey<AstValue> FIELD_VALUE = new DefaultAttachmentKey<>("fieldValue");
     private static final AttachmentKey<AstFilter> FILTER = new DefaultAttachmentKey<>("filter");
     private static final AttachmentKey<List<AstSortField>> SORT_FIELDS = new DefaultAttachmentKey<>("sortFields");
     private static final AttachmentKey<AstSortField> SORT_FIELD = new DefaultAttachmentKey<>("sortField");
@@ -39,7 +39,7 @@ public class AttachmentKeys {
         return FIELD_NAME;
     }
 
-    public static AttachmentKey<BsonValue> fieldValue() {
+    public static AttachmentKey<AstValue> fieldValue() {
         return FIELD_VALUE;
     }
 

@@ -16,7 +16,6 @@
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
-import org.bson.BsonUndefined;
 import org.bson.json.JsonWriter;
 import org.hibernate.Internal;
 import org.hibernate.LockMode;
@@ -54,6 +53,7 @@ import org.hibernate.metamodel.mapping.SqlTypedMapping;
 import org.hibernate.omm.ast.mql.Attachment;
 import org.hibernate.omm.ast.mql.AttachmentKeys;
 import org.hibernate.omm.mongoast.AstNode;
+import org.hibernate.omm.mongoast.AstPlaceholder;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -6931,7 +6931,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
         assert jdbcType != null;
         final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
         jdbcType.appendWriteExpression(parameterMarker, this, dialect);
-        mqlAstState.attach(AttachmentKeys.fieldValue(), new BsonUndefined());
+        mqlAstState.attach(AttachmentKeys.fieldValue(), new AstPlaceholder());
     }
 
     @Override

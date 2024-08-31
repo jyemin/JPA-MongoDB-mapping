@@ -18,7 +18,6 @@
 package org.hibernate.omm.ast.mql;
 
 import com.mongodb.lang.Nullable;
-import org.bson.BsonValue;
 import org.hibernate.dialect.SelectItemReferenceStrategy;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.util.collections.CollectionHelper;
@@ -31,6 +30,7 @@ import org.hibernate.omm.mongoast.AstDescendingSortOrder;
 import org.hibernate.omm.mongoast.AstPipeline;
 import org.hibernate.omm.mongoast.AstSortField;
 import org.hibernate.omm.mongoast.AstSortOrder;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
@@ -691,7 +691,7 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             appendMql(": { ");
             appendMql(getMongoOperatorText(operator));
             appendMql(": ");
-            BsonValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> rhs.accept(this));
+            AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> rhs.accept(this));
             appendMql(" } }");
             mqlAstState.attach(AttachmentKeys.filter(),
                     new AstFieldOperationFilter(new AstFilterField(fieldName),

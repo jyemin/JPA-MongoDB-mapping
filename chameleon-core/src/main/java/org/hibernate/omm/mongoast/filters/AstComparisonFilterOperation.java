@@ -1,14 +1,10 @@
 package org.hibernate.omm.mongoast.filters;
 
-import org.bson.BsonValue;
 import org.bson.BsonWriter;
-import org.bson.codecs.BsonValueCodec;
-import org.bson.codecs.EncoderContext;
 import org.hibernate.omm.mongoast.AstNodeType;
+import org.hibernate.omm.mongoast.AstValue;
 
-public record AstComparisonFilterOperation(AstComparisonFilterOperator operator, BsonValue value) implements AstFilterOperation {
-    private static final BsonValueCodec BSON_VALUE_CODEC = new BsonValueCodec();
-
+public record AstComparisonFilterOperation(AstComparisonFilterOperator operator, AstValue value) implements AstFilterOperation {
     @Override
     public AstNodeType nodeType() {
         return AstNodeType.ComparisonFilterOperation;
@@ -18,7 +14,7 @@ public record AstComparisonFilterOperation(AstComparisonFilterOperator operator,
     public void render(final BsonWriter writer) {
         writer.writeStartDocument();
         writer.writeName(operator.operatorName());
-        BSON_VALUE_CODEC.encode(writer, value, EncoderContext.builder().build());
+        value.render(writer);
         writer.writeEndDocument();
     }
 }

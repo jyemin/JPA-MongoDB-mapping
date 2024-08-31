@@ -17,14 +17,13 @@
  */
 package org.hibernate.omm.type.array.function;
 
-import org.bson.BsonUndefined;
-import org.bson.BsonValue;
 import org.hibernate.dialect.function.array.AbstractArrayContainsFunction;
 import org.hibernate.metamodel.mapping.JdbcMapping;
 import org.hibernate.metamodel.mapping.JdbcMappingContainer;
 import org.hibernate.omm.ast.mql.AbstractMQLTranslator;
 import org.hibernate.omm.ast.mql.Attachment;
 import org.hibernate.omm.ast.mql.AttachmentKeys;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstAllFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
 import org.hibernate.omm.mongoast.filters.AstFilterField;
@@ -62,12 +61,10 @@ public class MongoArrayContainsFunction extends AbstractArrayContainsFunction {
             sqlAppender.append("{ ");
             String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> haystackExpression.accept(walker));
             sqlAppender.append(": { $all: ");
-            BsonValue fieldValue = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> needleExpression.accept(walker));
+            AstValue fieldValue = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> needleExpression.accept(walker));
             sqlAppender.append(" } }");
-            // TODO: not a safe cast to BsonUndefined, but this is the only tested case now
-            // TODO: should really add an AstPlaceholder node type instead of using BsonUndefined
             mqlAstState.attach(AttachmentKeys.filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
-                    new AstAllFilterOperation((BsonUndefined) fieldValue)));
+                    new AstAllFilterOperation(fieldValue)));
         } else {
             // TODO: this is not tested, so no MQL AST support yet
             sqlAppender.append("{ ");

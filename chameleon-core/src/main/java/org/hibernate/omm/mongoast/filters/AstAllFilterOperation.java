@@ -1,9 +1,10 @@
 package org.hibernate.omm.mongoast.filters;
-import org.bson.BsonUndefined;
+
 import org.bson.BsonWriter;
 import org.hibernate.omm.mongoast.AstNodeType;
+import org.hibernate.omm.mongoast.AstValue;
 
-public record AstAllFilterOperation(BsonUndefined value) implements AstFilterOperation {
+public record AstAllFilterOperation(AstValue value) implements AstFilterOperation {
     @Override
     public AstNodeType nodeType() {
         return AstNodeType.AllFilterOperation;
@@ -12,9 +13,8 @@ public record AstAllFilterOperation(BsonUndefined value) implements AstFilterOpe
     @Override
     public void render(final BsonWriter writer) {
         writer.writeStartDocument();
-        if (value != null) {
-            writer.writeUndefined("$all");
-        }
+        writer.writeName("$all");
+        value.render(writer);
         writer.writeEndDocument();
     }
 }
