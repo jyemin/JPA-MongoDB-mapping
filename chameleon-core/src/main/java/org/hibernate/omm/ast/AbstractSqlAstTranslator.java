@@ -17,7 +17,6 @@ package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
 import org.bson.json.JsonWriter;
-import org.hibernate.Internal;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.QueryException;
@@ -511,20 +510,10 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // for tests, for now
     public String getSql() {
-        if (root == null) {
-            return sqlBuffer.toString();
-        } else {
-            StringWriter writer = new StringWriter();
-            JsonWriter jsonWriter = new JsonWriter(writer);
-            root.render(jsonWriter);
-            return writer.toString();
-        }
-    }
-
-    // For Blaze-Persistence until its function rendering code doesn't depend on SQL fragments anymore
-    @Internal
-    public StringBuilder getSqlBuffer() {
-        return sqlBuffer;
+        StringWriter writer = new StringWriter();
+        JsonWriter jsonWriter = new JsonWriter(writer);
+        root.render(jsonWriter);
+        return writer.toString();
     }
 
     protected void cleanup() {

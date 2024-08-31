@@ -86,8 +86,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hibernate.omm.util.StringUtil.writeStringHelper;
-
 /**
  * Contains MQL query type rendering overriding logic.
  *
@@ -169,48 +167,41 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 // We always need query wrapping if we are in a query group and this query spec has a fetch or order by
                 // clause, because of order by precedence in SQL
                 if (querySpec.hasOffsetOrFetchClause() || querySpec.hasSortSpecifications()) {
-                    queryGroupAlias = "";
+                    throw new NotSupportedRuntimeException();
+//                    queryGroupAlias = "";
                     // If the parent is a query group with a fetch clause we must use a select wrapper,
                     // or if the database does not support simple query grouping, we must use a select wrapper
-                    if ((!supportsSimpleQueryGrouping() || currentQueryPart.hasOffsetOrFetchClause())
+//                    if ((!supportsSimpleQueryGrouping() || currentQueryPart.hasOffsetOrFetchClause())
                             // We can skip it though if this query spec is being row numbered,
                             // because then we already have a wrapper
-                            && queryPartForRowNumbering != querySpec) {
-                        queryGroupAlias = " grp_" + queryGroupAliasCounter + '_';
-                        queryGroupAliasCounter++;
-                        appendMql("select");
-                        appendMql(queryGroupAlias);
-                        appendMql(".* from ");
-                        // We need to assign aliases when we render a query spec as subquery to avoid clashing aliases
-                        this.needsSelectAliases = this.needsSelectAliases || hasDuplicateSelectItems(querySpec);
-                    } else if (!supportsDuplicateSelectItemsInQueryGroup()) {
-                        this.needsSelectAliases = this.needsSelectAliases || hasDuplicateSelectItems(querySpec);
-                    }
+//                            && queryPartForRowNumbering != querySpec) {
+//                        throw new NotSupportedRuntimeException();
+//                        // We need to assign aliases when we render a query spec as subquery to avoid clashing aliases
+//                        this.needsSelectAliases = this.needsSelectAliases || hasDuplicateSelectItems(querySpec);
+//                    } else if (!supportsDuplicateSelectItemsInQueryGroup()) {
+//                        this.needsSelectAliases = this.needsSelectAliases || hasDuplicateSelectItems(querySpec);
+//                    }
                 }
             }
             queryPartStack.push(querySpec);
-            if (queryGroupAlias != null) {
-                throw new NotSupportedRuntimeException("query group not supported");
-            }
-            appendMql("{ aggregate: ");
+//            if (queryGroupAlias != null) {
+//                throw new NotSupportedRuntimeException("query group not supported");
+//            }
             CollectionNameAndJoinStages collectionNameAndJoinStages = mqlAstState.expect(AttachmentKeys.collectionNameAndJoinStages(), () ->
                     visitFromClause(querySpec.getFromClause()));
 
             List<AstStage> stageList = new ArrayList<>(collectionNameAndJoinStages.joinStages());
 
-            appendMql("{ $match: ");
             AstFilter filter = mqlAstState.expect(AttachmentKeys.filter(), () ->
                     visitWhereClause(querySpec.getWhereClauseRestrictions()));
             stageList.add(new AstMatchStage(filter));
 
             if (CollectionUtil.isNotEmpty(querySpec.getSortSpecifications())) {
-                appendMql(" }, { $sort: ");
                 List<AstSortField> sortFields = mqlAstState.expect(AttachmentKeys.sortFields(), () ->
                         visitOrderBy(querySpec.getSortSpecifications()));
                 stageList.add(new AstSortStage(sortFields));
             }
 
-            appendMql(" }, { $project: ");
             List<AstProjectStageSpecification> projectStageSpecifications =
                     mqlAstState.expect(AttachmentKeys.projectStageSpecifications(), () -> visitSelectClause(querySpec.getSelectClause()));
             stageList.add(new AstProjectStage(projectStageSpecifications));
@@ -222,7 +213,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             //if ( queryPartForRowNumbering == null ) {
             //visitForUpdateClause( querySpec );
             //}
-            appendMql(" } ] }");
             AstPipeline pipeline = new AstPipeline(stageList);
             root = new AstAggregationCommand(collectionNameAndJoinStages.collectionName(), pipeline);
         } finally {
@@ -278,7 +268,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
         } else {
             String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () ->
                     tableGroup.getPrimaryTableReference().accept(this));
-            appendMql(", pipeline: [ ");
             List<AstStage> joinStages = mqlAstState.expect(AttachmentKeys.joinStages(), () ->
                     processTableGroupJoins(tableGroup));
             mqlAstState.attach(AttachmentKeys.collectionNameAndJoinStages(), new CollectionNameAndJoinStages(collectionName, joinStages));
@@ -297,9 +286,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
         if (!source.getTableGroupJoins().isEmpty()) {
             for (int i = 0; i < source.getTableGroupJoins().size(); i++) {
                 processTableGroupJoin(source, source.getTableGroupJoins().get(i), null);
-                if (i + 1 < source.getTableGroupJoins().size()) {
-                    appendMql(", ");
-                }
             }
         } else {
             mqlAstState.attach(AttachmentKeys.joinStages(), List.of());
@@ -309,13 +295,11 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
     @Override
     public void visitSelectClause(final SelectClause selectClause) {
         clauseStack.push(Clause.SELECT);
-        appendMql("{ ");
         try {
             /*if ( selectClause.isDistinct() ) {
                 appendMql( "distinct " );
             }*/
             visitSqlSelections(selectClause);
-            appendMql(" }");
         } finally {
             clauseStack.pop();
         }
@@ -345,8 +329,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             defaultRenderingMode = SqlAstNodeRenderingMode.NO_PLAIN_PARAMETER;
         }
         if (needsSelectAliases || referenceStrategy == SelectItemReferenceStrategy.ALIAS && hasSelectAliasInGroupByClause()) {
-            String separator = NO_SEPARATOR;
-            int offset = 0;
             for (int i = 0; i < size; i++) {
                 final SqlSelection sqlSelection = sqlSelections.get(i);
                 if (sqlSelection.isVirtual()) {
@@ -362,30 +344,10 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 if (sqlTuple != null) {
                     final List<? extends Expression> expressions = sqlTuple.getExpressions();
                     for (Expression e : expressions) {
-                        appendMql(separator);
                         renderSelectExpression(e);
-                        appendMql(WHITESPACE);
-                        if (columnAliases == null) {
-                            appendMql('c');
-                            appendMql(offset);
-                        } else {
-                            appendMql(columnAliases.get(offset));
-                        }
-                        offset++;
-                        separator = COMMA_SEPARATOR;
                     }
                 } else {
-                    appendMql(separator);
                     renderSelectExpression(expression);
-                    appendMql(WHITESPACE);
-                    if (columnAliases == null) {
-                        appendMql('c');
-                        appendMql(offset);
-                    } else {
-                        appendMql(columnAliases.get(offset));
-                    }
-                    offset++;
-                    separator = COMMA_SEPARATOR;
                 }
                 parameterRenderingMode = original;
             }
@@ -394,22 +356,17 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             }
         } else {
             assert columnAliases == null;
-            String separator = NO_SEPARATOR;
             for (int i = 0; i < size; i++) {
                 final SqlSelection sqlSelection = sqlSelections.get(i);
                 if (sqlSelection.isVirtual()) {
                     continue;
                 }
-                appendMql(separator);
                 if (selectItemsToInline != null && selectItemsToInline.get(i)) {
                     parameterRenderingMode = SqlAstNodeRenderingMode.INLINE_ALL_PARAMETERS;
                 } else {
                     parameterRenderingMode = defaultRenderingMode;
                 }
                 if (sqlSelection.getExpression() instanceof ColumnReference columnReference) {
-                    appendMql("f" + i); // field name doesn't matter for Hibernate ResultSet retrieval only relies on order since v6
-                    appendMql(": ");
-                    appendMql('"' + pathTracker.renderColumnReference(columnReference) + '"');
                     String columnReferenceAsString = pathTracker.renderColumnReference(columnReference);
                     // TODO: checking for $ is a hack, but it will work
                     AstExpression projectionExpression = columnReferenceAsString.startsWith("$")
@@ -419,12 +376,9 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                             AstProjectStageSpecification.Set("f" + i, projectionExpression));
                 } else {
                     visitSqlSelection(sqlSelection);
-                    appendMql(": 1");
                 }
                 parameterRenderingMode = original;
-                separator = ", ";
             }
-            appendMql(", _id: 0");
 
             projectStageSpecifications.add(AstProjectStageSpecification.ExcludeId());
             mqlAstState.attach(AttachmentKeys.projectStageSpecifications(), projectStageSpecifications);
@@ -530,12 +484,14 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
         if (tableGroup.isLateral() && !dialect.supportsLateral()) {
             final Predicate lateralEmulationPredicate = determineLateralEmulationPredicate(tableGroup);
             if (lateralEmulationPredicate != null) {
-                if (predicate == null) {
-                    appendMql(" on ");
-                } else {
-                    appendMql(" and ");
-                }
-                lateralEmulationPredicate.accept(this);
+                throw new NotSupportedRuntimeException();
+                // TODO: untested
+//                if (predicate == null) {
+//                    appendMql(" on ");
+//                } else {
+//                    appendMql(" and ");
+//                }
+//                lateralEmulationPredicate.accept(this);
             }
         }
 
@@ -552,15 +508,11 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 }
             }
             if (!tableGroup.getTableGroupJoins().isEmpty()) {
-                appendMql(", pipeline: [");
                 List<AstStage> joinStages = mqlAstState.expect(AttachmentKeys.joinStages(), () ->
                         processTableGroupJoins(tableGroup));
                 lookupStage = lookupStage.addPipeline(joinStages);
-                appendMql(" ]");
             }
         }
-
-        appendMql(" } }, { $unwind: " + writeStringHelper("$" + tableGroup.getPrimaryTableReference().getIdentificationVariable()) + " }");
 
         mqlAstState.attach(AttachmentKeys.joinStages(), List.of(lookupStage, new AstUnwindStage(tableGroup.getPrimaryTableReference().getIdentificationVariable())));
         ModelPartContainer modelPart = tableGroup.getModelPart();
@@ -576,8 +528,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
             @Nullable final Predicate predicate) {
         if (targetTableGroup.getPrimaryTableReference() instanceof NamedTableReference namedTargetTableReference) {
             var sourceQualifier = sourceTableGroup.getPrimaryTableReference().getIdentificationVariable();
-            appendMql("{ $lookup: { from: ");
-            appendMql(writeStringHelper(namedTargetTableReference.getTableExpression()));
 
             if (predicate instanceof ComparisonPredicate comparisonPredicate) {
                 var targetQualifier = targetTableGroup.getPrimaryTableReference().getIdentificationVariable();
@@ -598,28 +548,13 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                 }
                 AstLookupStageMatch lookupStageMatch;
                 if (sourceColumnReference != null && targetColumnReference != null) {
-                    appendMql(", localField: ");
-                    appendMql(writeStringHelper(sourceColumnReference.getColumnExpression()));
-                    appendMql(", foreignField: ");
-                    appendMql(writeStringHelper(targetColumnReference.getColumnExpression()));
                     lookupStageMatch = new AstLookupStageEqualityMatch(sourceColumnReference.getColumnExpression(),
                             targetColumnReference.getColumnExpression());
                 } else {
                     var sourceColumnsInPredicate = getSourceColumnsInPredicate(comparisonPredicate, sourceQualifier);
-                    if (!sourceColumnsInPredicate.isEmpty()) {
-                        appendMql(", let: {");
-                        for (int i = 0; i < sourceColumnsInPredicate.size(); i++) {
-                            if (i == 0) {
-                                appendMql(' ');
-                            } else {
-                                appendMql(", ");
-                            }
-                            var sourceColumn = sourceColumnsInPredicate.get(i);
-                            appendMql(String.format("%s_%s: \"$%s\"", sourceQualifier, sourceColumn, sourceColumn));
-                        }
-                        appendMql(" }");
-                    }
-                    appendMql(", pipeline: [ { $match: { $expr: ");
+//                    if (!sourceColumnsInPredicate.isEmpty()) {
+//                        // TODO: untested
+//                    }
                     try {
                         this.targetQualifier = sourceQualifier;
                         setInAggregateExpressionScope(true);
@@ -630,9 +565,6 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                     }
                     throw new NotYetImplementedException("This appears to be untested code, so haven't added MQL AST support yet");
                 }
-                appendMql(", as: ");
-                appendMql(writeStringHelper(targetQualifier));
-
                 mqlAstState.attach(AttachmentKeys.lookupStage(),
                         new AstLookupStage(namedTargetTableReference.getTableExpression(), targetQualifier, lookupStageMatch, List.of()));
             } else {
@@ -664,17 +596,11 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
     @Override
     public void visitColumnReference(final ColumnReference columnReference) {
         if (targetQualifier != null && !columnReference.isColumnExpressionFormula()) {
-            appendMql('"');
-            appendMql(columnReference.getQualifier().equals(targetQualifier) ? "$" : ("$$" + columnReference.getQualifier() + "_"));
-            appendMql(columnReference.getColumnExpression());
-            appendMql('"');
+            throw new NotSupportedRuntimeException();
         } else if (queryPartStack.getCurrent() instanceof QuerySpec) {
             if (!columnReference.getQualifier().equals(pathTracker.getRootQualifier())) {
-                appendMql('"');
-                appendMql(columnReference.getQualifier() + "." + columnReference.getColumnExpression());
-                appendMql('"');
+                throw new NotSupportedRuntimeException();
             } else {
-                appendMql(columnReference.getColumnExpression());
                 mqlAstState.attach(AttachmentKeys.fieldName(), columnReference.getColumnExpression());
             }
         } else {
@@ -685,21 +611,10 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
     @Override
     protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
         if (isInAggregateExpressionScope()) {
-            appendMql("{ ");
-            appendMql(getMongoOperatorText(operator));
-            appendMql(": [ ");
-            lhs.accept(this);
-            appendMql(", ");
-            rhs.accept(this);
-            appendMql(" ] }");
+            throw new NotSupportedRuntimeException();
         } else {
-            appendMql("{ ");
             String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> lhs.accept(this));
-            appendMql(": { ");
-            appendMql(getMongoOperatorText(operator));
-            appendMql(": ");
             AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> rhs.accept(this));
-            appendMql(" } }");
             mqlAstState.attach(AttachmentKeys.filter(),
                     new AstFieldOperationFilter(new AstFilterField(fieldName),
                             new AstComparisonFilterOperation(getComparisonFilterOperator(operator), value)));
@@ -710,21 +625,12 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
     protected void renderOrderBy(final boolean addWhitespace, final List<SortSpecification> sortSpecifications) {
         List<AstSortField> sortFields = new ArrayList<>();
         if (sortSpecifications != null && !sortSpecifications.isEmpty()) {
-            if (addWhitespace) {
-                appendMql(WHITESPACE);
-            }
-            appendMql(" { ");
-
             clauseStack.push(Clause.ORDER);
             try {
-                String separator = NO_SEPARATOR;
                 for (SortSpecification sortSpecification : sortSpecifications) {
-                    appendMql(separator);
                     sortFields.add(mqlAstState.expect(AttachmentKeys.sortField(), () -> visitSortSpecification(sortSpecification)));
-                    separator = COMMA_SEPARATOR;
                 }
             } finally {
-                appendMql(" } ");
                 clauseStack.pop();
             }
         }
@@ -743,31 +649,15 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
 
         String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> renderSortExpression(sortExpression, ignoreCase));
 
-        appendMql(": ");
-
         AstSortOrder astSortOrder;
         if (sortOrder == SortDirection.DESCENDING) {
-            appendMql("-1");
             astSortOrder = new AstDescendingSortOrder();
         } else if (sortOrder == SortDirection.ASCENDING) {
-            appendMql("1");
             astSortOrder = new AstAscendingSortOrder();
         } else {
             throw new NotYetImplementedException("Unclear if there are any other sort orders");
         }
         mqlAstState.attach(AttachmentKeys.sortField(), new AstSortField(fieldName, astSortOrder));
-    }
-
-    private String getMongoOperatorText(final ComparisonOperator operator) {
-        return switch (operator) {
-            case EQUAL -> "$eq";
-            case NOT_EQUAL -> "$ne";
-            case LESS_THAN -> "$lt";
-            case LESS_THAN_OR_EQUAL -> "$lte";
-            case GREATER_THAN -> "$gt";
-            case GREATER_THAN_OR_EQUAL -> "gte";
-            default -> throw new NotSupportedRuntimeException("unsupported operator: " + operator.name());
-        };
     }
 
     private AstComparisonFilterOperator getComparisonFilterOperator(final ComparisonOperator operator) {
