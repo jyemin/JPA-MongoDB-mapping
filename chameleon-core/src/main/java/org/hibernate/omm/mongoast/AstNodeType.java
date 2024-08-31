@@ -50,6 +50,7 @@ public enum AstNodeType
     FilterExpression,
     FilterField,
     FindProjection,
+    formulaExpression,
     FunctionExpression,
     GeoIntersectsFilterOperation,
     GeoNearStage,

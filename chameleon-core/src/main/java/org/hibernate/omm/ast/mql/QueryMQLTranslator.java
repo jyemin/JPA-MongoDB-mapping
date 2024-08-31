@@ -18,6 +18,7 @@
 package org.hibernate.omm.ast.mql;
 
 import com.mongodb.lang.Nullable;
+import org.bson.BsonDocument;
 import org.hibernate.dialect.SelectItemReferenceStrategy;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.internal.util.collections.CollectionHelper;
@@ -31,7 +32,9 @@ import org.hibernate.omm.mongoast.AstPipeline;
 import org.hibernate.omm.mongoast.AstSortField;
 import org.hibernate.omm.mongoast.AstSortOrder;
 import org.hibernate.omm.mongoast.AstValue;
+import org.hibernate.omm.mongoast.expressions.AstExpression;
 import org.hibernate.omm.mongoast.expressions.AstFieldPathExpression;
+import org.hibernate.omm.mongoast.expressions.AstFormulaExpression;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
@@ -407,9 +410,13 @@ public class QueryMQLTranslator extends AbstractMQLTranslator<JdbcOperationQuery
                     appendMql("f" + i); // field name doesn't matter for Hibernate ResultSet retrieval only relies on order since v6
                     appendMql(": ");
                     appendMql('"' + pathTracker.renderColumnReference(columnReference) + '"');
+                    String columnReferenceAsString = pathTracker.renderColumnReference(columnReference);
+                    // TODO: checking for $ is a hack, but it will work
+                    AstExpression projectionExpression = columnReferenceAsString.startsWith("$")
+                            ? new AstFieldPathExpression(columnReferenceAsString)
+                            : new AstFormulaExpression(BsonDocument.parse(columnReferenceAsString));
                     projectStageSpecifications.add(
-                            AstProjectStageSpecification.Set("f" + i,
-                            new AstFieldPathExpression(pathTracker.renderColumnReference(columnReference))));
+                            AstProjectStageSpecification.Set("f" + i, projectionExpression));
                 } else {
                     visitSqlSelection(sqlSelection);
                     appendMql(": 1");
