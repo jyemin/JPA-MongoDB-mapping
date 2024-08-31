@@ -20,9 +20,11 @@ package org.hibernate.omm.ast.mql;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.mongoast.AstElement;
+import org.hibernate.omm.mongoast.AstFieldUpdate;
 import org.hibernate.omm.mongoast.AstInsertCommand;
 import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.DeleteCommand;
+import org.hibernate.omm.mongoast.UpdateCommand;
 import org.hibernate.omm.mongoast.filters.AstAndFilter;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
@@ -281,6 +283,8 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
 
         appendMql(", updates: [ {");
         getClauseStack().push(Clause.WHERE);
+        List<AstFilter> filters = new ArrayList<>();
+        List<AstFieldUpdate> updates = new ArrayList<>();
         try {
             appendMql(" q:");
             int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
@@ -290,6 +294,7 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                 predicates++;
             }
             if (predicates == 0) {
+                // TODO: untested
                 appendMql("{ }");
             } else {
                 if (predicates > 1) {
@@ -299,16 +304,22 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                     if (position == 0) {
                         appendMql(' ');
                     } else {
+                        // TODO: untested
                         appendMql(", ");
                     }
                     appendMql("{ ");
                     appendMql(columnValueBinding.getColumnReference().getColumnExpression());
                     appendMql(": { $eq: ");
-                    columnValueBinding.getValueExpression().accept(this);
+                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                            columnValueBinding.getValueExpression().accept(this));
                     appendMql(" } }");
+                    filters.add(new AstFieldOperationFilter(
+                            new AstFilterField(columnValueBinding.getColumnReference().getColumnExpression()),
+                            new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
                 if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+                    // TODO: untested
                     tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
                         appendMql(", { ");
                         appendMql(columnValueBinding.getColumnReference().getColumnExpression());
@@ -323,10 +334,12 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                 }
 
                 if (hasWhereFragment) {
+                    // TODO: untested
                     appendMql(", ");
                     appendMql(((TableUpdateStandard) tableUpdate).getWhereFragment());
                 }
                 if (predicates > 1) {
+                    // TODO: untested
                     appendMql(" ] }");
                 }
             }
@@ -344,17 +357,22 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                 }
                 appendMql(columnValueBinding.getColumnReference().getColumnExpression());
                 appendMql(": ");
-                columnValueBinding.getValueExpression().accept(this);
+                AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                        columnValueBinding.getValueExpression().accept(this));
+                updates.add(new AstFieldUpdate(columnValueBinding.getColumnReference().getColumnExpression(), value));
             });
         } finally {
             getClauseStack().pop();
         }
         appendMql(" } }");
         appendMql(" } ] }");
+        root = new UpdateCommand(tableUpdate.getMutatingTable().getTableName(), new AstAndFilter(filters),
+                updates);
     }
 
     @Override
     protected void visitUpdateStatementOnly(final UpdateStatement statement) {
+        // TODO: untested
         if (statement.getFromClause().getRoots().size() > 1) {
             throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
         }
