@@ -19,6 +19,19 @@ package org.hibernate.omm.ast.mql;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.mongoast.AstElement;
+import org.hibernate.omm.mongoast.AstFieldUpdate;
+import org.hibernate.omm.mongoast.AstInsertCommand;
+import org.hibernate.omm.mongoast.AstValue;
+import org.hibernate.omm.mongoast.DeleteCommand;
+import org.hibernate.omm.mongoast.UpdateCommand;
+import org.hibernate.omm.mongoast.filters.AstAndFilter;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
+import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilter;
+import org.hibernate.omm.mongoast.filters.AstFilterField;
+import org.hibernate.omm.mongoast.filters.AstMatchesEverythingFilter;
 import org.hibernate.omm.util.CollectionUtil;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
@@ -35,9 +48,8 @@ import org.hibernate.sql.model.internal.TableDeleteStandard;
 import org.hibernate.sql.model.internal.TableInsertStandard;
 import org.hibernate.sql.model.internal.TableUpdateStandard;
 
+import java.util.ArrayList;
 import java.util.List;
-
-import static org.hibernate.omm.util.StringUtil.writeStringHelper;
 
 /**
  * Contains mutation MQL rendering overriding logic, including:
@@ -75,37 +87,27 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
             renderInsertIntoNoColumns(tableInsert);
             return;
         }
-        appendMql("{ insert: ");
-        renderIntoIntoAndTable(tableInsert);
-        appendMql(", documents: [ { ");
+        String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () -> renderIntoIntoAndTable(tableInsert));
 
+        List<AstElement> elements = new ArrayList<>();
         tableInsert.forEachValueBinding((columnPosition, columnValueBinding) -> {
-            if (columnPosition != 0) {
-                appendMql(", ");
-            }
-            appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-            appendMql(": ");
-            columnValueBinding.getValueExpression().accept(this);
+            AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                    columnValueBinding.getValueExpression().accept(this));
+            elements.add(new AstElement(columnValueBinding.getColumnReference().getColumnExpression(), value));
         });
 
-        appendMql(" } ]");
-        if (tableInsert.getMutationComment() != null) {
-            appendMql(", comment: ");
-            appendMql(writeStringHelper(tableInsert.getMutationComment()));
-        }
-        appendMql(" }");
+        root = new AstInsertCommand(collectionName, elements);
     }
 
     @Override
     protected void renderIntoIntoAndTable(final TableInsertStandard tableInsert) {
-        appendMql(writeStringHelper(tableInsert.getMutatingTable().getTableName()));
+        mqlAstState.attach(AttachmentKeys.collectionName(), tableInsert.getMutatingTable().getTableName());
         registerAffectedTable(tableInsert.getMutatingTable().getTableName());
     }
 
     @Override
     protected void visitInsertStatementOnly(final InsertSelectStatement statement) {
         getClauseStack().push(Clause.INSERT);
-        appendMql("{ ");
 
         registerAffectedTable(statement.getTargetTable());
 
@@ -114,33 +116,18 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
         if (statement.getSourceSelectStatement() != null) {
             // TODO implement using aggregate command
         } else {
-            appendMql("insert: ");
-            appendMql(writeStringHelper(statement.getTargetTable().getTableExpression()));
-            appendMql(", documents: [");
             List<ColumnReference> targetColumnReferences = statement.getTargetColumns();
 
             if (targetColumnReferences != null) {
                 List<Values> targetColumnValuesList = statement.getValuesList();
                 for (int valuesIndex = 0; valuesIndex < statement.getValuesList().size(); valuesIndex++) {
-                    appendMql(valuesIndex == 0 ? " {" : ", {");
                     for (int columnIndex = 0; columnIndex < targetColumnReferences.size(); columnIndex++) {
-                        if (columnIndex == 0) {
-                            appendMql(' ');
-                        } else {
-                            appendMql(", ");
-                        }
-                        appendMql(targetColumnReferences.get(columnIndex).getColumnExpression());
-                        appendMql(": ");
                         targetColumnValuesList.get(valuesIndex).getExpressions().get(columnIndex).accept(this);
                     }
-                    appendMql(" }");
                 }
             }
-            appendMql(" ]");
         }
         getClauseStack().pop();
-
-        appendMql(" }");
         getClauseStack().pop();
     }
 
@@ -148,59 +135,31 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
     public void visitStandardTableDelete(final TableDeleteStandard tableDelete) {
         getClauseStack().push(Clause.DELETE);
         try {
-            appendMql("{ delete: ");
-            appendMql(writeStringHelper(tableDelete.getMutatingTable().getTableName()));
             registerAffectedTable(tableDelete.getMutatingTable().getTableName());
 
             getClauseStack().push(Clause.WHERE);
             try {
-                appendMql(", deletes: [");
-
+                List<AstFilter> filters = new ArrayList<>();
                 tableDelete.forEachKeyBinding((columnPosition, columnValueBinding) -> {
-                    if (columnPosition == 0) {
-                        appendMql(' ');
-                    } else {
-                        appendMql(", ");
-                    }
-                    appendMql(" { q: { ");
-                    appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-                    appendMql(": { $eq: ");
-                    columnValueBinding.getValueExpression().accept(this);
-                    appendMql(" } }, limit: 0 }");
+                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                            columnValueBinding.getValueExpression().accept(this));
+                    filters.add(new AstFieldOperationFilter(
+                            new AstFilterField(columnValueBinding.getColumnReference().getColumnExpression()),
+                            new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
-                if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
-                    appendMql(", ");
-
-                    tableDelete.forEachOptimisticLockBinding((columnPosition, columnValueBinding) -> {
-                        if (columnPosition == 0) {
-                            appendMql(' ');
-                        } else {
-                            appendMql(", ");
-                        }
-                        appendMql(" { q: { ");
-                        appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-                        appendMql(": { $eq: ");
-                        columnValueBinding.getValueExpression().accept(this);
-                        appendMql(" } }, limit: 0 }");
-                    });
-                }
-
-                if (tableDelete.getWhereFragment() != null) {
-                    appendMql(", { q: ");
-                    appendMql(tableDelete.getWhereFragment());
-                    appendMql(" }");
-                }
+//                if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
+//                    // TODO: untested path
+//                }
+//
+//                if (tableDelete.getWhereFragment() != null) {
+//                    // TODO: untested path
+//                }
+                root = new DeleteCommand(tableDelete.getMutatingTable().getTableName(), new AstAndFilter(filters));
             } finally {
-                appendMql(" ]");
-                if (tableDelete.getMutationComment() != null) {
-                    appendMql(", comment: ");
-                    appendMql(writeStringHelper(tableDelete.getMutationComment()));
-                }
                 getClauseStack().pop();
             }
         } finally {
-            appendMql(" }");
             getClauseStack().pop();
         }
     }
@@ -217,18 +176,14 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
             throw new NotSupportedRuntimeException("delete statement with root having real joins not supported");
         }
         renderDeleteClause(statement);
-        appendMql(", deletes: [ { q: ");
-        if (statement.getRestriction() != null) {
-            visitWhereClause(statement.getRestriction());
-        } else {
-            appendMql("{ }");
-        }
-        appendMql(", limit: 0 } ] }");
+        AstFilter filter = statement.getRestriction() != null
+                ? mqlAstState.expect(AttachmentKeys.filter(), () -> visitWhereClause(statement.getRestriction()))
+                : new AstMatchesEverythingFilter();
+        root = new DeleteCommand(statement.getTargetTable().getTableExpression(), filter);
     }
 
     @Override
     protected void renderDeleteClause(final DeleteStatement statement) {
-        appendMql("{ delete: ");
         try {
             getClauseStack().push(Clause.DELETE);
             renderDmlTargetTableExpression(statement.getTargetTable());
@@ -248,14 +203,12 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
     }
 
     private void visitTableUpdate(final RestrictedTableMutation<? extends MutationOperation> tableUpdate) {
-        appendMql("{ update: ");
-        appendMql(writeStringHelper(tableUpdate.getMutatingTable().getTableName()));
         registerAffectedTable(tableUpdate.getMutatingTable().getTableName());
 
-        appendMql(", updates: [ {");
         getClauseStack().push(Clause.WHERE);
+        List<AstFilter> filters = new ArrayList<>();
+        List<AstFieldUpdate> updates = new ArrayList<>();
         try {
-            appendMql(" q:");
             int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
             boolean hasWhereFragment =
                     tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
@@ -263,88 +216,61 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
                 predicates++;
             }
             if (predicates == 0) {
-                appendMql("{ }");
+                // TODO: untested
             } else {
-                if (predicates > 1) {
-                    appendMql(" { $and: [");
-                }
                 tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
-                    if (position == 0) {
-                        appendMql(' ');
-                    } else {
-                        appendMql(", ");
-                    }
-                    appendMql("{ ");
-                    appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-                    appendMql(": { $eq: ");
-                    columnValueBinding.getValueExpression().accept(this);
-                    appendMql(" } }");
+                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                            columnValueBinding.getValueExpression().accept(this));
+                    filters.add(new AstFieldOperationFilter(
+                            new AstFilterField(columnValueBinding.getColumnReference().getColumnExpression()),
+                            new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
-                if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
-                    tableUpdate.forEachOptimisticLockBinding((position, columnValueBinding) -> {
-                        appendMql(", { ");
-                        appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-                        appendMql(": { $eq: ");
-                        if (columnValueBinding.getValueExpression() == null) {
-                            appendMql("null");
-                        } else {
-                            columnValueBinding.getValueExpression().accept(this);
-                        }
-                        appendMql(" } }");
-                    });
-                }
-
-                if (hasWhereFragment) {
-                    appendMql(", ");
-                    appendMql(((TableUpdateStandard) tableUpdate).getWhereFragment());
-                }
-                if (predicates > 1) {
-                    appendMql(" ] }");
-                }
+//                if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+//                    // TODO: untested
+//                }
+//
+//                if (hasWhereFragment) {
+//                    // TODO: untested
+//                }
+//                if (predicates > 1) {
+//                    // TODO: untested
+//                }
             }
         } finally {
             getClauseStack().pop();
         }
-        appendMql(", u: { $set: {");
         getClauseStack().push(Clause.SET);
         try {
             tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
-                if (columnPosition == 0) {
-                    appendMql(' ');
-                } else {
-                    appendMql(", ");
-                }
-                appendMql(columnValueBinding.getColumnReference().getColumnExpression());
-                appendMql(": ");
-                columnValueBinding.getValueExpression().accept(this);
+                AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                        columnValueBinding.getValueExpression().accept(this));
+                updates.add(new AstFieldUpdate(columnValueBinding.getColumnReference().getColumnExpression(), value));
             });
         } finally {
             getClauseStack().pop();
         }
-        appendMql(" } }");
-        appendMql(" } ] }");
+        root = new UpdateCommand(tableUpdate.getMutatingTable().getTableName(), new AstAndFilter(filters),
+                updates);
     }
 
     @Override
     protected void visitUpdateStatementOnly(final UpdateStatement statement) {
-        if (statement.getFromClause().getRoots().size() > 1) {
-            throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
-        }
-        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
-            throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
-        }
-        appendMql("{ ");
-        renderUpdateClause(statement);
-        appendMql(", updates: [ ");
-        visitWhereClause(statement.getRestriction());
-        renderSetClause(statement.getAssignments());
-        appendMql(" ] }");
+        // TODO: untested
+        throw new NotSupportedRuntimeException("updates not supported yet");
+//        if (statement.getFromClause().getRoots().size() > 1) {
+//            throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
+//        }
+//        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
+//            throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
+//        }
+//        renderUpdateClause(statement);
+//        visitWhereClause(statement.getRestriction());
+//        renderSetClause(statement.getAssignments());
     }
 
     @Override
     protected void renderUpdateClause(final UpdateStatement updateStatement) {
-        appendMql("update: ");
         try {
             getClauseStack().push(Clause.UPDATE);
             renderDmlTargetTableExpression(updateStatement.getTargetTable());
@@ -355,17 +281,12 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
 
     @Override
     protected void renderSetClause(final List<Assignment> assignments) {
-        appendMql(" , u: { ");
-        var separator = " ";
         try {
             getClauseStack().push(Clause.SET);
             for (Assignment assignment : assignments) {
-                appendMql(separator);
-                separator = ", ";
                 visitSetAssignment(assignment);
             }
         } finally {
-            appendMql(" }");
             getClauseStack().pop();
         }
     }

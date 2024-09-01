@@ -16,7 +16,7 @@
 package org.hibernate.omm.ast;
 
 import com.mongodb.lang.Nullable;
-import org.hibernate.Internal;
+import org.bson.json.JsonWriter;
 import org.hibernate.LockMode;
 import org.hibernate.LockOptions;
 import org.hibernate.QueryException;
@@ -49,6 +49,10 @@ import org.hibernate.metamodel.mapping.ModelPart;
 import org.hibernate.metamodel.mapping.ModelPartContainer;
 import org.hibernate.metamodel.mapping.PluralAttributeMapping;
 import org.hibernate.metamodel.mapping.SqlTypedMapping;
+import org.hibernate.omm.ast.mql.Attachment;
+import org.hibernate.omm.ast.mql.AttachmentKeys;
+import org.hibernate.omm.mongoast.AstNode;
+import org.hibernate.omm.mongoast.AstPlaceholder;
 import org.hibernate.persister.entity.AbstractEntityPersister;
 import org.hibernate.persister.entity.Loadable;
 import org.hibernate.persister.internal.SqlFragmentPredicate;
@@ -223,6 +227,7 @@ import org.hibernate.type.descriptor.sql.DdlType;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
 
+import java.io.StringWriter;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -324,6 +329,9 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     // In-flight state
     protected final StringBuilder sqlBuffer = new StringBuilder();
 
+    protected AstNode root;
+    protected Attachment mqlAstState = new Attachment();
+
     private final List<JdbcParameterBinder> parameterBinders = new ArrayList<>();
     private final JdbcParametersImpl jdbcParameters = new JdbcParametersImpl();
     private JdbcParameterBindings jdbcParameterBindings;
@@ -388,6 +396,10 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
             return Clause.WITH;
         }
         return null;
+    }
+
+    public Attachment getMqlAstState() {
+        return mqlAstState;
     }
 
     public Dialect getDialect() {
@@ -498,13 +510,10 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // for tests, for now
     public String getSql() {
-        return sqlBuffer.toString();
-    }
-
-    // For Blaze-Persistence until its function rendering code doesn't depend on SQL fragments anymore
-    @Internal
-    public StringBuilder getSqlBuffer() {
-        return sqlBuffer;
+        StringWriter writer = new StringWriter();
+        JsonWriter jsonWriter = new JsonWriter(writer);
+        root.render(jsonWriter);
+        return writer.toString();
     }
 
     protected void cleanup() {
@@ -6911,6 +6920,7 @@ public abstract class AbstractSqlAstTranslator<T extends JdbcOperation> implemen
         assert jdbcType != null;
         final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
         jdbcType.appendWriteExpression(parameterMarker, this, dialect);
+        mqlAstState.attach(AttachmentKeys.fieldValue(), new AstPlaceholder());
     }
 
     @Override
