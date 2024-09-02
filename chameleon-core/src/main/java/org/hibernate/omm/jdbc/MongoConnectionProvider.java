@@ -33,6 +33,7 @@ import org.hibernate.service.UnknownUnwrapTypeException;
 import org.hibernate.service.spi.Configurable;
 import org.hibernate.service.spi.ServiceRegistryAwareService;
 import org.hibernate.service.spi.ServiceRegistryImplementor;
+import org.hibernate.service.spi.Startable;
 import org.hibernate.service.spi.Stoppable;
 
 import java.sql.Connection;
@@ -48,27 +49,28 @@ import static org.hibernate.internal.util.NullnessUtil.castNonNull;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoConnectionProvider implements ConnectionProvider, Configurable, Stoppable, ServiceRegistryAwareService {
+public class MongoConnectionProvider implements ConnectionProvider, Configurable, Startable, Stoppable, ServiceRegistryAwareService {
+
+    private @MonotonicNonNull String mongoConnectionURL;
+    private @MonotonicNonNull String mongoDatabaseName;
+    private @MonotonicNonNull ServiceRegistryImplementor serviceRegistry;
 
     private @MonotonicNonNull MongoDatabase mongoDatabase;
-
     private @MonotonicNonNull MongoClient mongoClient;
-
-    private @MonotonicNonNull ServiceRegistryImplementor serviceRegistry;
 
     @Override
     public void configure(final Map<String, Object> configurationValues) {
         List<MongoAvailableSettings> missingSettings = new ArrayList<>(2);
 
-        String mongodbConnectionURL =
+        mongoConnectionURL =
                 (String) configurationValues.get(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration());
-        if (mongodbConnectionURL == null) {
+        if (mongoConnectionURL == null) {
             missingSettings.add(MongoAvailableSettings.MONGODB_CONNECTION_URL);
         }
 
-        String mongodbDatabaseName =
+        mongoDatabaseName =
                 (String) configurationValues.get(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration());
-        if (mongodbDatabaseName == null) {
+        if (mongoDatabaseName == null) {
             missingSettings.add(MongoAvailableSettings.MONGODB_DATABASE);
         }
 
@@ -76,8 +78,12 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
             throw new MongoConfigMissingException(missingSettings);
         }
 
+    }
+
+    @Override
+    public void start() {
         // MongoConfigMissingException would have been thrown if mongodbConnectionURL is null
-        ConnectionString connectionString = new ConnectionString(castNonNull(mongodbConnectionURL));
+        ConnectionString connectionString = new ConnectionString(castNonNull(mongoConnectionURL));
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
         );
@@ -89,8 +95,14 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         mongoClient = MongoClients.create(clientSettings);
 
         // MongoConfigMissingException would have been thrown if mongodbDatabaseName is null
-        mongoDatabase = mongoClient.getDatabase(castNonNull(mongodbDatabaseName));
+        mongoDatabase = mongoClient.getDatabase(castNonNull(mongoDatabaseName));
+    }
 
+    @Override
+    public void stop() {
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
     }
 
     @Override
@@ -130,13 +142,6 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
     @Override
     public <T> T unwrap(@NonNull final Class<T> unwrapType) {
         throw new UnknownUnwrapTypeException(unwrapType);
-    }
-
-    @Override
-    public void stop() {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
     }
 
     @Nullable
