@@ -17,22 +17,33 @@
  */
 package org.hibernate.omm.ast.mql;
 
+import org.bson.BsonNull;
 import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.mongoast.AstLiteralValue;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
+import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
+import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.mongoast.filters.AstFilterField;
 import org.hibernate.omm.mongoast.filters.AstMatchesEverythingFilter;
 import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.from.NamedTableReference;
 import org.hibernate.sql.ast.tree.predicate.ExistsPredicate;
 import org.hibernate.sql.ast.tree.predicate.InListPredicate;
 import org.hibernate.sql.ast.tree.predicate.Junction;
 import org.hibernate.sql.ast.tree.predicate.NegatedPredicate;
+import org.hibernate.sql.ast.tree.predicate.NullnessPredicate;
 import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
+
+import static org.hibernate.omm.ast.mql.AttachmentKeys.fieldName;
+import static org.hibernate.omm.ast.mql.AttachmentKeys.filter;
 
 /**
  * Contains common stuff shared between {@link QueryMQLTranslator} and {@link MutationMQLTranslator}, e.g.:
@@ -100,6 +111,21 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
         } else {
             mqlAstState.attach(AttachmentKeys.filter(), new AstMatchesEverythingFilter());
         }
+    }
+
+    @Override
+    public void visitNullnessPredicate(NullnessPredicate nullnessPredicate) {
+        Expression expression = nullnessPredicate.getExpression();
+        if (SqlTupleContainer.getSqlTuple(expression) != null) {
+            throw new NotSupportedRuntimeException();
+        }
+
+        String fieldName = mqlAstState.expect(fieldName(), () -> expression.accept(this));
+
+        mqlAstState.attach(filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
+                new AstComparisonFilterOperation(
+                        nullnessPredicate.isNegated() ? AstComparisonFilterOperator.NE : AstComparisonFilterOperator.EQ,
+                        new AstLiteralValue(BsonNull.VALUE))));
     }
 
     @Override
