@@ -42,7 +42,6 @@ import java.sql.Types;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
-import static org.hibernate.internal.util.NullnessUtil.castNonNull;
 
 /**
  * @author Nathan Xu
@@ -59,7 +58,6 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     private BsonDocument currentDocument;
 
-    @Nullable
     private BsonValue lastRead;
 
     private boolean closed;
@@ -79,7 +77,7 @@ public class MongoResultSet implements ResultSetAdapter {
         if (cursor.hasNext()) {
             currentDocument = cursor.next().toBsonDocument();
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug(castNonNull(currentDocument).toJson());
+                LOGGER.debug(requireNonNull(currentDocument).toJson());
             }
             return true;
         } else {
@@ -103,7 +101,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     private BsonValue getBsonValue(int columnIndex) throws SimulatedSQLException {
         beforeAccessCurrentDocumentField();
-        lastRead = castNonNull(currentDocument).get(getKey(columnIndex), BsonNull.VALUE);
+        lastRead = requireNonNull(currentDocument).get(getKey(columnIndex), BsonNull.VALUE);
         return lastRead;
     }
 
@@ -117,7 +115,7 @@ public class MongoResultSet implements ResultSetAdapter {
     @Override
     public boolean getBoolean(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
-        return bsonValue.isNull() ? false : bsonValue.asBoolean().getValue();
+        return !bsonValue.isNull() && bsonValue.asBoolean().getValue();
     }
 
     @Override

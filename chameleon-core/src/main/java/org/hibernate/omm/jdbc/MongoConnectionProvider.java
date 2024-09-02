@@ -43,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-import static org.hibernate.internal.util.NullnessUtil.castNonNull;
 
 /**
  * @author Nathan Xu
@@ -83,7 +82,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
     @Override
     public void start() {
         // MongoConfigMissingException would have been thrown if mongodbConnectionURL is null
-        ConnectionString connectionString = new ConnectionString(castNonNull(mongoConnectionURL));
+        ConnectionString connectionString = new ConnectionString(mongoConnectionURL);
         CodecRegistry codecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry()
         );
@@ -95,7 +94,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         mongoClient = MongoClients.create(clientSettings);
 
         // MongoConfigMissingException would have been thrown if mongodbDatabaseName is null
-        mongoDatabase = mongoClient.getDatabase(castNonNull(mongoDatabaseName));
+        mongoDatabase = mongoClient.getDatabase(mongoDatabaseName);
     }
 
     @Override
