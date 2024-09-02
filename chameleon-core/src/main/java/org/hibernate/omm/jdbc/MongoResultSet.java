@@ -18,18 +18,12 @@ package org.hibernate.omm.jdbc;
 import com.mongodb.assertions.Assertions;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.lang.Nullable;
-import org.bson.BsonBinary;
-import org.bson.BsonBoolean;
-import org.bson.BsonDateTime;
-import org.bson.BsonDecimal128;
 import org.bson.BsonDocument;
-import org.bson.BsonNumber;
-import org.bson.BsonString;
+import org.bson.BsonNull;
 import org.bson.BsonValue;
 import org.hibernate.omm.jdbc.adapter.ArrayAdapter;
 import org.hibernate.omm.jdbc.adapter.ResultSetAdapter;
 import org.hibernate.omm.jdbc.adapter.ResultSetMetaDataAdapter;
-import org.hibernate.omm.jdbc.exception.BsonNullValueSQLException;
 import org.hibernate.omm.jdbc.exception.CurrentDocumentNullSQLException;
 import org.hibernate.omm.jdbc.exception.ResultSetClosedSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -47,6 +41,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
 import static org.hibernate.internal.util.NullnessUtil.castNonNull;
 
 /**
@@ -103,144 +98,106 @@ public class MongoResultSet implements ResultSetAdapter {
         if (closed) {
             throw new ResultSetClosedSQLException();
         }
-        return lastRead != null && lastRead.isNull();
+        return requireNonNull(lastRead).isNull();
+    }
+
+    private BsonValue getBsonValue(int columnIndex) throws SimulatedSQLException {
+        beforeAccessCurrentDocumentField();
+        lastRead = castNonNull(currentDocument).get(getKey(columnIndex), BsonNull.VALUE);
+        return lastRead;
     }
 
     @Override
     @Nullable
     public String getString(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonString bsonValue = castNonNull(currentDocument).getString(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : bsonValue.getValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : bsonValue.asString().getValue();
     }
 
     @Override
     public boolean getBoolean(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonBoolean bsonValue = castNonNull(currentDocument).getBoolean(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return bsonValue.getValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? false : bsonValue.asBoolean().getValue();
     }
 
     @Override
     public byte getByte(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return (byte) bsonValue.intValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return (byte) (bsonValue.isNull() ? 0 : bsonValue.asNumber().intValue());
     }
 
     @Override
     public short getShort(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return (short) bsonValue.intValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return (short) (bsonValue.isNull() ? 0 : bsonValue.asNumber().intValue());
     }
 
     @Override
     public int getInt(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return bsonValue.intValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? 0 : bsonValue.asNumber().intValue();
     }
 
     @Override
     public long getLong(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return bsonValue.longValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? 0 : bsonValue.asNumber().longValue();
     }
 
     @Override
     public float getFloat(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return (float) bsonValue.doubleValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? 0 : (float) bsonValue.asNumber().doubleValue();
     }
 
     @Override
     public double getDouble(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonNumber bsonValue = castNonNull(currentDocument).getNumber(getKey(columnIndex));
-        lastRead = bsonValue;
-        if (bsonValue.isNull()) {
-            throw new BsonNullValueSQLException();
-        }
-        return bsonValue.doubleValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? 0 : bsonValue.asNumber().doubleValue();
     }
 
     @Override
     @Nullable
     public byte[] getBytes(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonBinary bsonValue = castNonNull(currentDocument).getBinary(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : bsonValue.getData();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : bsonValue.asBinary().getData();
     }
 
     @Override
     @Nullable
     public Date getDate(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : new Date(bsonValue.getValue());
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : new Date(bsonValue.asDateTime().getValue());
     }
 
     @Override
     @Nullable
     public Time getTime(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : new Time(bsonValue.getValue());
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : new Time(bsonValue.asDateTime().getValue());
     }
 
     @Override
     @Nullable
     public Timestamp getTimestamp(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonDateTime bsonValue = castNonNull(currentDocument).getDateTime(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : new Timestamp(bsonValue.getValue());
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : new Timestamp(bsonValue.asDateTime().getValue());
     }
 
     @Override
     @Nullable
     public BigDecimal getBigDecimal(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        BsonDecimal128 bsonValue = castNonNull(currentDocument).getDecimal128(getKey(columnIndex));
-        lastRead = bsonValue;
-        return bsonValue.isNull() ? null : bsonValue.getValue().bigDecimalValue();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : bsonValue.asDecimal128().decimal128Value().bigDecimalValue();
     }
 
     @Override
     public Array getArray(final int columnIndex) throws SimulatedSQLException {
-        beforeAccessCurrentDocumentField();
-        List<BsonValue> bsonValues = castNonNull(currentDocument).getArray(getKey(columnIndex)).getValues();
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        if (bsonValue.isNull()) {
+            return null;
+        }
+        List<BsonValue> bsonValues = bsonValue.asArray();
         return new ArrayAdapter() {
 
             @Override
@@ -261,9 +218,8 @@ public class MongoResultSet implements ResultSetAdapter {
     @Nullable
     public Object getObject(final int columnIndex, final Class type) throws SimulatedSQLException {
         Assertions.notNull("type", type);
-        beforeAccessCurrentDocumentField();
-        var value = castNonNull(currentDocument).get(getKey(columnIndex));
-        return value == null ? null : type.cast(value);
+        BsonValue bsonValue = getBsonValue(columnIndex);
+        return bsonValue.isNull() ? null : type.cast(bsonValue);
     }
 
     @Override
