@@ -95,7 +95,7 @@ class SimpleCRUDTests {
     }
 
     @Test
-    void testUpdate() {
+    void testPersist() {
         insertBook();
         var newAuthor = "Fyodor Dostoevsky";
         var newTitle = "Crime and Punishment";
@@ -117,6 +117,34 @@ class SimpleCRUDTests {
             var book = query.getSingleResult();
             assertThat(book).extracting("author", "title", "publishYear")
                             .containsOnly(newAuthor, newTitle, newPublishYear);
+        });
+    }
+
+    @Test
+    void testUpdateQuery() {
+        insertBook();
+        var newAuthor = "Fyodor Dostoevsky";
+        var newTitle = "Crime and Punishment";
+        int newPublishYear = 1866;
+
+        // the following JSON command will be issued:
+        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
+        sessionFactory.inTransaction(session -> {
+            var update = session.createMutationQuery("update Book " +
+                    "set author = :author, title = :title, publishYear = :publishYear " +
+                    "where id = :id");
+            update.setParameter("id", id);
+            update.setParameter("author", newAuthor);
+            update.setParameter("title", newTitle);
+            update.setParameter("publishYear", newPublishYear);
+            update.executeUpdate();
+        });
+        sessionFactory.inSession(session -> {
+            var query = session.createQuery("from Book where id = :id", Book.class);
+            query.setParameter("id", id);
+            var book = query.getSingleResult();
+            assertThat(book).extracting("author", "title", "publishYear")
+                    .containsOnly(newAuthor, newTitle, newPublishYear);
         });
     }
 

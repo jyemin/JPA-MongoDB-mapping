@@ -1,5 +1,6 @@
 package org.hibernate.omm.ast.mql;
 
+import org.hibernate.omm.mongoast.AstFieldUpdate;
 import org.hibernate.omm.mongoast.AstSortField;
 import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstFilter;
@@ -26,6 +27,8 @@ public class AttachmentKeys {
     private static final AttachmentKey<List<AstStage>> JOIN_STAGES = new DefaultAttachmentKey<>("joinStages");
     private static final AttachmentKey<AstLookupStage> LOOKUP_STAGE = new DefaultAttachmentKey<>("lookupStage");
     private static final AttachmentKey<CollectionNameAndJoinStages> COLLECTION_NAME_AND_JOIN_STAGES = new DefaultAttachmentKey<>("collectionNameAndJoinStages");
+    private static final AttachmentKey<List<AstFieldUpdate>> FIELD_UPDATES = new DefaultAttachmentKey<>("fieldUpdates");
+    private static final AttachmentKey<AstFieldUpdate> FIELD_UPDATE = new DefaultAttachmentKey<>("fieldUpdate");
 
     public static AttachmentKey<String> collectionName() {
        return COLLECTION_NAME;
@@ -65,6 +68,14 @@ public class AttachmentKeys {
 
     public static AttachmentKey<CollectionNameAndJoinStages> collectionNameAndJoinStages() {
         return COLLECTION_NAME_AND_JOIN_STAGES;
+    }
+
+    public static AttachmentKey<List<AstFieldUpdate>> fieldUpdates() {
+        return FIELD_UPDATES;
+    }
+
+    public static AttachmentKey<AstFieldUpdate> fieldUpdate() {
+        return FIELD_UPDATE;
     }
 
     private static final class DefaultAttachmentKey<V> implements AttachmentKey<V> {

@@ -37,6 +37,9 @@ import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.delete.DeleteStatement;
 import org.hibernate.sql.ast.tree.expression.ColumnReference;
+import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.SqlTuple;
+import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.insert.InsertSelectStatement;
 import org.hibernate.sql.ast.tree.insert.Values;
 import org.hibernate.sql.ast.tree.update.Assignment;
@@ -129,6 +132,14 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
         }
         getClauseStack().pop();
         getClauseStack().pop();
+    }
+
+    @Override
+    public void visitColumnReference(final ColumnReference columnReference) {
+        if (determineColumnReferenceQualifier(columnReference) != null) {
+            throw new NotSupportedRuntimeException();
+        }
+        mqlAstState.attach(AttachmentKeys.fieldName(), columnReference.getColumnExpression());
     }
 
     @Override
@@ -256,17 +267,16 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
 
     @Override
     protected void visitUpdateStatementOnly(final UpdateStatement statement) {
-        // TODO: untested
-        throw new NotSupportedRuntimeException("updates not supported yet");
-//        if (statement.getFromClause().getRoots().size() > 1) {
-//            throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
-//        }
-//        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
-//            throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
-//        }
-//        renderUpdateClause(statement);
-//        visitWhereClause(statement.getRestriction());
-//        renderSetClause(statement.getAssignments());
+        if (statement.getFromClause().getRoots().size() > 1) {
+            throw new NotSupportedRuntimeException("update statement with multiple roots not supported");
+        }
+        if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
+            throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
+        }
+        AstFilter filter = mqlAstState.expect(AttachmentKeys.filter(), () -> visitWhereClause(statement.getRestriction()));
+        List<AstFieldUpdate> updates = mqlAstState.expect(AttachmentKeys.fieldUpdates(), () ->
+                renderSetClause(statement.getAssignments()));
+        root = new UpdateCommand(statement.getTargetTable().getTableExpression(), filter, updates);
     }
 
     @Override
@@ -282,12 +292,35 @@ public class MutationMQLTranslator<T extends JdbcOperation> extends AbstractMQLT
     @Override
     protected void renderSetClause(final List<Assignment> assignments) {
         try {
+            List<AstFieldUpdate> updates = new ArrayList<>();
             getClauseStack().push(Clause.SET);
             for (Assignment assignment : assignments) {
-                visitSetAssignment(assignment);
+                updates.add(mqlAstState.expect(AttachmentKeys.fieldUpdate(), () -> visitSetAssignment(assignment)));
             }
+            mqlAstState.attach(AttachmentKeys.fieldUpdates(), updates);
         } finally {
             getClauseStack().pop();
+        }
+    }
+
+    @Override
+    protected void visitSetAssignment(final Assignment assignment) {
+        final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
+        if (columnReferences.size() == 1) {
+            ColumnReference columnReference = columnReferences.get(0);
+            if (columnReference.getQualifier() != null) {
+                // TODO: anything to do here?
+            }
+            final Expression assignedValue = assignment.getAssignedValue();
+            final SqlTuple sqlTuple = SqlTupleContainer.getSqlTuple(assignedValue);
+            if (sqlTuple != null) {
+                throw new NotSupportedRuntimeException();
+            }
+            AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> assignedValue.accept(this));
+            mqlAstState.attach(AttachmentKeys.fieldUpdate(), new AstFieldUpdate(columnReference.getColumnExpression(),
+                    value));
+        } else {
+            throw new NotSupportedRuntimeException();
         }
     }
 }

@@ -18,11 +18,15 @@
 package org.hibernate.omm.ast.mql;
 
 import org.bson.BsonNull;
+import org.bson.json.JsonWriter;
 import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.ast.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.mongoast.AstLiteralValue;
+import org.hibernate.omm.mongoast.AstNode;
+import org.hibernate.omm.mongoast.AstPlaceholder;
+import org.hibernate.omm.mongoast.AstValue;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperation;
 import org.hibernate.omm.mongoast.filters.AstComparisonFilterOperator;
 import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
@@ -32,6 +36,7 @@ import org.hibernate.query.sqm.ComparisonOperator;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.JdbcParameter;
 import org.hibernate.sql.ast.tree.expression.SqlTupleContainer;
 import org.hibernate.sql.ast.tree.from.NamedTableReference;
 import org.hibernate.sql.ast.tree.predicate.ExistsPredicate;
@@ -41,6 +46,9 @@ import org.hibernate.sql.ast.tree.predicate.NegatedPredicate;
 import org.hibernate.sql.ast.tree.predicate.NullnessPredicate;
 import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
+import org.hibernate.type.descriptor.jdbc.JdbcType;
+
+import java.io.StringWriter;
 
 import static org.hibernate.omm.ast.mql.AttachmentKeys.fieldName;
 import static org.hibernate.omm.ast.mql.AttachmentKeys.filter;
@@ -59,10 +67,24 @@ import static org.hibernate.omm.ast.mql.AttachmentKeys.filter;
  */
 public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlAstTranslator<T> {
 
+    protected AstNode root;
+    protected Attachment mqlAstState = new Attachment();
     private boolean inAggregateExpressionScope;
 
     public AbstractMQLTranslator(final SessionFactoryImplementor sessionFactory, final Statement statement) {
         super(sessionFactory, statement);
+    }
+
+    public Attachment getMqlAstState() {
+        return mqlAstState;
+    }
+
+    @Override
+    protected String getSql() {
+        StringWriter writer = new StringWriter();
+        JsonWriter jsonWriter = new JsonWriter(writer);
+        root.render(jsonWriter);
+        return writer.toString();
     }
 
     public boolean isInAggregateExpressionScope() {
@@ -90,6 +112,15 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
     }
 
     @Override
+    protected void renderParameterAsParameter(final int position, final JdbcParameter jdbcParameter) {
+        final JdbcType jdbcType = jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
+        assert jdbcType != null;
+        final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
+        jdbcType.appendWriteExpression(parameterMarker, this, dialect);
+        mqlAstState.attach(AttachmentKeys.fieldValue(), new AstPlaceholder());
+    }
+
+    @Override
     protected void visitWhereClause(final Predicate whereClauseRestrictions) {
         final Predicate additionalWherePredicate = this.additionalWherePredicate;
         final boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
@@ -102,8 +133,9 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
                     whereClauseRestrictions.accept(this);
                 }
                 if (additionalWherePredicate != null) {
-                    this.additionalWherePredicate = null;
-                    additionalWherePredicate.accept(this);
+                    throw new UnsupportedOperationException();
+//                    this.additionalWherePredicate = null;
+//                    additionalWherePredicate.accept(this);
                 }
             } finally {
                 getClauseStack().pop();
@@ -149,9 +181,40 @@ public class AbstractMQLTranslator<T extends JdbcOperation> extends AbstractSqlA
     }
 
     protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
-        throw new NotSupportedRuntimeException();
-//        if (inAggregateExpressionScope) {
-//        } else {
-//        }
+        if (inAggregateExpressionScope) {
+            throw new NotSupportedRuntimeException();
+        }
+        String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> lhs.accept(this));
+
+        AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
+                rhs.accept(this));
+        mqlAstState.attach(AttachmentKeys.filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
+                new AstComparisonFilterOperation(convertOperator(operator), value)));
+    }
+
+    AstComparisonFilterOperator convertOperator(final ComparisonOperator operator) {
+        switch (operator) {
+            case EQUAL -> {
+                return AstComparisonFilterOperator.EQ;
+            }
+            case NOT_EQUAL -> {
+                return AstComparisonFilterOperator.NE;
+            }
+            case LESS_THAN -> {
+                return AstComparisonFilterOperator.LT;
+            }
+            case LESS_THAN_OR_EQUAL -> {
+                return AstComparisonFilterOperator.LTE;
+            }
+            case GREATER_THAN -> {
+                return AstComparisonFilterOperator.GT;
+            }
+            case GREATER_THAN_OR_EQUAL -> {
+                return AstComparisonFilterOperator.GTE;
+            }
+            default -> {
+                throw new NotSupportedRuntimeException();
+            }
+        }
     }
 }
