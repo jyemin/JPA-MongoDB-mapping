@@ -4,6 +4,7 @@
 [versions]
 junit-jupiter = "5.10.2"
 hibernate-orm-core = "6.6.0.Final"
+hibernate-jpamodelgen = "6.6.0.Final"
 mongodb-sync-java-driver = "5.1.3"
 testcontainers-mongodb = "1.20.0"
 logback-classic = "1.5.6"
@@ -17,6 +18,7 @@ freefair-aspectj-weaving = "8.10"
 
 [libraries]
 hibernate-orm-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate-orm-core" }
+hibernate-jpamodelgen = { module = "org.hibernate.orm:hibernate-jpamodelgen", version.ref = "hibernate-jpamodelgen" }
 mongodb-sync-java-driver = { module = "org.mongodb:mongodb-driver-sync", version.ref = "mongodb-sync-java-driver" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 testcontainers-mongodb = { module = "org.testcontainers:mongodb", version.ref = "testcontainers-mongodb" }

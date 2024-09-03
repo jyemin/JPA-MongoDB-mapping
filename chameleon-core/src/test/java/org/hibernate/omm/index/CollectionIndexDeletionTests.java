@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /*@MongoIntegrationTest(
         externalEntities = Book.class,
         hibernateProperties = {
-                @HibernateProperty(key = "hibernate.hbm2ddl.auto", value = "update")
+                @HibernateProperty(key = "jakarta.persistence.schema-generation.database.action", value = "update")
         }
 )*/
 class CollectionIndexDeletionTests {

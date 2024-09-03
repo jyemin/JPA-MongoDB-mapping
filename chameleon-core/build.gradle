@@ -28,6 +28,9 @@ dependencies {
 
     //implementation project(':hibernate-overlay')
     implementation libs.hibernate.orm.core
+
+    // JPA Metamodel Generator (used in JPA Criteria)
+    annotationProcessor libs.hibernate.jpamodelgen
 }
 
 java {

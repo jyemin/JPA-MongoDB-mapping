@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @MongoIntegrationTest(
         externalEntities = Book.class,
         hibernateProperties = {
-                @HibernateProperty(key = "hibernate.hbm2ddl.auto", value = "create")
+                @HibernateProperty(key = "jakarta.persistence.schema-generation.database.action", value = "create")
         }
 )
 class CollectionIndexCreationTests {

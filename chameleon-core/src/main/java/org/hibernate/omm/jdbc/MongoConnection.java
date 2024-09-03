@@ -114,16 +114,14 @@ public class MongoConnection implements ConnectionAdapter {
 
     @Override
     public void commit() {
-        if (!autoCommit) {
-            if (clientSession.hasActiveTransaction()) {
-                clientSession.commitTransaction();
-            }
+        if (clientSession.hasActiveTransaction()) {
+            clientSession.commitTransaction();
         }
     }
 
     @Override
     public void rollback() {
-        if (!autoCommit) {
+        if (clientSession.hasActiveTransaction()) {
             clientSession.abortTransaction();
         }
     }
