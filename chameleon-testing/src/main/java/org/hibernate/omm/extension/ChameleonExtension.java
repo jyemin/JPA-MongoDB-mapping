@@ -28,9 +28,20 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
 
 /**
  * A JUnit 5 extension mechanism injecting initialized {@link SessionFactory} and/or {@link MongoDatabase}
- * into testing class's static or instance fields annotated with {@link SessionFactoryInjected} or {@link MongoDatabaseInjected},
- * and scanning the inner classes annotated with {@link Entity} and adding them automatically into Hibernate's meta model.
- * <p/>
+ * into testing class's static or instance fields annotated with the following annotations:
+ * <ul>
+ *     <li>{@link SessionFactoryInjected}</li>
+ *     <li>{@link MongoDatabaseInjected}</li>
+ *     <li>{@link CommandRecorderInjected}</li>
+ * </ul>
+ * It also scans the inner classes annotated with {@link Entity} and adding them automatically into Hibernate's meta model.
+ * <p>
+ * For external {@link Entity} classes, {@link MongoIntegrationTest} annotation provides the {@link MongoIntegrationTest#externalEntities()}
+ * properties to configure explicitly.
+ * <p>
+ * Testing case specific Hibernate property could be specified as another property of {@link MongoIntegrationTest}:
+ * {@link MongoIntegrationTest#hibernateProperties()}.
+ * <p>
  * Another benefit is the testing class could extend from other parent class, if needed.
  *
  * @author Nathn Xu
@@ -58,7 +69,7 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         annotatedClasses.addAll(Arrays.asList(mongoIntegrationTestAnnotation.externalEntities()));
 
         if (annotatedClasses.isEmpty()) {
-            throw new IllegalStateException("No Entity inner static class found within the testing class: " + testClass.getName());
+            throw new IllegalStateException("No annotated Entity class found for the testing class: " + testClass.getName());
         }
 
         mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
@@ -66,8 +77,8 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
 
         final var cfg = new Configuration();
 
-        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration(), mongoDBContainer.getConnectionString());
-        cfg.setProperty(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration(), DATABASE_NAME);
+        cfg.setProperty(MongoAvailableSettings.MONGODB_CONNECTION_URL.getConfiguration(), mongoDBContainer.getConnectionString())
+           .setProperty(MongoAvailableSettings.MONGODB_DATABASE.getConfiguration(), DATABASE_NAME);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
 
         var standardServiceRegistryBuilder = cfg.getStandardServiceRegistryBuilder();
