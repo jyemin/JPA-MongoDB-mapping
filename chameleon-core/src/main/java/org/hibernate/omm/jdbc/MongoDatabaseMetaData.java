@@ -33,6 +33,8 @@ import java.sql.DatabaseMetaData;
  * @see org.hibernate.engine.jdbc.env.internal.JdbcEnvironmentImpl
  */
 public class MongoDatabaseMetaData implements DatabaseMetaDataAdapter {
+    public static final String MONGO_DATABASE_PRODUCT_NAME = "MongoDB";
+
     private final String version;
     private final int majorVersion;
     private final int minorVersion;
@@ -48,7 +50,7 @@ public class MongoDatabaseMetaData implements DatabaseMetaDataAdapter {
 
     @Override
     public String getDatabaseProductName() {
-        return "MongoDB";
+        return MONGO_DATABASE_PRODUCT_NAME;
     }
 
     @Override
@@ -73,7 +75,7 @@ public class MongoDatabaseMetaData implements DatabaseMetaDataAdapter {
 
     @Override
     public String getDriverName() {
-        return "Virtual JDBC Driver";
+        return "Chameleon JDBC Driver";
     }
 
     @Override

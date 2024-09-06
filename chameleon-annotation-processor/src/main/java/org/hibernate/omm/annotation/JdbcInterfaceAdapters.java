@@ -22,6 +22,6 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
-public @interface InterfaceAdapters {
-    InterfaceAdapter[] value();
+public @interface JdbcInterfaceAdapters {
+    JdbcInterfaceAdapter[] value();
 }

@@ -18,31 +18,31 @@
 
 package org.hibernate.omm.jdbc.adapter;
 
-import org.hibernate.omm.annotation.InterfaceAdapter;
-import org.hibernate.omm.annotation.InterfaceAdapters;
+import org.hibernate.omm.annotation.JdbcInterfaceAdapter;
+import org.hibernate.omm.annotation.JdbcInterfaceAdapters;
 
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
-@InterfaceAdapters(
+@JdbcInterfaceAdapters(
         {
-                @InterfaceAdapter(interfaceName = "java.sql.Statement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.Statement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".StatementAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.ResultSet", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.ResultSet", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".ResultSetAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.PreparedStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.PreparedStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".PreparedStatementAdapter", overrideDeclaredMethodsOnly = true),
-                @InterfaceAdapter(interfaceName = "java.sql.Array", adapterClassName = "org.hibernate.omm.jdbc.adapter.ArrayAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.CallableStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.Array", adapterClassName = "org.hibernate.omm.jdbc.adapter.ArrayAdapter"),
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.CallableStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".CallableStatementAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.Connection", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.Connection", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".ConnectionAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.DatabaseMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.DatabaseMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".DatabaseMetaDataAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.ResultSetMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.ResultSetMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".ResultSetMetaDataAdapter"),
-                @InterfaceAdapter(interfaceName = "java.sql.Driver", adapterClassName = "org.hibernate.omm.jdbc.adapter.DriverAdapter")
+                @JdbcInterfaceAdapter(interfaceName = "java.sql.Driver", adapterClassName = "org.hibernate.omm.jdbc.adapter.DriverAdapter")
 
         }
 )

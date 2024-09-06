@@ -16,20 +16,18 @@
  *
  */
 
-package org.hibernate.omm.annotation;
+package org.hibernate.omm.dialect;
 
-import java.lang.annotation.Repeatable;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import org.hibernate.engine.jdbc.dialect.spi.BasicDialectResolver;
+import org.hibernate.omm.jdbc.MongoDatabaseMetaData;
 
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
-@Repeatable(InterfaceAdapters.class)
-@Retention(RetentionPolicy.SOURCE)
-public @interface InterfaceAdapter {
-    String interfaceName();
-    String adapterClassName();
-    boolean overrideDeclaredMethodsOnly() default false;
+public class MongoDialectResolver extends BasicDialectResolver {
+
+    public MongoDialectResolver() {
+        super(MongoDatabaseMetaData.MONGO_DATABASE_PRODUCT_NAME, MongoDialect.class);
+    }
 }

@@ -40,9 +40,9 @@ import java.util.Set;
  * @since 1.0.0
  */
 @AutoService(Processor.class)
-@SupportedAnnotationTypes("org.hibernate.omm.annotation.InterfaceAdapters")
+@SupportedAnnotationTypes("org.hibernate.omm.annotation.JdbcInterfaceAdapters")
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
-public class InterfaceAdaptersProcessor extends AbstractProcessor {
+public class JdbcInterfaceAdaptersProcessor extends AbstractProcessor {
 
     private Filer filer;
 
@@ -53,8 +53,8 @@ public class InterfaceAdaptersProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnvironment) {
-        for (var element : roundEnvironment.getElementsAnnotatedWith(InterfaceAdapters.class)) {
-            var interfaceAdapters = element.getAnnotation(InterfaceAdapters.class);
+        for (var element : roundEnvironment.getElementsAnnotatedWith(JdbcInterfaceAdapters.class)) {
+            var interfaceAdapters = element.getAnnotation(JdbcInterfaceAdapters.class);
             for (var interfaceAdapter : interfaceAdapters.value()) {
                 try {
                     Class<?> interfaceClass = Class.forName(interfaceAdapter.interfaceName());
@@ -117,12 +117,28 @@ public class InterfaceAdaptersProcessor extends AbstractProcessor {
                         out.print(exceptionTypes[i].getName());
                     }
                 }
-                out.printf(" { throw new RuntimeException(\"'%s#%s()' method not supported\"); }%n", interfaceClass.getName(),
+                Class<?> defaultThrownExceptionType = getDefaultThrownExceptionType(exceptionTypes);
+                out.printf(" { throw new %s(\"'%s#%s()' method not supported\"); }%n",
+                        defaultThrownExceptionType.getName(),
+                        interfaceClass.getName(),
                         method.getName());
                 out.println();
             }
             out.println("}");
         }
+    }
+
+    /**
+     * Try to locate one specified exception class which accepts String as the only constructor parameter
+     */
+    private Class<?> getDefaultThrownExceptionType(final Class<?>[] exceptionTypes) {
+        for (final var exceptionType : exceptionTypes) {
+            try {
+                exceptionType.getConstructor(String.class);
+                return exceptionType;
+            } catch (NoSuchMethodException ignore) {}
+        }
+        return RuntimeException.class;
     }
 
     private String getTypeRendered(final Class<?> clazz) {
