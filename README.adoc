@@ -47,15 +47,18 @@ of JDBC layer invariably. Our "Virtual JDBC Driver" will act as an adapter betwe
 
 === Some Caveats
 Obviously we can't anticipate all JPA features (entity class and JPA annotations, JP-QL or HQL statements) has one-to-one
-counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation to great extents, e.g.:
+counterpart in MongoDB, but luckily MongoDB provides counterparts or simulation to great extent, e.g.:
 
-* SQL table joining: MongoDB has collection joining simulation (`$lookup` and `$unwind` `aggregate` pipeline stage)
+* SQL table joining: MongoDB has collection joining simulation (`$lookup` and `$unwind` stages of `aggregate` pipeline)
 * transaction: since Mongodb v4, transaction is provided
 * embedding array field: since https://docs.jboss.org/hibernate/orm/6.1/migration-guide/migration-guide.html[Hibernate v6.1], JDBC's
 ARRAY type is supported
 
 == Mongodb Integration Unit Testing
 
-https://java.testcontainers.org/modules/databases/mongodb/[Testcontainers Approach] was chosen to go about MongoDB integration unit testing.
-Remember you need to launch docker service beforehand; otherwise testing will fail complaining docker is not started.
+A locally running *mongod* process should have been launched (at the default port of _27017_).
+
+Default connection string is *mongodb://localhost/test*.
+
+Before any testing case is started, all the collections in the testing database will be dropped.
 

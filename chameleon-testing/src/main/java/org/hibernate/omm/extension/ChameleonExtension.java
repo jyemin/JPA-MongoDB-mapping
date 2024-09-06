@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.util.ReflectionUtils;
-import org.testcontainers.containers.MongoDBContainer;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -48,10 +47,8 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  */
 class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
-    private static final String MONGODB_DOCKER_IMAGE_NAME = "mongo:5.0.28";
-    private static final String DATABASE_NAME = "test";
+    private static final String DEFAULT_MONGO_CONNECTION_URL = "mongodb://localhost/test";
 
-    private MongoDBContainer mongoDBContainer;
     private SessionFactoryImplementor sessionFactory;
     private MongoDatabase mongoDatabase;
 
@@ -71,21 +68,16 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
             throw new IllegalStateException("No annotated Entity class found for the testing class: " + testClass.getName());
         }
 
-        mongoDBContainer = new MongoDBContainer(MONGODB_DOCKER_IMAGE_NAME);
-        mongoDBContainer.start();
-
         final var cfg = new Configuration();
+        if (cfg.getProperty(AvailableSettings.JAKARTA_JDBC_URL) == null) {
+            cfg.setProperty(AvailableSettings.JAKARTA_JDBC_URL, DEFAULT_MONGO_CONNECTION_URL);
+        }
 
-        final var url = mongoDBContainer.getConnectionString() + "/" + DATABASE_NAME;
-        cfg.setProperty(AvailableSettings.JAKARTA_JDBC_URL, url);
         annotatedClasses.forEach(cfg::addAnnotatedClass);
-
-        var standardServiceRegistryBuilder = cfg.getStandardServiceRegistryBuilder();
-        standardServiceRegistryBuilder.addService(CommandRecorder.class, DefaultCommandRecorderImpl.INSTANCE);
 
         Arrays.stream(mongoIntegrationTestAnnotation.hibernateProperties()).forEach(prop -> cfg.setProperty(prop.key(), prop.value()));
 
-        mongoDatabase = MongoDriver.getMongoDatabase(url);
+        mongoDatabase = MongoDriver.getMongoDatabase(cfg.getProperty(AvailableSettings.JAKARTA_JDBC_URL));
         MongoDriver.commandRecorder = DefaultCommandRecorderImpl.INSTANCE;
 
         sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
@@ -102,13 +94,6 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
                 sessionFactory.close();
             } finally {
                 sessionFactory = null;
-            }
-        }
-        if (mongoDBContainer != null) {
-            try {
-                mongoDBContainer.stop();
-            } finally {
-                mongoDBContainer = null;
             }
         }
     }

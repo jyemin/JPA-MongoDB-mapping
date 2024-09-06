@@ -16,22 +16,20 @@
 package org.hibernate.omm.exception;
 
 import com.mongodb.assertions.Assertions;
-import org.hibernate.omm.cfg.MongoAvailableSettings;
 import org.hibernate.omm.util.CollectionUtil;
 
-import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public class MongoConfigMissingException extends RuntimeException {
-    private final EnumSet<MongoAvailableSettings> missingSettings;
+    private final Set<String> missingSettings;
 
-    public MongoConfigMissingException(final Collection<MongoAvailableSettings> missingSettings) {
+    public MongoConfigMissingException(final Set<String> missingSettings) {
         Assertions.assertTrue(CollectionUtil.isNotEmpty(missingSettings));
-        this.missingSettings = EnumSet.copyOf(missingSettings);
+        this.missingSettings = missingSettings;
     }
 
     @Override

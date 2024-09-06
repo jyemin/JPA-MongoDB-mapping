@@ -23,21 +23,7 @@ package org.hibernate.omm.cfg;
  * @author Nathan Xu
  * @since 1.0.0
  */
-public enum MongoAvailableSettings {
-    MONGODB_CONNECTION_URL("mongodb.connection.url"),
-    MONGODB_DATABASE("mongodb.database");
-
-    private final String configuration;
-    MongoAvailableSettings(final String configuration) {
-        this.configuration = configuration;
-    }
-
-    public String getConfiguration() {
-        return configuration;
-    }
-
-    @Override
-    public String toString() {
-        return configuration;
-    }
+public interface MongoAvailableSettings {
+    // simulating Hibernate's AvailableSettings class
+    // currently empty for now
 }

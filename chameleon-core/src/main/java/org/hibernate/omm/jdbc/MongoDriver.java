@@ -35,12 +35,14 @@ import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 public class MongoDriver implements DriverAdapter {
 
+    // currently mongoDatabase is put to static variable so unit testing code could
+    // use it to drop collection(s) during unit testing lifecycle events
     public static volatile @MonotonicNonNull MongoDatabase mongoDatabase;
     public static @MonotonicNonNull MongoClient mongoClient;
 
     public static CommandRecorder commandRecorder;
 
-
+    // mainly used for getting MongoDatabase reference in 'chameleon-testing'
     public static MongoDatabase getMongoDatabase(String url) {
         initializeMongoDatabase(url);
         return mongoDatabase;
@@ -61,7 +63,7 @@ public class MongoDriver implements DriverAdapter {
 
     @Override
     public boolean acceptsURL(final String url) {
-        return url != null && url.startsWith("mongodb+");
+        return url != null && (url.startsWith("mongodb://") || url.startsWith("mongo+srv://"));
     }
 
     private static void initializeMongoDatabase(final String url) {
@@ -71,6 +73,7 @@ public class MongoDriver implements DriverAdapter {
                 MongoClientSettings.getDefaultCodecRegistry()
         );
 
+        // we need to figure out how to customize MongoClientSettings.Builder
         final var clientSettings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
                 .codecRegistry(codecRegistry)
@@ -80,10 +83,10 @@ public class MongoDriver implements DriverAdapter {
     }
 
     private static String extractDatabaseFromConnectionString(final String connectionString) {
-        int startIndex = connectionString.lastIndexOf('/');
-        int endIndex = connectionString.indexOf(startIndex + 1, '?');
+        int startIndex = connectionString.lastIndexOf('/') + 1;
+        int endIndex = connectionString.indexOf(startIndex, '?');
         if (endIndex < 0) {
-            return connectionString.substring(startIndex + 1);
+            return connectionString.substring(startIndex);
         }
         else {
             return connectionString.substring(startIndex, endIndex);

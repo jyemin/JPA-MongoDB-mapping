@@ -128,7 +128,7 @@ public class InterfaceAdaptersProcessor extends AbstractProcessor {
     private String getTypeRendered(final Class<?> clazz) {
         var componentType = clazz.getComponentType();
         if (componentType == null) {
-            return clazz.getName().replace('$', '.'); // inner class name
+            return clazz.getCanonicalName();
         } else {
             return componentType.getCanonicalName() + "[]";
         }

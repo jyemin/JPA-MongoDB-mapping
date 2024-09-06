@@ -10,6 +10,6 @@ repositories {
 }
 
 dependencies {
-    implementation libs.hibernate.orm.core, libs.mongodb.sync.java.driver, libs.junit.jupiter, libs.testcontainers.mongodb
+    implementation libs.hibernate.orm.core, libs.mongodb.sync.java.driver, libs.junit.jupiter
     implementation project(':chameleon-core')
 }

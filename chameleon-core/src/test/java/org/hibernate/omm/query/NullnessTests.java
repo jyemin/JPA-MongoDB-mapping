@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @since 1.0.0
  */
 @MongoIntegrationTest
-class NullTests {
+class NullnessTests {
 
     @SessionFactoryInjected
     SessionFactory sessionFactory;
