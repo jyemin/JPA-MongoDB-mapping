@@ -5,8 +5,9 @@ import jakarta.persistence.Entity;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.hibernate.omm.jdbc.MongoDriver;
+import org.hibernate.omm.jdbc.MongoConnectionProvider;
 import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.omm.service.DefaultCommandRecorderImpl;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -20,6 +21,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatedFields;
@@ -77,10 +79,15 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
 
         Arrays.stream(mongoIntegrationTestAnnotation.hibernateProperties()).forEach(prop -> cfg.setProperty(prop.key(), prop.value()));
 
-        mongoDatabase = MongoDriver.getMongoDatabase(cfg.getProperty(AvailableSettings.JAKARTA_JDBC_URL));
-        MongoDriver.commandRecorder = DefaultCommandRecorderImpl.INSTANCE;
+        final var standardServiceRegistryBuilder = cfg.getStandardServiceRegistryBuilder();
+        standardServiceRegistryBuilder.addService(CommandRecorder.class, DefaultCommandRecorderImpl.INSTANCE);
 
         sessionFactory = (SessionFactoryImplementor) cfg.buildSessionFactory();
+
+        final var mongoConnectionProvider =
+                (MongoConnectionProvider) sessionFactory.getServiceRegistry().getService(ConnectionProvider.class);
+
+        mongoDatabase = Objects.requireNonNull(mongoConnectionProvider).getMongoDatabase();
 
         injectStaticFields(testClass, SessionFactoryInjected.class, SessionFactory.class, sessionFactory);
         injectStaticFields(testClass, MongoDatabaseInjected.class, MongoDatabase.class, mongoDatabase);
@@ -120,8 +127,6 @@ class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeE
         injectInstanceFields(context.getRequiredTestClass(), context.getRequiredTestInstance(), CommandRecorderInjected.class,
                 CommandRecorder.class, commandRecorder);
     }
-
-
 
     private void injectStaticFields(Class<?> testClass, Class<? extends Annotation> annotationClass, Class<?> fieldType,
             Object injectedValue) {

@@ -24,6 +24,7 @@ import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.omm.type.array.MongoArray;
 
 import java.sql.Array;
@@ -46,27 +47,31 @@ public class MongoConnection implements ConnectionAdapter {
     private final ClientSession clientSession;
     private final MongoDatabase mongoDatabase;
 
-    private boolean autoCommit;
+    @Nullable
+    private final CommandRecorder commandRecorder;
+
+    private boolean autoCommit = true;
     private boolean closed;
 
     @Nullable
     private SQLWarning sqlWarning;
 
-    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession) {
+    public MongoConnection(final MongoDatabase mongoDatabase, final ClientSession clientSession, @Nullable final CommandRecorder commandRecorder) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
         this.clientSession = clientSession;
         this.mongoDatabase = mongoDatabase;
+        this.commandRecorder = commandRecorder;
     }
 
     @Override
     public Statement createStatement() {
-        return new MongoStatement(mongoDatabase, clientSession, this);
+        return new MongoStatement(mongoDatabase, clientSession, this, commandRecorder);
     }
 
     @Override
     public PreparedStatement prepareStatement(final String sql) {
-        return new MongoPreparedStatement(mongoDatabase, clientSession, this, sql);
+        return new MongoPreparedStatement(mongoDatabase, clientSession, this, commandRecorder, sql);
     }
 
     @Override
@@ -100,7 +105,7 @@ public class MongoConnection implements ConnectionAdapter {
 
     @Override
     public void setAutoCommit(final boolean autoCommit) {
-        if (!autoCommit && this.autoCommit) {
+        if (!autoCommit) {
             this.clientSession.startTransaction();
         }
         this.autoCommit = autoCommit;
