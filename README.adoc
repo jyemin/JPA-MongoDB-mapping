@@ -56,9 +56,9 @@ ARRAY type is supported
 
 == Mongodb Integration Unit Testing
 
-A locally running *mongod* process should have been launched (at the default port of _27017_).
+A locally running MongoDB server should have been running (at the default port of _27017_).
 
-Default connection string is *mongodb://localhost/test*.
+Default connection string is *mongodb://localhost/chameleon-test*.
 
-Before any testing case is started, all the collections in the testing database will be dropped.
+Currently all the collections in the testing database will be dropped before unit testing case is run.
 

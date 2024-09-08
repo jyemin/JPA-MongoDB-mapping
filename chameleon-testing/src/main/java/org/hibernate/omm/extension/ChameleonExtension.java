@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 import static org.junit.platform.commons.support.AnnotationSupport.findAnnotatedFields;
 
 /**
- * A JUnit 5 extension mechanism injecting initialized {@link SessionFactory} and/or {@link MongoDatabase}
+ * A JUnit 5 extension mechanism injecting initialized {@link SessionFactory}, {@link MongoDatabase}, {@link CommandRecorder} etc.
  * into testing class's static or instance fields annotated with the following annotations:
  * <ul>
  *     <li>{@link SessionFactoryInjected}</li>
@@ -49,7 +49,7 @@ import static org.junit.platform.commons.support.AnnotationSupport.findAnnotated
  */
 class ChameleonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
-    private static final String DEFAULT_MONGO_CONNECTION_URL = "mongodb://localhost/test";
+    private static final String DEFAULT_MONGO_CONNECTION_URL = "mongodb://localhost/chameleon-test";
 
     private SessionFactoryImplementor sessionFactory;
     private MongoDatabase mongoDatabase;
