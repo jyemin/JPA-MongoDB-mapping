@@ -18,7 +18,7 @@ public record DeleteCommand(String collection, AstFilter filter) implements AstN
         writer.writeStartDocument();
         writer.writeName("q");
         filter.render(writer);
-        writer.writeInt32("limit", 0);
+        writer.writeInt32("limit", filter.isIdEqualityFilter() ? 1 : 0);
         writer.writeEndDocument();
         writer.writeEndArray();
         writer.writeEndDocument();

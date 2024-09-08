@@ -20,4 +20,9 @@ public record AstAndFilter(List<AstFilter> filters) implements AstFilter {
         writer.writeEndArray();
         writer.writeEndDocument();
     }
+
+    @Override
+    public boolean isIdEqualityFilter() {
+        return filters.stream().anyMatch(AstFilter::isIdEqualityFilter);
+    }
 }

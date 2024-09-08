@@ -16,4 +16,11 @@ public record AstFieldOperationFilter(AstFilterField field, AstFilterOperation o
         operation.render(writer);
         writer.writeEndDocument();
     }
+
+    @Override
+    public boolean isIdEqualityFilter() {
+        return field().path().equals("_id") &&
+                operation() instanceof AstComparisonFilterOperation comparisonFilterOperation &&
+                comparisonFilterOperation.operator().equals(AstComparisonFilterOperator.EQ);
+    }
 }
