@@ -34,16 +34,12 @@ import org.hibernate.omm.annotation.JdbcInterfaceAdapters;
                 @JdbcInterfaceAdapter(interfaceName = "java.sql.PreparedStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".PreparedStatementAdapter", overrideDeclaredMethodsOnly = true),
                 @JdbcInterfaceAdapter(interfaceName = "java.sql.Array", adapterClassName = "org.hibernate.omm.jdbc.adapter.ArrayAdapter"),
-                @JdbcInterfaceAdapter(interfaceName = "java.sql.CallableStatement", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
-                        ".CallableStatementAdapter"),
                 @JdbcInterfaceAdapter(interfaceName = "java.sql.Connection", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".ConnectionAdapter"),
                 @JdbcInterfaceAdapter(interfaceName = "java.sql.DatabaseMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
                         ".DatabaseMetaDataAdapter"),
                 @JdbcInterfaceAdapter(interfaceName = "java.sql.ResultSetMetaData", adapterClassName = "org.hibernate.omm.jdbc.adapter" +
-                        ".ResultSetMetaDataAdapter"),
-                @JdbcInterfaceAdapter(interfaceName = "java.sql.Driver", adapterClassName = "org.hibernate.omm.jdbc.adapter.DriverAdapter")
-
+                        ".ResultSetMetaDataAdapter")
         }
 )
 public interface InterfaceAdapterContainer {
