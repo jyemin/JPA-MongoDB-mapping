@@ -22,6 +22,7 @@ import org.bson.BsonDocument;
 import org.hibernate.dialect.StructHelper;
 import org.hibernate.metamodel.mapping.EmbeddableMappingType;
 import org.hibernate.metamodel.spi.RuntimeModelCreationContext;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.omm.util.TypeUtil;
 import org.hibernate.type.descriptor.ValueBinder;
 import org.hibernate.type.descriptor.ValueExtractor;
@@ -99,8 +100,7 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
             @Override
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options)
                     throws SQLException {
-                final var jdbcValue = ((MongoSQLStructJdbcType) getJdbcType()).createJdbcValue(value, options);
-                st.setString(name, jdbcValue.toJson());
+                throw new NotSupportedSQLException();
             }
 
             @Override
@@ -120,13 +120,13 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
 
             @Override
             protected X doExtract(CallableStatement statement, int index, WrapperOptions options) throws SQLException {
-                return javaType.getJavaTypeClass().cast(BsonDocument.parse(statement.getString(index)));
+                throw new NotSupportedSQLException();
             }
 
             @Override
             protected X doExtract(CallableStatement statement, String name, WrapperOptions options)
                     throws SQLException {
-                return javaType.getJavaTypeClass().cast(BsonDocument.parse(statement.getString(name)));
+                throw new NotSupportedSQLException();
             }
         };
     }

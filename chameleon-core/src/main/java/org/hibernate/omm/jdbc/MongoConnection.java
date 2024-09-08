@@ -20,7 +20,6 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.Nullable;
 import org.bson.Document;
-import org.hibernate.omm.exception.NotYetImplementedException;
 import org.hibernate.omm.jdbc.adapter.ConnectionAdapter;
 import org.hibernate.omm.jdbc.exception.CommandRunFailSQLException;
 import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
@@ -28,7 +27,6 @@ import org.hibernate.omm.service.CommandRecorder;
 import org.hibernate.omm.type.array.MongoArray;
 
 import java.sql.Array;
-import java.sql.CallableStatement;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.SQLWarning;
@@ -91,11 +89,6 @@ public class MongoConnection implements ConnectionAdapter {
         Assertions.assertTrue(versionArray.size() >= 2);
 
         return new MongoDatabaseMetaData(version, versionArray.get(0), versionArray.get(1), this);
-    }
-
-    @Override
-    public CallableStatement prepareCall(final String sql) {
-        throw new NotYetImplementedException();
     }
 
     @Override

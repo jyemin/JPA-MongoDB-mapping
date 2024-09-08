@@ -19,6 +19,7 @@ import com.mongodb.lang.Nullable;
 import org.bson.BsonObjectId;
 import org.bson.assertions.Assertions;
 import org.bson.types.ObjectId;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.type.descriptor.ValueBinder;
 import org.hibernate.type.descriptor.ValueExtractor;
@@ -81,7 +82,7 @@ public class ObjectIdJdbcType implements JdbcType {
             @Override
             protected void doBind(final CallableStatement st, final X value, final String name, final WrapperOptions options)
                     throws SQLException {
-                st.setObject(name, value, MongoSqlType.OBJECT_ID);
+                throw new NotSupportedSQLException();
             }
         };
     }
@@ -100,18 +101,13 @@ public class ObjectIdJdbcType implements JdbcType {
             }
 
             @Override
-            @Nullable
             protected X doExtract(final CallableStatement statement, final int index, final WrapperOptions options) throws SQLException {
-                var obj = statement.getObject(index, BsonObjectId.class);
-                var value = obj == null ? null : obj.getValue();
-                return javaType.getJavaTypeClass().cast(value);
+                throw new NotSupportedSQLException();
             }
 
             @Override
-            @Nullable
             protected X doExtract(final CallableStatement statement, final String name, final WrapperOptions options) throws SQLException {
-                var value = statement.getObject(name, ObjectId.class);
-                return javaType.getJavaTypeClass().cast(value);
+                throw new NotSupportedSQLException();
             }
         };
     }

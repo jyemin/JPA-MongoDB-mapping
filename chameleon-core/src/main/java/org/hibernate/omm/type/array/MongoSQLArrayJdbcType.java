@@ -18,8 +18,8 @@
 
 package org.hibernate.omm.type.array;
 
-import org.hibernate.HibernateException;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
 import org.hibernate.type.descriptor.ValueBinder;
 import org.hibernate.type.descriptor.WrapperOptions;
 import org.hibernate.type.descriptor.java.BasicPluralJavaType;
@@ -53,13 +53,7 @@ public class MongoSQLArrayJdbcType extends ArrayJdbcType {
             @Override
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options)
                     throws SQLException {
-                final java.sql.Array arr = getArray( value, options );
-                try {
-                    st.setObject( name, arr, java.sql.Types.ARRAY );
-                }
-                catch (SQLException ex) {
-                    throw new HibernateException( "JDBC driver does not support named parameters for setArray. Use positional.", ex );
-                }
+                throw new NotSupportedSQLException();
             }
 
             @Override
