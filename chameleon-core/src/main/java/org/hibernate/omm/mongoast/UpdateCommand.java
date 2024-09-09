@@ -27,7 +27,7 @@ public record UpdateCommand(String collection, AstFilter filter, List<AstFieldUp
         updates.forEach(update ->  update.render(writer));
         writer.writeEndDocument();
         writer.writeEndDocument();
-        writer.writeBoolean("multi", true);
+        writer.writeBoolean("multi", !filter.isIdEqualityFilter());
         writer.writeEndDocument();
         writer.writeEndArray();
         writer.writeEndDocument();
