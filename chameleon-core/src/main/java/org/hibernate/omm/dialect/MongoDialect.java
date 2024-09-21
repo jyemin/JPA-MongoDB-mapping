@@ -31,7 +31,7 @@ import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Selectable;
 import org.hibernate.mapping.Table;
-import org.hibernate.omm.ast.MQLAstTranslatorFactory;
+import org.hibernate.omm.translate.MongoTranslatorFactory;
 import org.hibernate.omm.dialect.exporter.MongoIndexCommandUtil;
 import org.hibernate.omm.type.ObjectIdJavaType;
 import org.hibernate.omm.type.ObjectIdJdbcType;
@@ -87,7 +87,7 @@ public class MongoDialect extends Dialect {
 
     @Override
     public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
-        return new MQLAstTranslatorFactory();
+        return new MongoTranslatorFactory();
     }
 
     @Override

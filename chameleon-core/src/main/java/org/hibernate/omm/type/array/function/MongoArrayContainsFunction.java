@@ -20,13 +20,13 @@ package org.hibernate.omm.type.array.function;
 import org.hibernate.dialect.function.array.AbstractArrayContainsFunction;
 import org.hibernate.metamodel.mapping.JdbcMapping;
 import org.hibernate.metamodel.mapping.JdbcMappingContainer;
-import org.hibernate.omm.ast.mql.AbstractMQLTranslator;
-import org.hibernate.omm.ast.mql.Attachment;
-import org.hibernate.omm.ast.mql.AttachmentKeys;
-import org.hibernate.omm.mongoast.AstValue;
-import org.hibernate.omm.mongoast.filters.AstAllFilterOperation;
-import org.hibernate.omm.mongoast.filters.AstFieldOperationFilter;
-import org.hibernate.omm.mongoast.filters.AstFilterField;
+import org.hibernate.omm.translate.translator.AbstractBsonTranslator;
+import org.hibernate.omm.translate.translator.Attachment;
+import org.hibernate.omm.translate.translator.AttachmentKeys;
+import org.hibernate.omm.translate.translator.ast.AstValue;
+import org.hibernate.omm.translate.translator.ast.filters.AstAllFilterOperation;
+import org.hibernate.omm.translate.translator.ast.filters.AstFieldOperationFilter;
+import org.hibernate.omm.translate.translator.ast.filters.AstFilterField;
 import org.hibernate.query.ReturnableType;
 import org.hibernate.sql.ast.SqlAstTranslator;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -55,7 +55,7 @@ public class MongoArrayContainsFunction extends AbstractArrayContainsFunction {
         final JdbcMappingContainer needleTypeContainer = needleExpression.getExpressionType();
         final JdbcMapping needleType = needleTypeContainer == null ? null : needleTypeContainer.getSingleJdbcMapping();
 
-        Attachment mqlAstState = ((AbstractMQLTranslator<?>) walker).getMqlAstState();
+        Attachment mqlAstState = ((AbstractBsonTranslator<?>) walker).getMqlAstState();
 
         if (needleType == null || needleType instanceof BasicPluralType<?, ?>) {
             sqlAppender.append("{ ");
