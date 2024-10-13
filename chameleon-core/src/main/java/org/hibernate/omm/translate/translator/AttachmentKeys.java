@@ -5,13 +5,13 @@ import static com.mongodb.assertions.Assertions.assertTrue;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.hibernate.omm.translate.translator.ast.AstFieldUpdate;
-import org.hibernate.omm.translate.translator.ast.AstSortField;
-import org.hibernate.omm.translate.translator.ast.AstValue;
-import org.hibernate.omm.translate.translator.ast.filters.AstFilter;
-import org.hibernate.omm.translate.translator.ast.stages.AstLookupStage;
-import org.hibernate.omm.translate.translator.ast.stages.AstProjectStageSpecification;
-import org.hibernate.omm.translate.translator.ast.stages.AstStage;
+import org.hibernate.omm.translate.translator.mongoast.AstFieldUpdate;
+import org.hibernate.omm.translate.translator.mongoast.AstSortField;
+import org.hibernate.omm.translate.translator.mongoast.AstValue;
+import org.hibernate.omm.translate.translator.mongoast.filters.AstFilter;
+import org.hibernate.omm.translate.translator.mongoast.stages.AstLookupStage;
+import org.hibernate.omm.translate.translator.mongoast.stages.AstProjectStageSpecification;
+import org.hibernate.omm.translate.translator.mongoast.stages.AstStage;
 
 public class AttachmentKeys {
 
