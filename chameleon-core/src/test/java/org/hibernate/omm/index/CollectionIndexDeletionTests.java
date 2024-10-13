@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2008-present MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +17,12 @@
 
 package org.hibernate.omm.index;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.hibernate.omm.extension.CommandRecorderInjected;
 import org.hibernate.omm.service.CommandRecorder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -45,12 +44,12 @@ class CollectionIndexDeletionTests {
     @Test
     void test_indexes_dropped() {
         final var commands = commandRecorder.getCommandsRecorded();
-        assertThat(commands).allSatisfy(command -> assertThat(command.getString("dropIndexes").getValue()).isEqualTo("books"));
-        assertThat(commands).extracting(command -> command.getString("index").getValue()).containsExactlyInAnyOrder(
-                "idx_on_single_col",
-                "idx_on_multi_cols",
-                "uniq_idx_on_single_col",
-                "uniq_idx_on_multi_cols"
-        );
+        assertThat(commands)
+                .allSatisfy(command ->
+                        assertThat(command.getString("dropIndexes").getValue()).isEqualTo("books"));
+        assertThat(commands)
+                .extracting(command -> command.getString("index").getValue())
+                .containsExactlyInAnyOrder(
+                        "idx_on_single_col", "idx_on_multi_cols", "uniq_idx_on_single_col", "uniq_idx_on_multi_cols");
     }
 }

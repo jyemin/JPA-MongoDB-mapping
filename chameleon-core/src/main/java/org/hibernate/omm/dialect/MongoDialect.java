@@ -1,19 +1,6 @@
-/*
- * Copyright 2008-present MongoDB, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.hibernate.omm.dialect;
+
+import static org.hibernate.type.SqlTypes.ARRAY;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -31,8 +18,8 @@ import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.Selectable;
 import org.hibernate.mapping.Table;
-import org.hibernate.omm.translate.MongoTranslatorFactory;
 import org.hibernate.omm.dialect.exporter.MongoIndexCommandUtil;
+import org.hibernate.omm.translate.MongoTranslatorFactory;
 import org.hibernate.omm.type.ObjectIdJavaType;
 import org.hibernate.omm.type.ObjectIdJdbcType;
 import org.hibernate.omm.type.array.MongoSQLArrayJdbcTypeConstructor;
@@ -48,8 +35,6 @@ import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 
-import static org.hibernate.type.SqlTypes.ARRAY;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -58,17 +43,20 @@ public class MongoDialect extends Dialect {
 
     public static final int MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED = 3;
 
-    private static final DatabaseVersion MINIMUM_VERSION = DatabaseVersion.make(MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED);
+    private static final DatabaseVersion MINIMUM_VERSION =
+            DatabaseVersion.make(MINIMUM_MONGODB_MAJOR_VERSION_SUPPORTED);
 
     private static final class NO_OP_EXPORTER<T extends Exportable> implements Exporter<T> {
 
         @Override
-        public String[] getSqlCreateStrings(final T exportable, final Metadata metadata, final SqlStringGenerationContext context) {
+        public String[] getSqlCreateStrings(
+                final T exportable, final Metadata metadata, final SqlStringGenerationContext context) {
             return ArrayHelper.EMPTY_STRING_ARRAY;
         }
 
         @Override
-        public String[] getSqlDropStrings(final T exportable, final Metadata metadata, final SqlStringGenerationContext context) {
+        public String[] getSqlDropStrings(
+                final T exportable, final Metadata metadata, final SqlStringGenerationContext context) {
             return ArrayHelper.EMPTY_STRING_ARRAY;
         }
     }
@@ -118,14 +106,13 @@ public class MongoDialect extends Dialect {
 
     protected void contributeMongoTypes(TypeContributions typeContributions) {
         final var javaTypeRegistry = typeContributions.getTypeConfiguration().getJavaTypeRegistry();
-        final var jdbcTypeRegistry = typeContributions.getTypeConfiguration()
-                .getJdbcTypeRegistry();
+        final var jdbcTypeRegistry = typeContributions.getTypeConfiguration().getJdbcTypeRegistry();
 
         // Struct
-        jdbcTypeRegistry.addDescriptor( MongoSQLStructJdbcType.INSTANCE );
+        jdbcTypeRegistry.addDescriptor(MongoSQLStructJdbcType.INSTANCE);
 
         // array
-        jdbcTypeRegistry.addTypeConstructor( MongoSQLArrayJdbcTypeConstructor.INSTANCE );
+        jdbcTypeRegistry.addTypeConstructor(MongoSQLArrayJdbcTypeConstructor.INSTANCE);
 
         // ObjectId
         javaTypeRegistry.addDescriptor(ObjectIdJavaType.getInstance());
@@ -159,7 +146,8 @@ public class MongoDialect extends Dialect {
     public Exporter<Index> getIndexExporter() {
         return new Exporter<>() {
             @Override
-            public String[] getSqlCreateStrings(final Index index, final Metadata metadata, final SqlStringGenerationContext context) {
+            public String[] getSqlCreateStrings(
+                    final Index index, final Metadata metadata, final SqlStringGenerationContext context) {
                 final var collectionName = index.getTable().getName();
                 final var keys = new BsonDocument();
                 for (Selectable selectable : index.getSelectables()) {
@@ -167,17 +155,20 @@ public class MongoDialect extends Dialect {
                         keys.put(selectable.getText(), new BsonInt32(1));
                     }
                 }
-                return new String[]{
-                        MongoIndexCommandUtil.getIndexCreationCommand(collectionName, index.getName(), keys, false).toJson()
+                return new String[] {
+                    MongoIndexCommandUtil.getIndexCreationCommand(collectionName, index.getName(), keys, false)
+                            .toJson()
                 };
             }
 
             @Override
-            public String[] getSqlDropStrings(final Index index, final Metadata metadata, final SqlStringGenerationContext context) {
+            public String[] getSqlDropStrings(
+                    final Index index, final Metadata metadata, final SqlStringGenerationContext context) {
                 final var collectionName = index.getTable().getName();
                 final var keys = MongoIndexCommandUtil.getKeys(index);
                 return new String[] {
-                        MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, index.getName(), keys).toJson()
+                    MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, index.getName(), keys)
+                            .toJson()
                 };
             }
         };
@@ -187,20 +178,24 @@ public class MongoDialect extends Dialect {
     public Exporter<Constraint> getUniqueKeyExporter() {
         return new Exporter<>() {
             @Override
-            public String[] getSqlCreateStrings(final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
+            public String[] getSqlCreateStrings(
+                    final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
                 final var collectionName = constraint.getTable().getName();
                 final var keys = MongoIndexCommandUtil.getKeys(constraint);
-                return new String[]{
-                        MongoIndexCommandUtil.getIndexCreationCommand(collectionName, constraint.getName(), keys, true).toJson()
+                return new String[] {
+                    MongoIndexCommandUtil.getIndexCreationCommand(collectionName, constraint.getName(), keys, true)
+                            .toJson()
                 };
             }
 
             @Override
-            public String[] getSqlDropStrings(final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
+            public String[] getSqlDropStrings(
+                    final Constraint constraint, final Metadata metadata, final SqlStringGenerationContext context) {
                 final var collectionName = constraint.getTable().getName();
                 final var keys = MongoIndexCommandUtil.getKeys(constraint);
                 return new String[] {
-                        MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, constraint.getName(), keys).toJson()
+                    MongoIndexCommandUtil.getIndexDeletionCommand(collectionName, constraint.getName(), keys)
+                            .toJson()
                 };
             }
         };

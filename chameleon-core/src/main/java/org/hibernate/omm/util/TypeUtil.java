@@ -1,22 +1,13 @@
-/*
- * Copyright 2008-present MongoDB, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.hibernate.omm.util;
 
 import com.mongodb.assertions.Assertions;
 import com.mongodb.lang.Nullable;
+import java.math.BigDecimal;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -33,20 +24,12 @@ import org.bson.BsonValue;
 import org.bson.types.Decimal128;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 
-import java.math.BigDecimal;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
 public final class TypeUtil {
-    private TypeUtil() {
-    }
+    private TypeUtil() {}
 
     public static Integer getJdbcType(final BsonType bsonType) {
         Assertions.notNull("bsonType", bsonType);
@@ -118,13 +101,13 @@ public final class TypeUtil {
         throw new NotSupportedRuntimeException("unknown JDBC type: " + value.getClass());
     }
 
-    @Nullable
-    public static Object unwrap(@Nullable final BsonValue bsonValue) {
+    @Nullable public static Object unwrap(@Nullable final BsonValue bsonValue) {
         if (bsonValue == null) {
             return null;
         }
         return switch (bsonValue.getBsonType()) {
-            case ARRAY -> ((BsonArray) bsonValue).getValues().stream().map(TypeUtil::unwrap).toList();
+            case ARRAY -> ((BsonArray) bsonValue)
+                    .getValues().stream().map(TypeUtil::unwrap).toList();
             case BINARY -> ((BsonBinary) bsonValue).getData();
             case BOOLEAN -> ((BsonBoolean) bsonValue).getValue();
             case DATE_TIME -> ((BsonDateTime) bsonValue).getValue();

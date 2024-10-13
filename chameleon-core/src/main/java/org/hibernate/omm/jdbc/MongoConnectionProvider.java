@@ -1,21 +1,6 @@
-/*
- *
- * Copyright 2008-present MongoDB, Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
 package org.hibernate.omm.jdbc;
+
+import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
 
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
@@ -25,6 +10,10 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.lang.NonNull;
 import com.mongodb.lang.Nullable;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.Objects;
 import org.bson.assertions.Assertions;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -38,18 +27,12 @@ import org.hibernate.service.spi.ServiceRegistryImplementor;
 import org.hibernate.service.spi.Startable;
 import org.hibernate.service.spi.Stoppable;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.bson.codecs.configuration.CodecRegistries.fromRegistries;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
  */
-public class MongoConnectionProvider implements ConnectionProvider, Configurable, Startable, Stoppable, ServiceRegistryAwareService {
+public class MongoConnectionProvider
+        implements ConnectionProvider, Configurable, Startable, Stoppable, ServiceRegistryAwareService {
 
     private @MonotonicNonNull String mongoConnectionURL;
     private @MonotonicNonNull ServiceRegistryImplementor serviceRegistry;
@@ -59,15 +42,14 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
 
     @Override
     public void configure(final Map<String, Object> configurationValues) {
-        mongoConnectionURL = Assertions.assertNotNull((String) configurationValues.get(AvailableSettings.JAKARTA_JDBC_URL));
+        mongoConnectionURL =
+                Assertions.assertNotNull((String) configurationValues.get(AvailableSettings.JAKARTA_JDBC_URL));
     }
 
     @Override
     public void start() {
         ConnectionString connectionString = new ConnectionString(mongoConnectionURL);
-        CodecRegistry codecRegistry = fromRegistries(
-                MongoClientSettings.getDefaultCodecRegistry()
-        );
+        CodecRegistry codecRegistry = fromRegistries(MongoClientSettings.getDefaultCodecRegistry());
 
         MongoClientSettings clientSettings = MongoClientSettings.builder()
                 .applyConnectionString(connectionString)
@@ -124,8 +106,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         throw new UnknownUnwrapTypeException(unwrapType);
     }
 
-    @Nullable
-    public MongoDatabase getMongoDatabase() {
+    @Nullable public MongoDatabase getMongoDatabase() {
         return mongoDatabase;
     }
 
@@ -140,8 +121,7 @@ public class MongoConnectionProvider implements ConnectionProvider, Configurable
         int endIndex = connectionString.indexOf(startIndex, '?');
         if (endIndex < 0) {
             return connectionString.substring(startIndex);
-        }
-        else {
+        } else {
             return connectionString.substring(startIndex, endIndex);
         }
     }

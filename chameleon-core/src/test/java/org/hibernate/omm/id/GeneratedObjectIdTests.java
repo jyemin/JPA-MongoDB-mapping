@@ -18,6 +18,8 @@
 
 package org.hibernate.omm.id;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -30,8 +32,6 @@ import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.hibernate.omm.service.CommandRecorder;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -70,7 +70,8 @@ class GeneratedObjectIdTests {
     @Entity(name = "Book")
     static class Book {
 
-        @Id @GeneratedValue
+        @Id
+        @GeneratedValue
         @ObjectIdGenerator
         ObjectId id;
 

@@ -1,8 +1,6 @@
 package org.hibernate.omm.translate.translator;
 
+import java.util.List;
 import org.hibernate.omm.translate.translator.ast.stages.AstStage;
 
-import java.util.List;
-
-public record CollectionNameAndJoinStages(String collectionName, List<AstStage> joinStages) {
-}
+public record CollectionNameAndJoinStages(String collectionName, List<AstStage> joinStages) {}

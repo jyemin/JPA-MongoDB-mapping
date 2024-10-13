@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2008-present MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +22,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-
 import java.util.UUID;
 
 /**
@@ -34,26 +32,11 @@ import java.util.UUID;
 @Table(
         name = "books",
         indexes = {
-                @Index(
-                        name = "idx_on_single_col",
-                        columnList = "publishYear"
-                ),
-                @Index(
-                        name = "idx_on_multi_cols",
-                        columnList = "publisher,author"
-                ),
-                @Index(
-                        name = "uniq_idx_on_single_col",
-                        columnList = "isbn",
-                        unique = true
-                ),
-                @Index(
-                        name = "uniq_idx_on_multi_cols",
-                        columnList = "publisher,title",
-                        unique = true
-                )
-        }
-)
+            @Index(name = "idx_on_single_col", columnList = "publishYear"),
+            @Index(name = "idx_on_multi_cols", columnList = "publisher,author"),
+            @Index(name = "uniq_idx_on_single_col", columnList = "isbn", unique = true),
+            @Index(name = "uniq_idx_on_multi_cols", columnList = "publisher,title", unique = true)
+        })
 class Book {
 
     @Id

@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2008-present MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +17,12 @@
 
 package org.hibernate.omm.id;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import java.util.UUID;
 import org.hibernate.SessionFactory;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.omm.extension.CommandRecorderInjected;
@@ -28,10 +30,6 @@ import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.hibernate.omm.service.CommandRecorder;
 import org.junit.jupiter.api.Test;
-
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -67,7 +65,8 @@ class GeneratedUuidStorageTests {
 
     @Entity(name = "Book")
     static class Book {
-        @Id @GeneratedValue
+        @Id
+        @GeneratedValue
         @UuidGenerator
         UUID id;
 

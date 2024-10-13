@@ -8,6 +8,7 @@
 plugins {
     id 'java-library'
     alias libs.plugins.checker.framework
+    alias libs.plugins.spotless
 }
 
 repositories {
@@ -53,4 +54,21 @@ checkerFramework {
             '-AskipUses=^org\\.hibernate\\.omm\\.ast\\.AbstractMongoSqlAstTranslator$', //skipped for it comes from Hibernate
             "-Astubs=$projectDir/src/main/resources/stubs"
     ]
+}
+
+spotless {
+    java {
+        importOrder()
+
+        removeUnusedImports()
+
+        // Cleanthat will refactor your code, but it may break your style: apply it before your formatter
+        //cleanthat()
+
+        // Choose one of these formatters.
+        palantirJavaFormat()
+
+        formatAnnotations()  // fixes formatting of type annotations, see below
+
+    }
 }

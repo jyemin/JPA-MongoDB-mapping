@@ -1,23 +1,18 @@
-/*
- * Copyright 2008-present MongoDB, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.hibernate.omm.jdbc;
+
+import static java.util.Objects.requireNonNull;
 
 import com.mongodb.assertions.Assertions;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.lang.Nullable;
+import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.Date;
+import java.sql.ResultSetMetaData;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.List;
 import org.bson.BsonDocument;
 import org.bson.BsonNull;
 import org.bson.BsonValue;
@@ -32,17 +27,6 @@ import org.hibernate.omm.util.TypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.math.BigDecimal;
-import java.sql.Array;
-import java.sql.Date;
-import java.sql.ResultSetMetaData;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.List;
-
-import static java.util.Objects.requireNonNull;
-
 /**
  * @author Nathan Xu
  * @since 1.0.0
@@ -55,8 +39,7 @@ public class MongoResultSet implements ResultSetAdapter {
 
     private final List<String> fieldNames;
 
-    @Nullable
-    private BsonDocument currentDocument;
+    @Nullable private BsonDocument currentDocument;
 
     private BsonValue lastRead;
 
@@ -106,8 +89,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    @Nullable
-    public String getString(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public String getString(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : bsonValue.asString().getValue();
     }
@@ -155,38 +137,35 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    @Nullable
-    public byte[] getBytes(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public byte[] getBytes(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : bsonValue.asBinary().getData();
     }
 
     @Override
-    @Nullable
-    public Date getDate(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public Date getDate(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : new Date(bsonValue.asDateTime().getValue());
     }
 
     @Override
-    @Nullable
-    public Time getTime(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public Time getTime(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : new Time(bsonValue.asDateTime().getValue());
     }
 
     @Override
-    @Nullable
-    public Timestamp getTimestamp(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public Timestamp getTimestamp(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : new Timestamp(bsonValue.asDateTime().getValue());
     }
 
     @Override
-    @Nullable
-    public BigDecimal getBigDecimal(final int columnIndex) throws SimulatedSQLException {
+    @Nullable public BigDecimal getBigDecimal(final int columnIndex) throws SimulatedSQLException {
         BsonValue bsonValue = getBsonValue(columnIndex);
-        return bsonValue.isNull() ? null : bsonValue.asDecimal128().decimal128Value().bigDecimalValue();
+        return bsonValue.isNull()
+                ? null
+                : bsonValue.asDecimal128().decimal128Value().bigDecimalValue();
     }
 
     @Override
@@ -213,8 +192,7 @@ public class MongoResultSet implements ResultSetAdapter {
     }
 
     @Override
-    @Nullable
-    public Object getObject(final int columnIndex, final Class type) throws SimulatedSQLException {
+    @Nullable public Object getObject(final int columnIndex, final Class type) throws SimulatedSQLException {
         Assertions.notNull("type", type);
         BsonValue bsonValue = getBsonValue(columnIndex);
         return bsonValue.isNull() ? null : type.cast(bsonValue);
@@ -246,7 +224,8 @@ public class MongoResultSet implements ResultSetAdapter {
         return fieldNames.get(columnIndex - 1);
     }
 
-    private void beforeAccessCurrentDocumentField() throws ResultSetClosedSQLException, CurrentDocumentNullSQLException {
+    private void beforeAccessCurrentDocumentField()
+            throws ResultSetClosedSQLException, CurrentDocumentNullSQLException {
         if (closed) {
             throw new ResultSetClosedSQLException();
         }
@@ -254,5 +233,4 @@ public class MongoResultSet implements ResultSetAdapter {
             throw new CurrentDocumentNullSQLException();
         }
     }
-
 }

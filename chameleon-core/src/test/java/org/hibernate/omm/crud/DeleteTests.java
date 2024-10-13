@@ -1,5 +1,7 @@
 package org.hibernate.omm.crud;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import org.hibernate.SessionFactory;
@@ -7,8 +9,6 @@ import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -68,6 +68,7 @@ class DeleteTests {
         Long id;
 
         Book() {}
+
         Book(final Long id) {
             this.id = id;
         }

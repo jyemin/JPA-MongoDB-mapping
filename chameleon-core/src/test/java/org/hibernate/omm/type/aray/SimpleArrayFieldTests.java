@@ -1,5 +1,4 @@
 /*
- *
  * Copyright 2008-present MongoDB, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,22 +17,21 @@
 
 package org.hibernate.omm.type.aray;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Collections;
+import java.util.List;
 import org.hibernate.SessionFactory;
 import org.hibernate.omm.extension.MongoDatabaseInjected;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -59,8 +57,7 @@ class SimpleArrayFieldTests {
             return movie;
         });
 
-        var doc = mongoDatabase.getCollection("movies")
-                .find(Filters.eq(id)).first();
+        var doc = mongoDatabase.getCollection("movies").find(Filters.eq(id)).first();
 
         assertThat(doc).isNotNull();
         assertThat(doc.getList("tags", String.class)).isEqualTo(insertedMovie.tags);
@@ -109,17 +106,22 @@ class SimpleArrayFieldTests {
         sessionFactory.inTransaction(session -> {
             var queryStr = "from Movie m where array_contains(m.tags, :tag)";
 
-            var classicMovies = session.createQuery(queryStr, Movie.class).setParameter("tag", classicTag).list();
+            var classicMovies = session.createQuery(queryStr, Movie.class)
+                    .setParameter("tag", classicTag)
+                    .list();
             assertThat(classicMovies).extracting(Movie::getId).containsExactly(2, 3);
 
-            var romanticMovies = session.createQuery(queryStr, Movie.class).setParameter("tag", romanticTag).list();
+            var romanticMovies = session.createQuery(queryStr, Movie.class)
+                    .setParameter("tag", romanticTag)
+                    .list();
             assertThat(romanticMovies).extracting(Movie::getId).containsExactly(1, 3);
         });
 
         sessionFactory.inTransaction(session -> {
             var queryStr = "from Movie m where array_includes(m.tags, :tags)";
-            var classicRomanticMovies =
-                    session.createQuery(queryStr, Movie.class).setParameter("tags", new String[]{classicTag, romanticTag}).list();
+            var classicRomanticMovies = session.createQuery(queryStr, Movie.class)
+                    .setParameter("tags", new String[] {classicTag, romanticTag})
+                    .list();
             assertThat(classicRomanticMovies).extracting(Movie::getId).containsExactly(3);
         });
     }
@@ -130,8 +132,7 @@ class SimpleArrayFieldTests {
         @Id
         Integer id;
 
-        Movie() {
-        }
+        Movie() {}
 
         Movie(Integer id) {
             this.id = id;
@@ -142,6 +143,5 @@ class SimpleArrayFieldTests {
         }
 
         List<String> tags;
-
     }
 }

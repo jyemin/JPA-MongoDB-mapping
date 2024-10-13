@@ -1,28 +1,15 @@
-/*
- *
- * Copyright 2008-present MongoDB, Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
 package org.hibernate.omm.translate.translator;
 
+import static org.hibernate.omm.translate.translator.AttachmentKeys.fieldName;
+import static org.hibernate.omm.translate.translator.AttachmentKeys.filter;
+
+import java.io.StringWriter;
 import org.bson.BsonNull;
 import org.bson.json.JsonWriter;
 import org.hibernate.LockMode;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.hibernate.omm.translate.AbstractSqlAstTranslator;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
+import org.hibernate.omm.translate.AbstractSqlAstTranslator;
 import org.hibernate.omm.translate.translator.ast.AstLiteralValue;
 import org.hibernate.omm.translate.translator.ast.AstNode;
 import org.hibernate.omm.translate.translator.ast.AstPlaceholder;
@@ -47,11 +34,6 @@ import org.hibernate.sql.ast.tree.predicate.NullnessPredicate;
 import org.hibernate.sql.ast.tree.predicate.Predicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
-
-import java.io.StringWriter;
-
-import static org.hibernate.omm.translate.translator.AttachmentKeys.fieldName;
-import static org.hibernate.omm.translate.translator.AttachmentKeys.filter;
 
 /**
  * Contains common stuff shared between {@link MQLTranslator} and {@link BsonCommandTranslator}, e.g.:
@@ -113,7 +95,8 @@ public class AbstractBsonTranslator<T extends JdbcOperation> extends AbstractSql
 
     @Override
     protected void renderParameterAsParameter(final int position, final JdbcParameter jdbcParameter) {
-        final JdbcType jdbcType = jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
+        final JdbcType jdbcType =
+                jdbcParameter.getExpressionType().getJdbcMapping(0).getJdbcType();
         assert jdbcType != null;
         final String parameterMarker = parameterMarkerStrategy.createMarker(position, jdbcType);
         jdbcType.appendWriteExpression(parameterMarker, this, dialect);
@@ -123,7 +106,8 @@ public class AbstractBsonTranslator<T extends JdbcOperation> extends AbstractSql
     @Override
     protected void visitWhereClause(final Predicate whereClauseRestrictions) {
         final Predicate additionalWherePredicate = this.additionalWherePredicate;
-        final boolean existsWhereClauseRestrictions = whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
+        final boolean existsWhereClauseRestrictions =
+                whereClauseRestrictions != null && !whereClauseRestrictions.isEmpty();
         final boolean existsAdditionalWherePredicate = additionalWherePredicate != null;
         if (existsWhereClauseRestrictions || existsAdditionalWherePredicate) {
             // TODO: entered but untested branch
@@ -134,8 +118,8 @@ public class AbstractBsonTranslator<T extends JdbcOperation> extends AbstractSql
                 }
                 if (additionalWherePredicate != null) {
                     throw new UnsupportedOperationException();
-//                    this.additionalWherePredicate = null;
-//                    additionalWherePredicate.accept(this);
+                    //                    this.additionalWherePredicate = null;
+                    //                    additionalWherePredicate.accept(this);
                 }
             } finally {
                 getClauseStack().pop();
@@ -154,10 +138,15 @@ public class AbstractBsonTranslator<T extends JdbcOperation> extends AbstractSql
 
         String fieldName = mqlAstState.expect(fieldName(), () -> expression.accept(this));
 
-        mqlAstState.attach(filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
-                new AstComparisonFilterOperation(
-                        nullnessPredicate.isNegated() ? AstComparisonFilterOperator.NE : AstComparisonFilterOperator.EQ,
-                        new AstLiteralValue(BsonNull.VALUE))));
+        mqlAstState.attach(
+                filter(),
+                new AstFieldOperationFilter(
+                        new AstFilterField(fieldName),
+                        new AstComparisonFilterOperation(
+                                nullnessPredicate.isNegated()
+                                        ? AstComparisonFilterOperator.NE
+                                        : AstComparisonFilterOperator.EQ,
+                                new AstLiteralValue(BsonNull.VALUE))));
     }
 
     @Override
@@ -180,16 +169,19 @@ public class AbstractBsonTranslator<T extends JdbcOperation> extends AbstractSql
         throw new NotSupportedRuntimeException();
     }
 
-    protected void renderComparisonStandard(final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
+    protected void renderComparisonStandard(
+            final Expression lhs, final ComparisonOperator operator, final Expression rhs) {
         if (inAggregateExpressionScope) {
             throw new NotSupportedRuntimeException();
         }
         String fieldName = mqlAstState.expect(AttachmentKeys.fieldName(), () -> lhs.accept(this));
 
-        AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
-                rhs.accept(this));
-        mqlAstState.attach(AttachmentKeys.filter(), new AstFieldOperationFilter(new AstFilterField(fieldName),
-                new AstComparisonFilterOperation(convertOperator(operator), value)));
+        AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> rhs.accept(this));
+        mqlAstState.attach(
+                AttachmentKeys.filter(),
+                new AstFieldOperationFilter(
+                        new AstFilterField(fieldName),
+                        new AstComparisonFilterOperation(convertOperator(operator), value)));
     }
 
     AstComparisonFilterOperator convertOperator(final ComparisonOperator operator) {

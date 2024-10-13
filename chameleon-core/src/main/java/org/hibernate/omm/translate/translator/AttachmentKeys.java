@@ -1,5 +1,10 @@
 package org.hibernate.omm.translate.translator;
 
+import static com.mongodb.assertions.Assertions.assertTrue;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.hibernate.omm.translate.translator.ast.AstFieldUpdate;
 import org.hibernate.omm.translate.translator.ast.AstSortField;
 import org.hibernate.omm.translate.translator.ast.AstValue;
@@ -7,12 +12,6 @@ import org.hibernate.omm.translate.translator.ast.filters.AstFilter;
 import org.hibernate.omm.translate.translator.ast.stages.AstLookupStage;
 import org.hibernate.omm.translate.translator.ast.stages.AstProjectStageSpecification;
 import org.hibernate.omm.translate.translator.ast.stages.AstStage;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import static com.mongodb.assertions.Assertions.assertTrue;
 
 public class AttachmentKeys {
 
@@ -26,12 +25,13 @@ public class AttachmentKeys {
     private static final AttachmentKey<AstSortField> SORT_FIELD = new DefaultAttachmentKey<>("sortField");
     private static final AttachmentKey<List<AstStage>> JOIN_STAGES = new DefaultAttachmentKey<>("joinStages");
     private static final AttachmentKey<AstLookupStage> LOOKUP_STAGE = new DefaultAttachmentKey<>("lookupStage");
-    private static final AttachmentKey<CollectionNameAndJoinStages> COLLECTION_NAME_AND_JOIN_STAGES = new DefaultAttachmentKey<>("collectionNameAndJoinStages");
+    private static final AttachmentKey<CollectionNameAndJoinStages> COLLECTION_NAME_AND_JOIN_STAGES =
+            new DefaultAttachmentKey<>("collectionNameAndJoinStages");
     private static final AttachmentKey<List<AstFieldUpdate>> FIELD_UPDATES = new DefaultAttachmentKey<>("fieldUpdates");
     private static final AttachmentKey<AstFieldUpdate> FIELD_UPDATE = new DefaultAttachmentKey<>("fieldUpdate");
 
     public static AttachmentKey<String> collectionName() {
-       return COLLECTION_NAME;
+        return COLLECTION_NAME;
     }
 
     public static AttachmentKey<List<AstProjectStageSpecification>> projectStageSpecifications() {
@@ -110,5 +110,4 @@ public class AttachmentKeys {
             return key;
         }
     }
-
 }

@@ -14,6 +14,7 @@ checker-framework = "0.6.42"
 google-auto-service = "1.1.1"
 aspectj = "1.9.22.1"
 freefair-aspectj-weaving = "8.10"
+spotless = "6.25.0"
 
 [libraries]
 hibernate-orm-core = { module = "org.hibernate.orm:hibernate-core", version.ref = "hibernate-orm-core" }
@@ -30,3 +31,4 @@ aspectj-rt = { module = "org.aspectj:aspectjrt", version.ref = "aspectj" }
 [plugins]
 checker-framework = { id = "org.checkerframework", version.ref = "checker-framework" }
 freefair-aspectj-weaving = { id = "io.freefair.aspectj.post-compile-weaving", version.ref = "freefair-aspectj-weaving" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

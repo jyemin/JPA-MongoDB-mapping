@@ -1,18 +1,3 @@
-/*
- * Copyright 2008-present MongoDB, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.hibernate.omm.jdbc;
 
 import com.mongodb.assertions.Assertions;
@@ -22,25 +7,24 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.lang.Nullable;
-import org.bson.BsonBoolean;
-import org.bson.BsonDocument;
-import org.bson.BsonValue;
-import org.hibernate.omm.translate.translator.MQLTranslator;
-import org.hibernate.omm.jdbc.adapter.StatementAdapter;
-import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
-import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
-import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
-import org.hibernate.omm.service.CommandRecorder;
-import org.hibernate.sql.ast.tree.select.SelectClause;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.bson.BsonBoolean;
+import org.bson.BsonDocument;
+import org.bson.BsonValue;
+import org.hibernate.omm.jdbc.adapter.StatementAdapter;
+import org.hibernate.omm.jdbc.exception.NotSupportedSQLException;
+import org.hibernate.omm.jdbc.exception.SimulatedSQLException;
+import org.hibernate.omm.jdbc.exception.StatementClosedSQLException;
+import org.hibernate.omm.service.CommandRecorder;
+import org.hibernate.omm.translate.translator.MQLTranslator;
+import org.hibernate.sql.ast.tree.select.SelectClause;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Nathan Xu
@@ -50,8 +34,7 @@ public class MongoStatement implements StatementAdapter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoStatement.class);
 
-    @Nullable
-    public final CommandRecorder commandRecorder;
+    @Nullable public final CommandRecorder commandRecorder;
 
     private final MongoDatabase mongoDatabase;
     private final ClientSession clientSession;
@@ -59,7 +42,10 @@ public class MongoStatement implements StatementAdapter {
 
     private boolean closed;
 
-    public MongoStatement(final MongoDatabase mongoDatabase, final ClientSession clientSession, final Connection connection,
+    public MongoStatement(
+            final MongoDatabase mongoDatabase,
+            final ClientSession clientSession,
+            final Connection connection,
             final @Nullable CommandRecorder commandRecorder) {
         Assertions.notNull("mongoDatabase", mongoDatabase);
         Assertions.notNull("clientSession", clientSession);
@@ -79,11 +65,13 @@ public class MongoStatement implements StatementAdapter {
         replaceParameterMarkers(command);
         logAndRecordCommand(command);
 
-        var collection = mongoDatabase.getCollection(command.getString("aggregate").getValue(),
-                BsonDocument.class);
-        var pipeline = command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
+        var collection =
+                mongoDatabase.getCollection(command.getString("aggregate").getValue(), BsonDocument.class);
+        var pipeline =
+                command.getArray("pipeline").stream().map(BsonValue::asDocument).toList();
         var cursor = collection.aggregate(clientSession, pipeline).cursor();
-        var fieldNames = getFieldNamesFromProjectDocument(pipeline.get(pipeline.size() - 1).asDocument().getDocument("$project"));
+        var fieldNames = getFieldNamesFromProjectDocument(
+                pipeline.get(pipeline.size() - 1).asDocument().getDocument("$project"));
         return new MongoResultSet(cursor, fieldNames);
     }
 
@@ -119,8 +107,8 @@ public class MongoStatement implements StatementAdapter {
         logAndRecordCommand(command);
 
         String commandName = command.getFirstKey();
-        MongoCollection<BsonDocument> collection = mongoDatabase.getCollection(command.getString(commandName).getValue(),
-                BsonDocument.class);
+        MongoCollection<BsonDocument> collection =
+                mongoDatabase.getCollection(command.getString(commandName).getValue(), BsonDocument.class);
         switch (commandName) {
             case "insert":
                 BsonDocument document = command.getArray("documents").get(0).asDocument();
@@ -129,8 +117,10 @@ public class MongoStatement implements StatementAdapter {
             case "update":
                 BsonDocument updateDocument = command.getArray("updates").get(0).asDocument();
                 UpdateResult updateResult = !updateDocument.getBoolean("multi").getValue()
-                        ? collection.updateOne(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"))
-                        : collection.updateMany(clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
+                        ? collection.updateOne(
+                                clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"))
+                        : collection.updateMany(
+                                clientSession, updateDocument.getDocument("q"), updateDocument.getDocument("u"));
                 return (int) updateResult.getModifiedCount();
             case "delete":
                 BsonDocument deleteDocument = command.getArray("deletes").get(0).asDocument();
@@ -143,8 +133,7 @@ public class MongoStatement implements StatementAdapter {
         }
     }
 
-    protected void replaceParameterMarkers(final BsonDocument command) {
-    }
+    protected void replaceParameterMarkers(final BsonDocument command) {}
 
     private void logAndRecordCommand(final BsonDocument command) {
         if (LOG.isDebugEnabled()) {
@@ -191,8 +180,7 @@ public class MongoStatement implements StatementAdapter {
     }
 
     @Override
-    @Nullable
-    public ResultSet getResultSet() throws SimulatedSQLException {
+    @Nullable public ResultSet getResultSet() throws SimulatedSQLException {
         throwExceptionIfClosed();
         throw new NotSupportedSQLException();
     }

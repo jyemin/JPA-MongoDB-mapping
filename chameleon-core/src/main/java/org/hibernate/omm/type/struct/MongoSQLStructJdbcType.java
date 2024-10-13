@@ -1,23 +1,10 @@
-/*
- *
- * Copyright 2008-present MongoDB, Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
-
 package org.hibernate.omm.type.struct;
 
+import java.sql.CallableStatement;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import org.bson.BsonDocument;
 import org.hibernate.dialect.StructHelper;
 import org.hibernate.metamodel.mapping.EmbeddableMappingType;
@@ -32,20 +19,13 @@ import org.hibernate.type.descriptor.jdbc.BasicBinder;
 import org.hibernate.type.descriptor.jdbc.BasicExtractor;
 import org.hibernate.type.descriptor.jdbc.StructJdbcType;
 
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-
 public class MongoSQLStructJdbcType implements StructJdbcType {
     public static final MongoSQLStructJdbcType INSTANCE = new MongoSQLStructJdbcType();
 
     private String structTypeName;
     private EmbeddableMappingType embeddableMappingType;
 
-    private MongoSQLStructJdbcType() {
-    }
+    private MongoSQLStructJdbcType() {}
 
     private MongoSQLStructJdbcType(EmbeddableMappingType embeddableMappingType, String structTypeName) {
         this.embeddableMappingType = embeddableMappingType;
@@ -54,9 +34,7 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
 
     @Override
     public MongoSQLStructJdbcType resolveAggregateJdbcType(
-            EmbeddableMappingType mappingType,
-            String structTypeName,
-            RuntimeModelCreationContext creationContext) {
+            EmbeddableMappingType mappingType, String structTypeName, RuntimeModelCreationContext creationContext) {
         return new MongoSQLStructJdbcType(mappingType, structTypeName);
     }
 
@@ -71,7 +49,8 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
         final var document = new BsonDocument();
         final Object[] jdbcValues = embeddableMappingType.getValues(domainValue);
         for (int i = 0; i < jdbcValues.length; i++) {
-            document.put(embeddableMappingType.getJdbcValueSelectable(i).getSelectableName(), TypeUtil.wrap(jdbcValues[i]));
+            document.put(
+                    embeddableMappingType.getJdbcValueSelectable(i).getSelectableName(), TypeUtil.wrap(jdbcValues[i]));
         }
         return document;
     }
@@ -79,7 +58,8 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
     @Override
     public Object[] extractJdbcValues(Object rawJdbcValue, WrapperOptions options) {
         assert rawJdbcValue instanceof BsonDocument;
-        return ((BsonDocument) rawJdbcValue).values().stream().map(TypeUtil::unwrap).toArray();
+        return ((BsonDocument) rawJdbcValue)
+                .values().stream().map(TypeUtil::unwrap).toArray();
     }
 
     @Override
@@ -140,6 +120,3 @@ public class MongoSQLStructJdbcType implements StructJdbcType {
         return StructHelper.getJdbcValues(embeddableMappingType, null, value, options);
     }
 }
-
-
-

@@ -1,18 +1,3 @@
-/*
- * Copyright 2008-present MongoDB, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.hibernate.omm.translate;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
@@ -30,17 +15,20 @@ import org.hibernate.sql.model.jdbc.JdbcMutationOperation;
 public class MongoTranslatorFactory implements SqlAstTranslatorFactory {
 
     @Override
-    public SqlAstTranslator<JdbcOperationQuerySelect> buildSelectTranslator(final SessionFactoryImplementor sessionFactory, final SelectStatement statement) {
+    public SqlAstTranslator<JdbcOperationQuerySelect> buildSelectTranslator(
+            final SessionFactoryImplementor sessionFactory, final SelectStatement statement) {
         return new MQLTranslator(sessionFactory, statement);
     }
 
     @Override
-    public SqlAstTranslator<? extends JdbcOperationQueryMutation> buildMutationTranslator(final SessionFactoryImplementor sessionFactory, final MutationStatement statement) {
+    public SqlAstTranslator<? extends JdbcOperationQueryMutation> buildMutationTranslator(
+            final SessionFactoryImplementor sessionFactory, final MutationStatement statement) {
         return new BsonCommandTranslator<>(sessionFactory, statement);
     }
 
     @Override
-    public <O extends JdbcMutationOperation> SqlAstTranslator<O> buildModelMutationTranslator(final TableMutation<O> mutation, final SessionFactoryImplementor sessionFactory) {
+    public <O extends JdbcMutationOperation> SqlAstTranslator<O> buildModelMutationTranslator(
+            final TableMutation<O> mutation, final SessionFactoryImplementor sessionFactory) {
         return new BsonCommandTranslator<>(sessionFactory, mutation);
     }
 }

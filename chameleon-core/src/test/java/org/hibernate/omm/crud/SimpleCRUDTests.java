@@ -1,13 +1,13 @@
 package org.hibernate.omm.crud;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import org.hibernate.SessionFactory;
 import org.hibernate.omm.extension.MongoIntegrationTest;
 import org.hibernate.omm.extension.SessionFactoryInjected;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Nathan Xu
@@ -36,7 +36,8 @@ class SimpleCRUDTests {
     void testInsert() {
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1,
+        // author: 1, publishYear: 1, title: 1 } } ] }
         var insertedBook = insertBook();
 
         sessionFactory.inTransaction(session -> {
@@ -71,7 +72,8 @@ class SimpleCRUDTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1,
+        // author: 1, publishYear: 1, title: 1 } } ] }
         sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, id);
@@ -85,7 +87,8 @@ class SimpleCRUDTests {
         var insertedBook = insertBook();
 
         // the following JSON command will be issued:
-        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1, author: 1, publishYear: 1, title: 1 } } ] }
+        // { aggregate: "books", pipeline: [ { $match: { _id: { $eq: ? } }}, { $project: { _id: 1,
+        // author: 1, publishYear: 1, title: 1 } } ] }
         sessionFactory.inTransaction(session -> {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
@@ -102,7 +105,8 @@ class SimpleCRUDTests {
         int newPublishYear = 1866;
 
         // the following JSON command will be issued:
-        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
+        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear:
+        // ?, title: ? } } } ] }
         sessionFactory.inTransaction(session -> {
             var book = new Book();
             session.load(book, id);
@@ -115,8 +119,9 @@ class SimpleCRUDTests {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             var book = query.getSingleResult();
-            assertThat(book).extracting("author", "title", "publishYear")
-                            .containsOnly(newAuthor, newTitle, newPublishYear);
+            assertThat(book)
+                    .extracting("author", "title", "publishYear")
+                    .containsOnly(newAuthor, newTitle, newPublishYear);
         });
     }
 
@@ -128,11 +133,11 @@ class SimpleCRUDTests {
         int newPublishYear = 1866;
 
         // the following JSON command will be issued:
-        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear: ?, title: ? } } } ] }
+        // { update: "books", updates: [ { q: { _id: { $eq: ? } }, u: { $set: { author: ?, publishYear:
+        // ?, title: ? } } } ] }
         sessionFactory.inTransaction(session -> {
-            var update = session.createMutationQuery("update Book " +
-                    "set author = :author, title = :title, publishYear = :publishYear " +
-                    "where id = :id");
+            var update = session.createMutationQuery("update Book "
+                    + "set author = :author, title = :title, publishYear = :publishYear " + "where id = :id");
             update.setParameter("id", id);
             update.setParameter("author", newAuthor);
             update.setParameter("title", newTitle);
@@ -143,7 +148,8 @@ class SimpleCRUDTests {
             var query = session.createQuery("from Book where id = :id", Book.class);
             query.setParameter("id", id);
             var book = query.getSingleResult();
-            assertThat(book).extracting("author", "title", "publishYear")
+            assertThat(book)
+                    .extracting("author", "title", "publishYear")
                     .containsOnly(newAuthor, newTitle, newPublishYear);
         });
     }
@@ -159,6 +165,5 @@ class SimpleCRUDTests {
         String author;
 
         int publishYear;
-
     }
 }

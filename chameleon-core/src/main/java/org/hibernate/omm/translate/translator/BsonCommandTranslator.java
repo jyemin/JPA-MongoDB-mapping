@@ -1,22 +1,7 @@
-/*
- *
- * Copyright 2008-present MongoDB, Inc.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- */
 package org.hibernate.omm.translate.translator;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
 import org.hibernate.omm.exception.NotSupportedRuntimeException;
 import org.hibernate.omm.translate.translator.ast.AstElement;
@@ -50,9 +35,6 @@ import org.hibernate.sql.model.ast.RestrictedTableMutation;
 import org.hibernate.sql.model.internal.TableDeleteStandard;
 import org.hibernate.sql.model.internal.TableInsertStandard;
 import org.hibernate.sql.model.internal.TableUpdateStandard;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Contains mutation Bson command rendering logic, including:
@@ -90,12 +72,14 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
             renderInsertIntoNoColumns(tableInsert);
             return;
         }
-        String collectionName = mqlAstState.expect(AttachmentKeys.collectionName(), () -> renderIntoIntoAndTable(tableInsert));
+        String collectionName =
+                mqlAstState.expect(AttachmentKeys.collectionName(), () -> renderIntoIntoAndTable(tableInsert));
 
         List<AstElement> elements = new ArrayList<>();
         tableInsert.forEachValueBinding((columnPosition, columnValueBinding) -> {
-            AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
-                    columnValueBinding.getValueExpression().accept(this));
+            AstValue value = mqlAstState.expect(
+                    AttachmentKeys.fieldValue(),
+                    () -> columnValueBinding.getValueExpression().accept(this));
             elements.add(new AstElement(columnValueBinding.getColumnReference().getColumnExpression(), value));
         });
 
@@ -104,7 +88,8 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
 
     @Override
     protected void renderIntoIntoAndTable(final TableInsertStandard tableInsert) {
-        mqlAstState.attach(AttachmentKeys.collectionName(), tableInsert.getMutatingTable().getTableName());
+        mqlAstState.attach(
+                AttachmentKeys.collectionName(), tableInsert.getMutatingTable().getTableName());
         registerAffectedTable(tableInsert.getMutatingTable().getTableName());
     }
 
@@ -123,9 +108,15 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
 
             if (targetColumnReferences != null) {
                 List<Values> targetColumnValuesList = statement.getValuesList();
-                for (int valuesIndex = 0; valuesIndex < statement.getValuesList().size(); valuesIndex++) {
+                for (int valuesIndex = 0;
+                        valuesIndex < statement.getValuesList().size();
+                        valuesIndex++) {
                     for (int columnIndex = 0; columnIndex < targetColumnReferences.size(); columnIndex++) {
-                        targetColumnValuesList.get(valuesIndex).getExpressions().get(columnIndex).accept(this);
+                        targetColumnValuesList
+                                .get(valuesIndex)
+                                .getExpressions()
+                                .get(columnIndex)
+                                .accept(this);
                     }
                 }
             }
@@ -152,20 +143,22 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
             try {
                 List<AstFilter> filters = new ArrayList<>();
                 tableDelete.forEachKeyBinding((columnPosition, columnValueBinding) -> {
-                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
-                            columnValueBinding.getValueExpression().accept(this));
+                    AstValue value = mqlAstState.expect(
+                            AttachmentKeys.fieldValue(),
+                            () -> columnValueBinding.getValueExpression().accept(this));
                     filters.add(new AstFieldOperationFilter(
-                            new AstFilterField(columnValueBinding.getColumnReference().getColumnExpression()),
+                            new AstFilterField(
+                                    columnValueBinding.getColumnReference().getColumnExpression()),
                             new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
-//                if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
-//                    // TODO: untested path
-//                }
-//
-//                if (tableDelete.getWhereFragment() != null) {
-//                    // TODO: untested path
-//                }
+                //                if (tableDelete.getNumberOfOptimisticLockBindings() > 0) {
+                //                    // TODO: untested path
+                //                }
+                //
+                //                if (tableDelete.getWhereFragment() != null) {
+                //                    // TODO: untested path
+                //                }
                 root = new DeleteCommand(tableDelete.getMutatingTable().getTableName(), new AstAndFilter(filters));
             } finally {
                 getClauseStack().pop();
@@ -221,8 +214,8 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
         List<AstFieldUpdate> updates = new ArrayList<>();
         try {
             int predicates = tableUpdate.getNumberOfKeyBindings() + tableUpdate.getNumberOfOptimisticLockBindings();
-            boolean hasWhereFragment =
-                    tableUpdate instanceof TableUpdateStandard tableUpdateStandard && tableUpdateStandard.getWhereFragment() != null;
+            boolean hasWhereFragment = tableUpdate instanceof TableUpdateStandard tableUpdateStandard
+                    && tableUpdateStandard.getWhereFragment() != null;
             if (hasWhereFragment) {
                 predicates++;
             }
@@ -230,23 +223,25 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
                 // TODO: untested
             } else {
                 tableUpdate.forEachKeyBinding((position, columnValueBinding) -> {
-                    AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
-                            columnValueBinding.getValueExpression().accept(this));
+                    AstValue value = mqlAstState.expect(
+                            AttachmentKeys.fieldValue(),
+                            () -> columnValueBinding.getValueExpression().accept(this));
                     filters.add(new AstFieldOperationFilter(
-                            new AstFilterField(columnValueBinding.getColumnReference().getColumnExpression()),
+                            new AstFilterField(
+                                    columnValueBinding.getColumnReference().getColumnExpression()),
                             new AstComparisonFilterOperation(AstComparisonFilterOperator.EQ, value)));
                 });
 
-//                if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
-//                    // TODO: untested
-//                }
-//
-//                if (hasWhereFragment) {
-//                    // TODO: untested
-//                }
-//                if (predicates > 1) {
-//                    // TODO: untested
-//                }
+                //                if (tableUpdate.getNumberOfOptimisticLockBindings() > 0) {
+                //                    // TODO: untested
+                //                }
+                //
+                //                if (hasWhereFragment) {
+                //                    // TODO: untested
+                //                }
+                //                if (predicates > 1) {
+                //                    // TODO: untested
+                //                }
             }
         } finally {
             getClauseStack().pop();
@@ -254,15 +249,16 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
         getClauseStack().push(Clause.SET);
         try {
             tableUpdate.forEachValueBinding((columnPosition, columnValueBinding) -> {
-                AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () ->
-                        columnValueBinding.getValueExpression().accept(this));
-                updates.add(new AstFieldUpdate(columnValueBinding.getColumnReference().getColumnExpression(), value));
+                AstValue value = mqlAstState.expect(
+                        AttachmentKeys.fieldValue(),
+                        () -> columnValueBinding.getValueExpression().accept(this));
+                updates.add(new AstFieldUpdate(
+                        columnValueBinding.getColumnReference().getColumnExpression(), value));
             });
         } finally {
             getClauseStack().pop();
         }
-        root = new UpdateCommand(tableUpdate.getMutatingTable().getTableName(), new AstAndFilter(filters),
-                updates);
+        root = new UpdateCommand(tableUpdate.getMutatingTable().getTableName(), new AstAndFilter(filters), updates);
     }
 
     @Override
@@ -273,9 +269,10 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
         if (statement.getFromClause().getRoots().get(0).hasRealJoins()) {
             throw new NotSupportedRuntimeException("update statement with root having real joins not supported");
         }
-        AstFilter filter = mqlAstState.expect(AttachmentKeys.filter(), () -> visitWhereClause(statement.getRestriction()));
-        List<AstFieldUpdate> updates = mqlAstState.expect(AttachmentKeys.fieldUpdates(), () ->
-                renderSetClause(statement.getAssignments()));
+        AstFilter filter =
+                mqlAstState.expect(AttachmentKeys.filter(), () -> visitWhereClause(statement.getRestriction()));
+        List<AstFieldUpdate> updates =
+                mqlAstState.expect(AttachmentKeys.fieldUpdates(), () -> renderSetClause(statement.getAssignments()));
         root = new UpdateCommand(statement.getTargetTable().getTableExpression(), filter, updates);
     }
 
@@ -305,7 +302,8 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
 
     @Override
     protected void visitSetAssignment(final Assignment assignment) {
-        final List<ColumnReference> columnReferences = assignment.getAssignable().getColumnReferences();
+        final List<ColumnReference> columnReferences =
+                assignment.getAssignable().getColumnReferences();
         if (columnReferences.size() == 1) {
             ColumnReference columnReference = columnReferences.get(0);
             if (columnReference.getQualifier() != null) {
@@ -317,8 +315,8 @@ public class BsonCommandTranslator<T extends JdbcOperation> extends AbstractBson
                 throw new NotSupportedRuntimeException();
             }
             AstValue value = mqlAstState.expect(AttachmentKeys.fieldValue(), () -> assignedValue.accept(this));
-            mqlAstState.attach(AttachmentKeys.fieldUpdate(), new AstFieldUpdate(columnReference.getColumnExpression(),
-                    value));
+            mqlAstState.attach(
+                    AttachmentKeys.fieldUpdate(), new AstFieldUpdate(columnReference.getColumnExpression(), value));
         } else {
             throw new NotSupportedRuntimeException();
         }
