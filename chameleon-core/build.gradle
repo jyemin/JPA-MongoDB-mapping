@@ -66,7 +66,7 @@ spotless {
         //cleanthat()
 
         // Choose one of these formatters.
-        palantirJavaFormat()
+        palantirJavaFormat().style("GOOGLE")
 
         formatAnnotations()  // fixes formatting of type annotations, see below
 
